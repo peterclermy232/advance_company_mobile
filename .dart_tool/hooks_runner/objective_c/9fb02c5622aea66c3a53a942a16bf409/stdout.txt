@@ -1,0 +1,61 @@
+Running `(cd /Users/peteratito/.pub-cache/hosted/pub.dev/objective_c-9.2.2/; ANDROID_HOME=/Users/peteratito/Library/Android/sdk TMPDIR=/var/folders/mv/jxm1hzmd1dxf_gqj9_pv8q2m0000gn/T/ PATH=/opt/homebrew/Cellar/pyenv-virtualenv/1.2.4/shims:/Users/peteratito/.pyenv/shims:/Users/peteratito/.pyenv/bin:/opt/homebrew/Cellar/openjdk@17/17.0.15/libexec/openjdk.jdk/Contents/Home/bin:/Users/peteratito/.nvm/versions/node/v16.20.2/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/peteratito/.pyenv/bin:/opt/homebrew/Cellar/openjdk@17/17.0.15/libexec/openjdk.jdk/Contents/Home/bin:/Users/peteratito/.nvm/versions/node/v16.20.2/bin:/opt/homebrew/Cellar/pyenv-virtualenv/1.2.4/shims:/opt/homebrew/Cellar/pyenv-virtualenv/1.2.4/shims:/Users/peteratito/Library/Application Support/Code/User/globalStorage/github.copilot-chat/debugCommand:/Users/peteratito/Library/Application Support/Code/User/globalStorage/github.copilot-chat/copilotCli:/Users/peteratito/.nvm/versions/node/v16.20.2/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/share/dotnet:~/.dotnet/tools:/Users/peteratito/Library/Application Support/Code/User/globalStorage/github.copilot-chat/debugCommand:/Users/peteratito/Library/Application Support/Code/User/globalStorage/github.copilot-chat/copilotCli:/opt/homebrew/Cellar/pyenv-virtualenv/1.2.4/shims:/Users/peteratito/.pyenv/bin:/opt/homebrew/Cellar/openjdk@17/17.0.15/libexec/openjdk.jdk/Contents/Home/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/peteratito/.nvm/versions/node/v16.20.2/bin:/Users/peteratito/flutter/bin:/Users/peteratito/Library/Android/sdk/platform-tools:/Users/peteratito/flutter/bin:/Users/peteratito/Library/Android/sdk/platform-tools HOME=/Users/peteratito /Users/peteratito/flutter/bin/cache/dart-sdk/bin/dart --packages=/Users/peteratito/Downloads/advance_company_mobile/.dart_tool/package_config.json /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/objective_c/9fb02c5622aea66c3a53a942a16bf409/hook.dill --config=/Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/objective_c/9fb02c5622aea66c3a53a942a16bf409/input.json )`.
+INFO: 2026-01-18 22:31:08.234608: Running `which clang`.
+
+INFO: 2026-01-18 22:31:08.248667: Running `/usr/bin/clang --version`.
+
+INFO: 2026-01-18 22:31:08.415166: Running `/usr/bin/clang --version`.
+
+INFO: 2026-01-18 22:31:08.432561: Running: /usr/bin/clang -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -target arm64-apple-darwin -c /Users/peteratito/.pub-cache/hosted/pub.dev/objective_c-9.2.2/src/include/dart_api_dl.c -fpic -I src -o /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/include/dart_api_dl.c.o
+
+INFO: 2026-01-18 22:31:08.432915: Running: /usr/bin/clang -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -target arm64-apple-darwin -c /Users/peteratito/.pub-cache/hosted/pub.dev/objective_c-9.2.2/src/objective_c.c -fpic -I src -o /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/objective_c.c.o
+
+INFO: 2026-01-18 22:31:08.433121: Running: /usr/bin/clang -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -target arm64-apple-darwin -c /Users/peteratito/.pub-cache/hosted/pub.dev/objective_c-9.2.2/test/util.c -fpic -I src -o /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/test/util.c.o
+
+INFO: 2026-01-18 22:31:08.433223: Running: /usr/bin/clang -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -target arm64-apple-darwin -x objective-c -fobjc-arc -c /Users/peteratito/.pub-cache/hosted/pub.dev/objective_c-9.2.2/src/input_stream_adapter.m -fpic -I src -o /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/input_stream_adapter.m.o
+
+INFO: 2026-01-18 22:31:08.433394: Running: /usr/bin/clang -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -target arm64-apple-darwin -x objective-c -fobjc-arc -c /Users/peteratito/.pub-cache/hosted/pub.dev/objective_c-9.2.2/src/objective_c.m -fpic -I src -o /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/objective_c.m.o
+
+INFO: 2026-01-18 22:31:08.433522: Running: /usr/bin/clang -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -target arm64-apple-darwin -x objective-c -fobjc-arc -c /Users/peteratito/.pub-cache/hosted/pub.dev/objective_c-9.2.2/src/observer.m -fpic -I src -o /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/observer.m.o
+
+INFO: 2026-01-18 22:31:08.433641: Running: /usr/bin/clang -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -target arm64-apple-darwin -x objective-c -fobjc-arc -c /Users/peteratito/.pub-cache/hosted/pub.dev/objective_c-9.2.2/src/ns_number.m -fpic -I src -o /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/ns_number.m.o
+
+INFO: 2026-01-18 22:31:08.433736: Running: /usr/bin/clang -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -target arm64-apple-darwin -x objective-c -fobjc-arc -c /Users/peteratito/.pub-cache/hosted/pub.dev/objective_c-9.2.2/src/protocol.m -fpic -I src -o /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/protocol.m.o
+
+INFO: 2026-01-18 22:31:08.433826: Running: /usr/bin/clang -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -target arm64-apple-darwin -x objective-c -fobjc-arc -c /Users/peteratito/.pub-cache/hosted/pub.dev/objective_c-9.2.2/src/objective_c_bindings_generated.m -fpic -I src -o /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/objective_c_bindings_generated.m.o
+
+INFO: 2026-01-18 22:31:08.542574: 
+INFO: 2026-01-18 22:31:08.542585: 
+INFO: 2026-01-18 22:31:08.542593: Generated /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/objective_cINFO: 2026-01-18 22:31:08.542687: 
+INFO: 2026-01-18 22:31:08.542697: 
+INFO: 2026-01-18 22:31:08.542706: Generated /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/include/dart_api_dl.c.o
+
+INFO: 2026-01-18 22:31:08.548202: 
+INFO: 2026-01-18 22:31:08.548240: 
+INFO: 2026-01-18 22:31:08.548251: Generated /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/observer.m.o
+
+INFO: 2026-01-18 22:31:08.552251: 
+INFO: 2026-01-18 22:31:08.552284: 
+INFO: 2026-01-18 22:31:08.552295: Generated /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/protocol.m.o
+
+INFO: 2026-01-18 22:31:08.783635: 
+INFO: 2026-01-18 22:31:08.783675: 
+INFO: 2026-01-18 22:31:08.783685: Generated /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/ns_number.m.o
+
+INFO: 2026-01-18 22:31:08.789154: 
+INFO: 2026-01-18 22:31:08.789190: 
+INFO: 2026-01-18 22:31:08.789200: Generated /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/objective_c.m.o
+
+INFO: 2026-01-18 22:31:08.792413: 
+INFO: 2026-01-18 22:31:08.792455: 
+INFO: 2026-01-18 22:31:08.792467: Generated /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/input_stream_adapter.m.o
+
+INFO: 2026-01-18 22:31:08.806539: 
+INFO: 2026-01-18 22:31:08.806567: 
+INFO: 2026-01-18 22:31:08.806575: Generated /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/objective_c_bindings_generated.m.o
+
+INFO: 2026-01-18 22:31:08.806816: Running: /usr/bin/clang -shared -undefined dynamic_lookup -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -target arm64-apple-darwin /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/include/dart_api_dl.c.o /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/objective_c.c.o /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/test/util.c.o /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/input_stream_adapter.m.o /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/objective_c.m.o /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/observer.m.o /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/ns_number.m.o /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/protocol.m.o /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/objective_c_bindings_generated.m.o -o /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/objective_c.dylib
+
+INFO: 2026-01-18 22:31:08.951435: 
+INFO: 2026-01-18 22:31:08.951501: 
+INFO: 2026-01-18 22:31:08.951510: Generated /Users/peteratito/Downloads/advance_company_mobile/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/objective_c.dylib
+
