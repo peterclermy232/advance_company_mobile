@@ -91,6 +91,30 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),
       ),
+      GoRoute(
+  path: '/deposit-history',
+  builder: (context, state) => const DepositHistoryScreen(),
+),
+GoRoute(
+  path: '/document-upload',
+  builder: (context, state) => const DocumentUploadScreen(),
+),
+GoRoute(
+  path: '/verify-email',
+  builder: (context, state) => VerifyEmailScreen(
+    email: state.queryParameters['email'] ?? '',
+    token: state.queryParameters['token'],
+  ),
+),
+// Admin routes
+GoRoute(
+  path: '/admin/beneficiary-verification',
+  builder: (context, state) => const BeneficiaryVerificationScreen(),
+),
+GoRoute(
+  path: '/admin/analytics',
+  builder: (context, state) => const AdminAnalyticsScreen(),
+),
     ],
   );
 });
