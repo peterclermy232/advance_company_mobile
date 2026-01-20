@@ -1,6 +1,4 @@
-// ============================================
-// lib/core/constants/app_strings.dart
-// ============================================
+
 class AppStrings {
   // App
   static const String appName = 'Advance Company';

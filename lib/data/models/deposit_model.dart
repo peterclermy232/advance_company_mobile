@@ -1,6 +1,4 @@
-// ============================================
-// lib/data/models/deposit_model.dart
-// ============================================
+
 import 'package:equatable/equatable.dart';
 class DepositModel extends Equatable {
   final int id;

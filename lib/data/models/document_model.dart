@@ -1,6 +1,4 @@
-// ============================================
-// lib/data/models/document_model.dart
-// ============================================
+
 import 'package:equatable/equatable.dart';
 class DocumentModel extends Equatable {
   final int id;

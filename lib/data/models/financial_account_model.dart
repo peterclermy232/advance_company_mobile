@@ -1,6 +1,4 @@
-// ============================================
-// lib/data/models/financial_account_model.dart
-// ============================================
+
 import 'package:equatable/equatable.dart';
 class FinancialAccountModel extends Equatable {
   final int id;

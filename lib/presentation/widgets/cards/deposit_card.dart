@@ -1,6 +1,3 @@
-// ============================================
-// lib/presentation/widgets/cards/deposit_card.dart
-// ============================================
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../data/models/deposit_model.dart';

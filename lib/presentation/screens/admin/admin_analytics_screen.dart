@@ -1,6 +1,3 @@
-// ============================================
-// lib/presentation/screens/admin/admin_analytics_screen.dart
-// ============================================
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';

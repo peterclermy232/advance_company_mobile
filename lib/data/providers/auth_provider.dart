@@ -1,6 +1,4 @@
-// ============================================
-// lib/data/providers/auth_provider.dart
-// ============================================
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/api_client.dart';
 import '../../core/storage/secure_storage.dart';

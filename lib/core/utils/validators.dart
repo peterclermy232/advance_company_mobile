@@ -1,6 +1,4 @@
-// ============================================
-// lib/core/utils/validators.dart
-// ============================================
+
 class Validators {
   static String? email(String? value) {
     if (value == null || value.isEmpty) {

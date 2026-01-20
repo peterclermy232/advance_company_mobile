@@ -1,6 +1,4 @@
-// ============================================
-// lib/core/constants/api_endpoints.dart
-// ============================================
+
 class ApiEndpoints {
   // Auth Endpoints
   static const String login = '/auth/login/';

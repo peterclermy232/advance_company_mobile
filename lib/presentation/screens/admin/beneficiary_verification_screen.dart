@@ -1,6 +1,3 @@
-// ============================================
-// lib/presentation/screens/admin/beneficiary_verification_screen.dart
-// ============================================
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';

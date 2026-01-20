@@ -1,6 +1,3 @@
-// ============================================
-// lib/presentation/screens/notifications/notifications_screen.dart
-// ============================================
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/providers/notification_provider.dart';

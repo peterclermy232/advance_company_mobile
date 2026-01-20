@@ -1,6 +1,3 @@
-// ============================================
-// lib/presentation/widgets/common/loading_indicator.dart
-// ============================================
 import 'package:flutter/material.dart';
 class LoadingIndicator extends StatelessWidget {
   final String? message;

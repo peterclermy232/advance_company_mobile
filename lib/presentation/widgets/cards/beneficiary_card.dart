@@ -1,6 +1,3 @@
-// ============================================
-// lib/presentation/widgets/cards/beneficiary_card.dart
-// ============================================
 import 'package:flutter/material.dart';
 import '../../../data/models/beneficiary_model.dart';
 

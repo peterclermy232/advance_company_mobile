@@ -1,6 +1,4 @@
-// ============================================
-// lib/data/providers/beneficiary_provider.dart
-// ============================================
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/api_client.dart';
 import 'core_providers.dart';

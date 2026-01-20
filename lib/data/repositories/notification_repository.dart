@@ -1,6 +1,3 @@
-// ============================================
-// lib/data/repositories/notification_repository.dart
-// ============================================
 import '../../core/network/api_client.dart';
 import '../../core/constants/api_endpoints.dart';
 import '../models/notification_model.dart';

@@ -1,6 +1,4 @@
-// ============================================
-// lib/config/app_config.dart
-// ============================================
+
 class AppConfig {
   // App Information
   static const String appName = 'Advance Company';

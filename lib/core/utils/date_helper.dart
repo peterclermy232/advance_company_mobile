@@ -1,6 +1,3 @@
-// ============================================
-// lib/core/utils/date_helper.dart
-// ============================================
 import 'package:intl/intl.dart';
 import 'formatters.dart';
 

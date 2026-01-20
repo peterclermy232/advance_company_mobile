@@ -1,6 +1,3 @@
-// ============================================
-// lib/presentation/widgets/cards/notification_card.dart
-// ============================================
 import 'package:flutter/material.dart';
 import '../../../data/models/notification_model.dart';
 
