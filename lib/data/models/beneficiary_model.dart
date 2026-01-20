@@ -1,6 +1,7 @@
 // ============================================
 // lib/data/models/beneficiary_model.dart
 // ============================================
+import 'package:equatable/equatable.dart';
 class BeneficiaryModel extends Equatable {
   final int id;
   final int user;

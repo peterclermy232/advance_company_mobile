@@ -1,6 +1,7 @@
 // ============================================
 // lib/data/models/dashboard_summary_model.dart
 // ============================================
+import 'package:equatable/equatable.dart';
 class DashboardSummaryModel extends Equatable {
   final String totalContributions;
   final String interestEarned;

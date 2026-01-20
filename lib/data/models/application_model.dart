@@ -1,6 +1,7 @@
 // ============================================
 // lib/data/models/application_model.dart
 // ============================================
+import 'package:equatable/equatable.dart';
 class ApplicationModel extends Equatable {
   final int id;
   final int user;

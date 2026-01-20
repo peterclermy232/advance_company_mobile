@@ -1,6 +1,7 @@
 // ============================================
 // lib/data/models/notification_model.dart
 // ============================================
+import 'package:equatable/equatable.dart';
 class NotificationModel extends Equatable {
   final int id;
   final int user;

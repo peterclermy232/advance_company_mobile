@@ -1,6 +1,8 @@
 // ============================================
 // lib/data/repositories/financial_repository.dart
 // ============================================
+import '../../core/network/api_client.dart';
+import '../../core/constants/api_endpoints.dart';
 import '../models/deposit_model.dart';
 import '../models/financial_account_model.dart';
 

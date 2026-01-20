@@ -1,6 +1,7 @@
 // ============================================
 // lib/presentation/widgets/common/empty_state.dart
 // ============================================
+import 'package:flutter/material.dart';
 class EmptyState extends StatelessWidget {
   final IconData icon;
   final String title;

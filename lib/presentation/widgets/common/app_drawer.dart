@@ -1,6 +1,11 @@
 // ============================================
 // lib/presentation/widgets/common/app_drawer.dart
 // ============================================
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../data/providers/auth_provider.dart';
+import 'loading_indicator.dart';
 class AppDrawer extends ConsumerWidget {
   const AppDrawer({super.key});
 
