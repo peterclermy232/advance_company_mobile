@@ -1,6 +1,5 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/network/api_client.dart';
 import 'core_providers.dart';
 import '../repositories/financial_repository.dart';
 import '../models/deposit_model.dart';

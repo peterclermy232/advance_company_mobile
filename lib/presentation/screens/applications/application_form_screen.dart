@@ -193,7 +193,7 @@ class _ApplicationFormScreenState extends ConsumerState<ApplicationFormScreen> {
                           ),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<String>(
-                            value: _selectedType,
+                            initialValue: _selectedType,
                             decoration: InputDecoration(
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
