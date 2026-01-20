@@ -5,15 +5,20 @@ import '../../data/providers/auth_provider.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/auth/forgot_password_screen.dart';
+import '../screens/auth/verify_email_screen.dart';
 import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/financial/financial_screen.dart';
 import '../screens/financial/deposit_form_screen.dart';
+import '../screens/financial/deposit_history_screen.dart';
 import '../screens/beneficiary/beneficiary_list_screen.dart';
 import '../screens/beneficiary/beneficiary_form_screen.dart';
 import '../screens/documents/document_list_screen.dart';
+import '../screens/documents/document_upload_screen.dart';
 import '../screens/applications/application_list_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/settings/settings_screen.dart';
+import '../screens/admin/admin_analytics_screen.dart';
+import '../screens/admin/beneficiary_verification_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(currentUserProvider);
@@ -50,6 +55,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/forgot-password',
         builder: (context, state) => const ForgotPasswordScreen(),
       ),
+      GoRoute(
+        path: '/verify-email',
+        builder: (context, state) => VerifyEmailScreen(
+          email: state.uri.queryParameters['email'] ?? '',
+          token: state.uri.queryParameters['token'],
+        ),
+      ),
 
       // Main routes
       GoRoute(
@@ -65,6 +77,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const DepositFormScreen(),
       ),
       GoRoute(
+        path: '/deposit-history',
+        builder: (context, state) => const DepositHistoryScreen(),
+      ),
+      GoRoute(
         path: '/beneficiaries',
         builder: (context, state) => const BeneficiaryListScreen(),
       ),
@@ -75,6 +91,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/documents',
         builder: (context, state) => const DocumentListScreen(),
+      ),
+      GoRoute(
+        path: '/document-upload',
+        builder: (context, state) => const DocumentUploadScreen(),
       ),
       GoRoute(
         path: '/applications',
@@ -88,30 +108,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),
       ),
+      
+      // Admin routes
       GoRoute(
-  path: '/deposit-history',
-  builder: (context, state) => const DepositHistoryScreen(),
-),
-GoRoute(
-  path: '/document-upload',
-  builder: (context, state) => const DocumentUploadScreen(),
-),
-GoRoute(
-  path: '/verify-email',
-  builder: (context, state) => VerifyEmailScreen(
-    email: state.queryParameters['email'] ?? '',
-    token: state.queryParameters['token'],
-  ),
-),
-// Admin routes
-GoRoute(
-  path: '/admin/beneficiary-verification',
-  builder: (context, state) => const BeneficiaryVerificationScreen(),
-),
-GoRoute(
-  path: '/admin/analytics',
-  builder: (context, state) => const AdminAnalyticsScreen(),
-),
+        path: '/admin/beneficiary-verification',
+        builder: (context, state) => const BeneficiaryVerificationScreen(),
+      ),
+      GoRoute(
+        path: '/admin/analytics',
+        builder: (context, state) => const AdminAnalyticsScreen(),
+      ),
     ],
   );
 });
