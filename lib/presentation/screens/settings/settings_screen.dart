@@ -269,7 +269,8 @@ class SettingsScreen extends ConsumerWidget {
               }
 
               try {
-                await ref.read(authRepositoryProvider).changePassword({
+                final authRepository = await ref.read(authRepositoryProvider.future);
+                await authRepository.changePassword({
                   'old_password': oldPasswordController.text,
                   'new_password': newPasswordController.text,
                 });

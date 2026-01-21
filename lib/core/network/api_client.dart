@@ -1,8 +1,9 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import '../storage/secure_storage.dart';
 import '../../config/api_config.dart';
-import 'interceptors.dart'; // Import the interceptors file
+import 'interceptors.dart';
 
 class ApiClient {
   late final Dio _dio;
@@ -18,6 +19,8 @@ class ApiClient {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
+        // Important for better error handling
+        validateStatus: (status) => status != null && status < 500,
       ),
     );
 
@@ -149,15 +152,48 @@ class ApiClient {
   }
 
   Exception _handleError(DioException error) {
+    // Log error details in debug mode
+    if (kDebugMode) {
+      print('❌ DioException Type: ${error.type}');
+      print('❌ Error Message: ${error.message}');
+      print('❌ Response: ${error.response?.data}');
+      print('❌ Status Code: ${error.response?.statusCode}');
+    }
+
     switch (error.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        return Exception('Connection timeout. Please try again.');
+        return Exception('Connection timeout. Please check your internet connection and try again.');
+
+      case DioExceptionType.connectionError:
+        // This is the error you're experiencing
+        if (kIsWeb) {
+          return Exception(
+            'Network Error: Unable to connect to server.\n\n'
+            'Possible causes:\n'
+            '1. Backend server is not running\n'
+            '2. CORS is not configured on backend\n'
+            '3. Wrong API URL: ${ApiConfig.baseUrl}\n\n'
+            'Solutions:\n'
+            '• Start Django server: python manage.py runserver\n'
+            '• Install django-cors-headers\n'
+            '• Add CORS_ALLOW_ALL_ORIGINS = True to settings.py'
+          );
+        } else {
+          return Exception(
+            'Network Error: Cannot connect to server.\n\n'
+            'Please check:\n'
+            '• Your internet connection\n'
+            '• Backend server is running\n'
+            '• API URL is correct: ${ApiConfig.baseUrl}'
+          );
+        }
+
       case DioExceptionType.badResponse:
         final statusCode = error.response?.statusCode;
         final data = error.response?.data;
-        
+
         if (statusCode == 401) {
           return Exception('Unauthorized. Please login again.');
         } else if (statusCode == 403) {
@@ -167,25 +203,54 @@ class ApiClient {
         } else if (statusCode == 500) {
           return Exception('Server error. Please try again later.');
         }
-        
+
         // Handle backend error response format
-        if (data is Map && data.containsKey('message')) {
-          return Exception(data['message']);
+        if (data is Map) {
+          // Try different common error field names
+          final message = data['message'] ?? 
+                         data['error'] ?? 
+                         data['detail'] ?? 
+                         data['non_field_errors'];
+          
+          if (message != null) {
+            if (message is List) {
+              return Exception(message.join(', '));
+            }
+            return Exception(message.toString());
+          }
+          
+          // Handle field-specific errors
+          final errors = <String>[];
+          data.forEach((key, value) {
+            if (value is List) {
+              errors.add('$key: ${value.join(', ')}');
+            } else if (value is String) {
+              errors.add('$key: $value');
+            }
+          });
+          
+          if (errors.isNotEmpty) {
+            return Exception(errors.join('\n'));
+          }
         }
-        
-        // Try to extract error from 'detail' field (common in Django REST)
-        if (data is Map && data.containsKey('detail')) {
-          return Exception(data['detail']);
-        }
-        
+
         return Exception('An error occurred. Please try again.');
+
       case DioExceptionType.cancel:
         return Exception('Request cancelled.');
+
+      case DioExceptionType.badCertificate:
+        return Exception('Security certificate error. Please check your connection.');
+
       case DioExceptionType.unknown:
         if (error.message?.contains('SocketException') ?? false) {
-          return Exception('No internet connection.');
+          return Exception('No internet connection. Please check your network settings.');
         }
-        return Exception('An unexpected error occurred.');
+        if (error.message?.contains('HandshakeException') ?? false) {
+          return Exception('Connection security error. Please try again.');
+        }
+        return Exception('An unexpected error occurred: ${error.message ?? 'Unknown error'}');
+
       default:
         return Exception('An error occurred. Please try again.');
     }

@@ -78,7 +78,7 @@ class _ApplicationFormScreenState extends ConsumerState<ApplicationFormScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final apiClient = ref.read(apiClientProvider);
+      final apiClient = await ref.read(apiClientProvider.future);
       
       FormData formData;
       

@@ -89,10 +89,8 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
     setState(() => _isVerifying = true);
 
     try {
-      await ref.read(authRepositoryProvider).verifyEmail(
-            widget.email,
-            code,
-          );
+      final authRepository = await ref.read(authRepositoryProvider.future);
+      await authRepository.verifyEmail(widget.email, code);
 
       setState(() => _isVerified = true);
 
@@ -138,7 +136,8 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
 
     try {
       // Call resend verification email endpoint
-      // await ref.read(authRepositoryProvider).resendVerificationEmail(widget.email);
+      // final authRepository = await ref.read(authRepositoryProvider.future);
+      // await authRepository.resendVerificationEmail(widget.email);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

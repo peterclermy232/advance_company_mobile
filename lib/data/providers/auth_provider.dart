@@ -1,17 +1,16 @@
-import 'package:advance_company_mobile/data/providers/core_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/network/api_client.dart';
-import '../../core/storage/secure_storage.dart';
 import '../repositories/auth_repository.dart';
 import '../models/user_model.dart';
+import 'core_providers.dart';
 
-// Change to FutureProvider
+// Auth Repository Provider
 final authRepositoryProvider = FutureProvider<AuthRepository>((ref) async {
   final apiClient = await ref.watch(apiClientProvider.future);
   final storage = await ref.watch(secureStorageProvider.future);
   return AuthRepository(apiClient, storage);
 });
 
+// Current User Provider
 final currentUserProvider = StateNotifierProvider<UserNotifier, AsyncValue<UserModel?>>((ref) {
   return UserNotifier(ref);
 });

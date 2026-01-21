@@ -9,7 +9,7 @@ import '../../widgets/common/empty_state.dart';
 
 // Provider for pending beneficiaries
 final pendingBeneficiariesProvider = FutureProvider.autoDispose((ref) async {
-  final apiClient = ref.watch(apiClientProvider);
+  final apiClient = await ref.watch(apiClientProvider.future);
   final response = await apiClient.get(ApiEndpoints.beneficiaries);
   final data = response.data['data'];
   
@@ -112,60 +112,59 @@ class _BeneficiaryVerificationCardState
   bool _isProcessing = false;
 
   Future<void> _verifyBeneficiary() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Verify Beneficiary'),
-        content: Text(
-          'Are you sure you want to verify ${widget.beneficiary.name}?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('Verify'),
-          ),
-        ],
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Verify Beneficiary'),
+      content: Text(
+        'Are you sure you want to verify ${widget.beneficiary.name}?',
       ),
-    );
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context, true),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+          child: const Text('Verify'),
+        ),
+      ],
+    ),
+  );
 
-    if (confirmed != true) return;
+  if (confirmed != true) return;
 
-    setState(() => _isProcessing = true);
+  setState(() => _isProcessing = true);
 
-    try {
-      await ref
-          .read(beneficiaryRepositoryProvider)
-          .verifyBeneficiary(widget.beneficiary.id);
+  try {
+    final repository = await ref.read(beneficiaryRepositoryProvider.future);
+    await repository.verifyBeneficiary(widget.beneficiary.id);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Beneficiary verified successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        widget.onVerified();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isProcessing = false);
-      }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Beneficiary verified successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      widget.onVerified();
+    }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceAll('Exception: ', '')),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  } finally {
+    if (mounted) {
+      setState(() => _isProcessing = false);
     }
   }
+}
 
   Future<void> _rejectBeneficiary() async {
     final reasonController = TextEditingController();
