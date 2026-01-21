@@ -1,8 +1,8 @@
-
 import 'package:dio/dio.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import '../storage/secure_storage.dart';
 import '../../config/api_config.dart';
+import 'interceptors.dart'; // Import the interceptors file
 
 class ApiClient {
   late final Dio _dio;
@@ -171,6 +171,11 @@ class ApiClient {
         // Handle backend error response format
         if (data is Map && data.containsKey('message')) {
           return Exception(data['message']);
+        }
+        
+        // Try to extract error from 'detail' field (common in Django REST)
+        if (data is Map && data.containsKey('detail')) {
+          return Exception(data['detail']);
         }
         
         return Exception('An error occurred. Please try again.');

@@ -1,11 +1,11 @@
-// ============================================
-// lib/main.dart
-// ============================================
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
 
-void main() {
+void main() async {
+  // Ensure Flutter bindings are initialized
+  WidgetsFlutterBinding.ensureInitialized();
+  
   runApp(
     const ProviderScope(
       child: AdvanceCompanyApp(),

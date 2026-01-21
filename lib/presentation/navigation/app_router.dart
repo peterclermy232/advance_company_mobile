@@ -15,6 +15,7 @@ import '../screens/beneficiary/beneficiary_form_screen.dart';
 import '../screens/documents/document_list_screen.dart';
 import '../screens/documents/document_upload_screen.dart';
 import '../screens/applications/application_list_screen.dart';
+import '../screens/applications/application_form_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/admin/admin_analytics_screen.dart';
@@ -26,19 +27,36 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/login',
     redirect: (context, state) {
-      final isLoggedIn = authState.value != null;
-      final isLoginRoute = state.uri.toString().startsWith('/login') ||
-          state.uri.toString().startsWith('/register') ||
-          state.uri.toString().startsWith('/forgot-password');
+      // Handle loading state
+      if (authState.isLoading) {
+        return null; // Let the app show loading
+      }
 
-      if (!isLoggedIn && !isLoginRoute) {
+      final isLoggedIn = authState.value != null;
+      final location = state.uri.toString();
+
+      // Public routes that don't require authentication
+      final publicRoutes = [
+        '/login',
+        '/register',
+        '/forgot-password',
+        '/verify-email',
+      ];
+
+      final isPublicRoute =
+          publicRoutes.any((route) => location.startsWith(route));
+
+      // If not logged in and trying to access protected route, redirect to login
+      if (!isLoggedIn && !isPublicRoute) {
         return '/login';
       }
 
-      if (isLoggedIn && isLoginRoute) {
+      // If logged in and trying to access public route, redirect to dashboard
+      if (isLoggedIn && isPublicRoute) {
         return '/dashboard';
       }
 
+      // No redirect needed
       return null;
     },
     routes: [
@@ -101,6 +119,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ApplicationListScreen(),
       ),
       GoRoute(
+        path: '/applications/new',
+        builder: (context, state) => const ApplicationFormScreen(),
+      ),
+      GoRoute(
         path: '/notifications',
         builder: (context, state) => const NotificationsScreen(),
       ),
@@ -108,7 +130,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),
       ),
-      
+
       // Admin routes
       GoRoute(
         path: '/admin/beneficiary-verification',
@@ -119,5 +141,22 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const AdminAnalyticsScreen(),
       ),
     ],
+    errorBuilder: (context, state) => Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text('Page not found: ${state.uri}'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => context.go('/dashboard'),
+              child: const Text('Go to Dashboard'),
+            ),
+          ],
+        ),
+      ),
+    ),
   );
 });
