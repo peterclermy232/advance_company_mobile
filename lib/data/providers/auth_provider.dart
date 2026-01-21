@@ -1,34 +1,33 @@
-
 import 'package:advance_company_mobile/data/providers/core_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/api_client.dart';
 import '../../core/storage/secure_storage.dart';
 import '../repositories/auth_repository.dart';
 import '../models/user_model.dart';
-import '../models/auth_response.dart';
 
-final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  final apiClient = ref.watch(apiClientProvider);
-  final storage = ref.watch(secureStorageProvider);
+// Change to FutureProvider
+final authRepositoryProvider = FutureProvider<AuthRepository>((ref) async {
+  final apiClient = await ref.watch(apiClientProvider.future);
+  final storage = await ref.watch(secureStorageProvider.future);
   return AuthRepository(apiClient, storage);
 });
 
 final currentUserProvider = StateNotifierProvider<UserNotifier, AsyncValue<UserModel?>>((ref) {
-  final authRepository = ref.watch(authRepositoryProvider);
-  return UserNotifier(authRepository);
+  return UserNotifier(ref);
 });
 
 class UserNotifier extends StateNotifier<AsyncValue<UserModel?>> {
-  final AuthRepository _authRepository;
+  final Ref _ref;
 
-  UserNotifier(this._authRepository) : super(const AsyncValue.loading()) {
+  UserNotifier(this._ref) : super(const AsyncValue.loading()) {
     _loadUser();
   }
 
   Future<void> _loadUser() async {
     state = const AsyncValue.loading();
     try {
-      final user = await _authRepository.getCurrentUser();
+      final authRepository = await _ref.read(authRepositoryProvider.future);
+      final user = await authRepository.getCurrentUser();
       state = AsyncValue.data(user);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
@@ -38,7 +37,8 @@ class UserNotifier extends StateNotifier<AsyncValue<UserModel?>> {
   Future<void> login(String email, String password) async {
     state = const AsyncValue.loading();
     try {
-      final authResponse = await _authRepository.login(email, password);
+      final authRepository = await _ref.read(authRepositoryProvider.future);
+      final authResponse = await authRepository.login(email, password);
       state = AsyncValue.data(authResponse.user);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
@@ -49,7 +49,8 @@ class UserNotifier extends StateNotifier<AsyncValue<UserModel?>> {
   Future<void> register(Map<String, dynamic> data) async {
     state = const AsyncValue.loading();
     try {
-      final authResponse = await _authRepository.register(data);
+      final authRepository = await _ref.read(authRepositoryProvider.future);
+      final authResponse = await authRepository.register(data);
       state = AsyncValue.data(authResponse.user);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
@@ -58,13 +59,15 @@ class UserNotifier extends StateNotifier<AsyncValue<UserModel?>> {
   }
 
   Future<void> logout() async {
-    await _authRepository.logout();
+    final authRepository = await _ref.read(authRepositoryProvider.future);
+    await authRepository.logout();
     state = const AsyncValue.data(null);
   }
 
   Future<void> refreshUser() async {
     try {
-      final user = await _authRepository.getUserProfile();
+      final authRepository = await _ref.read(authRepositoryProvider.future);
+      final user = await authRepository.getUserProfile();
       state = AsyncValue.data(user);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
@@ -73,7 +76,8 @@ class UserNotifier extends StateNotifier<AsyncValue<UserModel?>> {
 
   Future<void> updateProfile(int userId, Map<String, dynamic> data) async {
     try {
-      final user = await _authRepository.updateProfile(userId, data);
+      final authRepository = await _ref.read(authRepositoryProvider.future);
+      final user = await authRepository.updateProfile(userId, data);
       state = AsyncValue.data(user);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);

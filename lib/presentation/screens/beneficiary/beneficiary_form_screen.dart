@@ -99,7 +99,8 @@ class _BeneficiaryFormScreenState extends ConsumerState<BeneficiaryFormScreen> {
           ),
       });
 
-      await ref.read(beneficiaryRepositoryProvider).createBeneficiary(formData);
+      final repository = await ref.read(beneficiaryRepositoryProvider.future);
+     await repository.createBeneficiary(formData);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -13,26 +13,20 @@ final flutterSecureStorageProvider = Provider<FlutterSecureStorage>((ref) {
   );
 });
 
-// SharedPreferences provider - properly async
+// SharedPreferences provider - FutureProvider instead of Provider
 final sharedPreferencesProvider = FutureProvider<SharedPreferences>((ref) async {
   return await SharedPreferences.getInstance();
 });
 
-// SecureStorage provider - handles the async dependency properly
-final secureStorageProvider = Provider<SecureStorage>((ref) {
+// SecureStorage provider - now properly handles async SharedPreferences
+final secureStorageProvider = FutureProvider<SecureStorage>((ref) async {
   final secureStorage = ref.watch(flutterSecureStorageProvider);
-  final prefsAsync = ref.watch(sharedPreferencesProvider);
-  
-  // Return a dummy instance while loading, or throw if error
-  return prefsAsync.when(
-    data: (prefs) => SecureStorage(secureStorage, prefs),
-    loading: () => throw Exception('SharedPreferences not ready'),
-    error: (error, stack) => throw error,
-  );
+  final prefs = await ref.watch(sharedPreferencesProvider.future);
+  return SecureStorage(secureStorage, prefs);
 });
 
-// ApiClient provider
-final apiClientProvider = Provider<ApiClient>((ref) {
-  final storage = ref.watch(secureStorageProvider);
+// ApiClient provider - now async
+final apiClientProvider = FutureProvider<ApiClient>((ref) async {
+  final storage = await ref.watch(secureStorageProvider.future);
   return ApiClient(storage);
 });
