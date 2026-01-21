@@ -9,7 +9,7 @@ import '../../widgets/common/loading_indicator.dart';
 import '../../widgets/common/empty_state.dart';
 
 final documentsProvider = FutureProvider.autoDispose((ref) async {
-  final apiClient = ref.watch(apiClientProvider);
+  final apiClient = await ref.watch(apiClientProvider.future);
   final response = await apiClient.get(ApiEndpoints.documents);
   final data = response.data['data'];
   
@@ -20,6 +20,8 @@ final documentsProvider = FutureProvider.autoDispose((ref) async {
   }
   return [];
 });
+
+
 
 class DocumentListScreen extends ConsumerWidget {
   const DocumentListScreen({super.key});
@@ -162,42 +164,42 @@ class DocumentListScreen extends ConsumerWidget {
   }
 
   Future<void> _uploadDocument(
-    BuildContext context,
-    WidgetRef ref,
-    String title,
-    String category,
-    PlatformFile file,
-  ) async {
-    try {
-      final apiClient = ref.read(apiClientProvider);
-      final formData = FormData.fromMap({
-        'title': title,
-        'category': category,
-        'file': await MultipartFile.fromFile(file.path!, filename: file.name),
-      });
+  BuildContext context,
+  WidgetRef ref,
+  String title,
+  String category,
+  PlatformFile file,
+) async {
+  try {
+    final apiClient = await ref.read(apiClientProvider.future);
+    final formData = FormData.fromMap({
+      'title': title,
+      'category': category,
+      'file': await MultipartFile.fromFile(file.path!, filename: file.name),
+    });
 
-      await apiClient.uploadFile(ApiEndpoints.documents, formData);
+    await apiClient.uploadFile(ApiEndpoints.documents, formData);
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Document uploaded successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        ref.invalidate(documentsProvider);
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Document uploaded successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      ref.invalidate(documentsProvider);
+    }
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceAll('Exception: ', '')),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
+}
 }
 
 class _DocumentCard extends StatelessWidget {

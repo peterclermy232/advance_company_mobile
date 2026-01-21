@@ -9,17 +9,18 @@ import '../../widgets/cards/stat_card.dart';
 
 // Provider for analytics summary
 final analyticsSummaryProvider = FutureProvider.autoDispose((ref) async {
-  final apiClient = ref.watch(apiClientProvider);
+  final apiClient = await ref.watch(apiClientProvider.future);
   final response = await apiClient.get(ApiEndpoints.analyticsSummary);
   return response.data['data'];
 });
 
 // Provider for monthly trends
 final monthlyTrendsProvider = FutureProvider.autoDispose((ref) async {
-  final apiClient = ref.watch(apiClientProvider);
+  final apiClient = await ref.watch(apiClientProvider.future);
   final response = await apiClient.get(ApiEndpoints.monthlyTrends);
   return response.data['data'];
 });
+
 
 class AdminAnalyticsScreen extends ConsumerWidget {
   const AdminAnalyticsScreen({super.key});
@@ -449,28 +450,29 @@ class AdminAnalyticsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _exportAnalytics(BuildContext context, WidgetRef ref) async {
-    try {
-      final apiClient = ref.read(apiClientProvider);
-      await apiClient.get(ApiEndpoints.exportAnalytics);
+  // And update the _exportAnalytics method:
+Future<void> _exportAnalytics(BuildContext context, WidgetRef ref) async {
+  try {
+    final apiClient = await ref.read(apiClientProvider.future);
+    await apiClient.get(ApiEndpoints.exportAnalytics);
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Analytics exported successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Export failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Analytics exported successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Export failed: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
+}
 }

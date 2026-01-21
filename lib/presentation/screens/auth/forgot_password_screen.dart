@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../data/providers/auth_provider.dart';
 import '../../widgets/common/custom_button.dart';
 import '../../widgets/common/custom_text_field.dart';
+
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -30,9 +31,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await ref
-          .read(authRepositoryProvider)
-          .forgotPassword(_emailController.text.trim());
+      final authRepository = await ref.read(authRepositoryProvider.future);
+      await authRepository.forgotPassword(_emailController.text.trim());
 
       setState(() => _emailSent = true);
     } catch (e) {

@@ -14,7 +14,7 @@ class AdvanceCompanyApp extends ConsumerWidget {
       title: 'Advance Company',
       debugShowCheckedModeBanner: false,
       theme: ThemeConfig.lightTheme,
-      darkTheme: ThemeConfig.darkTheme,
+      // darkTheme: ThemeConfig.darkTheme,
       themeMode: ThemeMode.light,
       routerConfig: router,
     );

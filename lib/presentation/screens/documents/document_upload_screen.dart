@@ -24,6 +24,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
   String _selectedCategory = 'IDENTIFICATION';
   PlatformFile? _selectedFile;
   bool _isLoading = false;
+  double _uploadProgress = 0.0;
 
   final List<String> _categories = [
     'IDENTIFICATION',
@@ -98,10 +99,13 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _uploadProgress = 0.0;
+    });
 
     try {
-      final apiClient = ref.read(apiClientProvider);
+      final apiClient = await ref.read(apiClientProvider.future);
       
       final formData = FormData.fromMap({
         'title': _titleController.text.trim(),
@@ -116,9 +120,9 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
         ApiEndpoints.documents,
         formData,
         onSendProgress: (sent, total) {
-          // Could add progress indicator here
-          final progress = (sent / total * 100).toStringAsFixed(0);
-          debugPrint('Upload progress: $progress%');
+          setState(() {
+            _uploadProgress = sent / total;
+          });
         },
       );
 
@@ -142,7 +146,10 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+          _uploadProgress = 0.0;
+        });
       }
     }
   }
@@ -153,243 +160,294 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
       appBar: AppBar(
         title: const Text('Upload Document'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Info Card
-              Card(
-                color: Colors.blue.shade50,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      Icon(Icons.info_outline, color: Colors.blue.shade700),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Upload clear, readable documents. Supported formats: PDF, JPG, PNG (Max 10MB)',
-                          style: TextStyle(
-                            color: Colors.blue.shade900,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Document Details Section
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Document Details',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Document Title
-                      CustomTextField(
-                        controller: _titleController,
-                        label: 'Document Title',
-                        hintText: 'e.g., National ID Card',
-                        validator: (value) {
-                          if (value?.isEmpty ?? true) {
-                            return 'Please enter a title';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Document Category
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Info Card
+                  Card(
+                    color: Colors.blue.shade50,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
                         children: [
-                          const Text(
-                            'Category',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          DropdownButtonFormField<String>(
-                            initialValue: _selectedCategory,
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                          Icon(Icons.info_outline, color: Colors.blue.shade700),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Upload clear, readable documents. Supported formats: PDF, JPG, PNG (Max 10MB)',
+                              style: TextStyle(
+                                color: Colors.blue.shade900,
+                                fontSize: 13,
                               ),
-                              filled: true,
-                              fillColor: Colors.grey[50],
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                            ),
-                            items: _categories.map((category) {
-                              return DropdownMenuItem(
-                                value: category,
-                                child: Text(
-                                  category.replaceAll('_', ' '),
-                                  style: const TextStyle(fontSize: 14),
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              setState(() => _selectedCategory = value!);
-                            },
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.help_outline,
-                                  size: 16,
-                                  color: Colors.grey.shade600,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    _categoryDescriptions[_selectedCategory] ?? '',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey.shade700,
-                                    ),
-                                  ),
-                                ),
-                              ],
                             ),
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-              // File Selection Section
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Select File',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // File picker button
-                      InkWell(
-                        onTap: _isLoading ? null : _pickFile,
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: _selectedFile != null
-                                  ? Colors.green
-                                  : Colors.grey.shade300,
-                              width: 2,
-                              style: BorderStyle.solid,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                            color: _selectedFile != null
-                                ? Colors.green.shade50
-                                : Colors.grey[50],
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(
-                                _selectedFile != null
-                                    ? Icons.check_circle
-                                    : Icons.upload_file,
-                                size: 48,
-                                color: _selectedFile != null
-                                    ? Colors.green
-                                    : Colors.grey,
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                _selectedFile != null
-                                    ? _selectedFile!.name
-                                    : 'Tap to select file',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: _selectedFile != null
-                                      ? Colors.green.shade900
-                                      : Colors.grey.shade700,
+                  // Document Details Section
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Document Details',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Document Title
+                          CustomTextField(
+                            controller: _titleController,
+                            label: 'Document Title',
+                            hintText: 'e.g., National ID Card',
+                            validator: (value) {
+                              if (value?.isEmpty ?? true) {
+                                return 'Please enter a title';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Document Category
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Category',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                              if (_selectedFile != null) ...[
-                                const SizedBox(height: 8),
-                                Text(
-                                  '${(_selectedFile!.size / 1024).toStringAsFixed(2)} KB',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade600,
+                              const SizedBox(height: 8),
+                              DropdownButtonFormField<String>(
+                                initialValue: _selectedCategory,
+                                decoration: InputDecoration(
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.grey[50],
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
                                   ),
                                 ),
-                              ],
+                                items: _categories.map((category) {
+                                  return DropdownMenuItem(
+                                    value: category,
+                                    child: Text(
+                                      category.replaceAll('_', ' '),
+                                      style: const TextStyle(fontSize: 14),
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (value) {
+                                  setState(() => _selectedCategory = value!);
+                                },
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.help_outline,
+                                      size: 16,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        _categoryDescriptions[_selectedCategory] ?? '',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey.shade700,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
-                        ),
+                        ],
                       ),
-                      
-                      if (_selectedFile != null) ...[
-                        const SizedBox(height: 12),
-                        TextButton.icon(
-                          onPressed: _isLoading
-                              ? null
-                              : () {
-                                  setState(() => _selectedFile = null);
-                                },
-                          icon: const Icon(Icons.close),
-                          label: const Text('Remove file'),
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.red,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // File Selection Section
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Select File',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
-                        ),
-                      ],
-                    ],
+                          const SizedBox(height: 16),
+
+                          // File picker button
+                          InkWell(
+                            onTap: _isLoading ? null : _pickFile,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: _selectedFile != null
+                                      ? Colors.green
+                                      : Colors.grey.shade300,
+                                  width: 2,
+                                  style: BorderStyle.solid,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                color: _selectedFile != null
+                                    ? Colors.green.shade50
+                                    : Colors.grey[50],
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    _selectedFile != null
+                                        ? Icons.check_circle
+                                        : Icons.upload_file,
+                                    size: 48,
+                                    color: _selectedFile != null
+                                        ? Colors.green
+                                        : Colors.grey,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    _selectedFile != null
+                                        ? _selectedFile!.name
+                                        : 'Tap to select file',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                      color: _selectedFile != null
+                                          ? Colors.green.shade900
+                                          : Colors.grey.shade700,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  if (_selectedFile != null) ...[
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      '${(_selectedFile!.size / 1024).toStringAsFixed(2)} KB',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+                          
+                          if (_selectedFile != null) ...[
+                            const SizedBox(height: 12),
+                            TextButton.icon(
+                              onPressed: _isLoading
+                                  ? null
+                                  : () {
+                                      setState(() => _selectedFile = null);
+                                    },
+                              icon: const Icon(Icons.close),
+                              label: const Text('Remove file'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.red,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Upload Button
+                  CustomButton(
+                    onPressed: _isLoading ? null : _uploadDocument,
+                    isLoading: _isLoading,
+                    child: const Text('Upload Document'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          // Upload Progress Overlay
+          if (_isLoading && _uploadProgress > 0)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black54,
+                child: Center(
+                  child: Card(
+                    margin: const EdgeInsets.all(32),
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.cloud_upload,
+                            size: 64,
+                            color: Colors.blue,
+                          ),
+                          const SizedBox(height: 24),
+                          Text(
+                            'Uploading Document...',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                          const SizedBox(height: 24),
+                          LinearProgressIndicator(
+                            value: _uploadProgress,
+                            minHeight: 8,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            '${(_uploadProgress * 100).toStringAsFixed(0)}%',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 32),
-
-              // Upload Button
-              CustomButton(
-                onPressed: _isLoading ? null : _uploadDocument,
-                isLoading: _isLoading,
-                child: const Text('Upload Document'),
-              ),
-            ],
-          ),
-        ),
+            ),
+        ],
       ),
     );
   }

@@ -6,8 +6,9 @@ import '../../../data/providers/core_providers.dart';
 import '../../widgets/common/loading_indicator.dart';
 import '../../widgets/common/empty_state.dart';
 
+// For application_list_screen.dart - REPLACE the provider:
 final applicationsProvider = FutureProvider.autoDispose((ref) async {
-  final apiClient = ref.watch(apiClientProvider);
+  final apiClient = await ref.watch(apiClientProvider.future);
   final response = await apiClient.get(ApiEndpoints.applications);
   final data = response.data['data'];
   
@@ -132,7 +133,7 @@ class ApplicationListScreen extends ConsumerWidget {
                 }
 
                 try {
-                  final apiClient = ref.read(apiClientProvider);
+                  final apiClient = await ref.read(apiClientProvider.future);
                   await apiClient.post(ApiEndpoints.applications, data: {
                     'application_type': selectedType,
                     'reason': reasonController.text,

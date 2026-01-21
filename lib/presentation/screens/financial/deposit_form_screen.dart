@@ -34,7 +34,8 @@ class _DepositFormScreenState extends ConsumerState<DepositFormScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await ref.read(financialRepositoryProvider).createDeposit({
+      final financialRepository = await ref.read(financialRepositoryProvider.future);
+      await financialRepository.createDeposit({
         'amount': _amountController.text,
         'payment_method': _selectedPaymentMethod,
         'mpesa_phone': _phoneController.text,
@@ -180,4 +181,3 @@ class _DepositFormScreenState extends ConsumerState<DepositFormScreen> {
     );
   }
 }
-
