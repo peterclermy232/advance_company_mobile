@@ -5,7 +5,7 @@ class ApiConfig {
 
   // Environment-based URL selection
   static String get baseUrl {
-    const env = String.fromEnvironment('ENV', defaultValue: 'production');
+    const env = String.fromEnvironment('ENV', defaultValue: 'development');
     return env == 'production' ? prodBaseUrl : devBaseUrl;
   }
 

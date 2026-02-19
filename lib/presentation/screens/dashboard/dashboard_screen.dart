@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../data/providers/auth_provider.dart';
 import '../../../data/providers/financial_provider.dart';
 import '../../../data/providers/notification_provider.dart';
+import '../../../data/models/deposit_model.dart';
 import '../../widgets/common/loading_indicator.dart';
 import '../../widgets/cards/stat_card.dart';
 
@@ -17,6 +18,7 @@ class DashboardScreen extends ConsumerWidget {
     final userAsync = ref.watch(currentUserProvider);
     final accountAsync = ref.watch(financialAccountProvider);
     final unreadCountAsync = ref.watch(unreadCountProvider);
+    final depositsAsync = ref.watch(depositsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -32,29 +34,29 @@ class DashboardScreen extends ConsumerWidget {
               unreadCountAsync.when(
                 data: (count) => count > 0
                     ? Positioned(
-                        right: 8,
-                        top: 8,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                          constraints: const BoxConstraints(
-                            minWidth: 16,
-                            minHeight: 16,
-                          ),
-                          child: Text(
-                            count > 99 ? '99+' : count.toString(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      )
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Text(
+                      count > 99 ? '99+' : count.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
                     : const SizedBox.shrink(),
                 loading: () => const SizedBox.shrink(),
                 error: (_, __) => const SizedBox.shrink(),
@@ -71,11 +73,12 @@ class DashboardScreen extends ConsumerWidget {
       body: userAsync.when(
         data: (user) {
           if (user == null) return const LoadingIndicator();
-          
+
           return RefreshIndicator(
             onRefresh: () async {
               ref.invalidate(financialAccountProvider);
               ref.invalidate(unreadCountProvider);
+              ref.invalidate(depositsProvider);
             },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -84,23 +87,38 @@ class DashboardScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Welcome Section
-                  _buildWelcomeSection(context, user.fullName),
+                  _buildWelcomeSection(context, user.fullName, user.isAdmin),
                   const SizedBox(height: 24),
 
                   // Stats Cards
                   accountAsync.when(
                     data: (account) => _buildStatsGrid(account),
                     loading: () => const LoadingIndicator(),
-                    error: (e, _) => Text('Error: $e'),
+                    error: (e, _) => Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text('Could not load account data: $e'),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 24),
+
+                  // Admin Quick Access
+                  if (user.isAdmin) ...[
+                    _buildAdminQuickAccess(context),
+                    const SizedBox(height: 24),
+                  ],
 
                   // Quick Actions
                   _buildQuickActions(context),
                   const SizedBox(height: 24),
 
-                  // Recent Activity
-                  _buildRecentActivity(context),
+                  // Recent Deposits
+                  depositsAsync.when(
+                    data: (deposits) => _buildRecentDeposits(context, deposits),
+                    loading: () => const LoadingIndicator(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
                 ],
               ),
             ),
@@ -108,13 +126,26 @@ class DashboardScreen extends ConsumerWidget {
         },
         loading: () => const LoadingIndicator(),
         error: (error, _) => Center(
-          child: Text('Error: $error'),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Error: $error'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.invalidate(currentUserProvider),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildWelcomeSection(BuildContext context, String userName) {
+  Widget _buildWelcomeSection(
+      BuildContext context, String userName, bool isAdmin) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -125,25 +156,50 @@ class DashboardScreen extends ConsumerWidget {
         ),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            'Welcome, $userName!',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Welcome back!',
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  userName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  DateFormat('EEEE, MMMM d, y').format(DateTime.now()),
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            DateFormat('EEEE, MMMM d, y').format(DateTime.now()),
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
+          if (isAdmin)
+            Container(
+              padding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text(
+                'ADMIN',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -151,7 +207,7 @@ class DashboardScreen extends ConsumerWidget {
 
   Widget _buildStatsGrid(dynamic account) {
     final currencyFormat = NumberFormat.currency(symbol: 'KES ');
-    
+
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -167,7 +223,6 @@ class DashboardScreen extends ConsumerWidget {
           ),
           icon: Icons.account_balance_wallet,
           color: Colors.blue,
-          trend: '+12%',
         ),
         StatCard(
           label: 'Interest Earned',
@@ -176,21 +231,117 @@ class DashboardScreen extends ConsumerWidget {
           ),
           icon: Icons.trending_up,
           color: Colors.green,
-          trend: '+8%',
         ),
         StatCard(
-          label: 'Monthly Deposits',
-          value: 'KES 20,000',
-          icon: Icons.calendar_today,
+          label: 'Interest Rate',
+          value: '${account.interestRate}%',
+          icon: Icons.percent,
           color: Colors.orange,
         ),
         StatCard(
-          label: 'Active Beneficiaries',
-          value: '3',
-          icon: Icons.people,
+          label: 'Member Since',
+          value: DateFormat('MMM yyyy').format(account.createdAt),
+          icon: Icons.calendar_today,
           color: Colors.purple,
         ),
       ],
+    );
+  }
+
+  Widget _buildAdminQuickAccess(BuildContext context) {
+    return Card(
+      color: Colors.red.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.admin_panel_settings, color: Colors.red.shade700),
+                const SizedBox(width: 8),
+                Text(
+                  'Admin Quick Access',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red.shade700,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildAdminChip(
+                    context,
+                    'Approvals',
+                    Icons.pending_actions,
+                    '/admin/deposit-approvals',
+                    Colors.orange,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildAdminChip(
+                    context,
+                    'Analytics',
+                    Icons.bar_chart,
+                    '/admin/analytics',
+                    Colors.purple,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildAdminChip(
+                    context,
+                    'Members',
+                    Icons.people,
+                    '/admin/members',
+                    Colors.blue,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdminChip(
+      BuildContext context,
+      String label,
+      IconData icon,
+      String route,
+      Color color,
+      ) {
+    return InkWell(
+      onTap: () => context.push(route),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -227,9 +378,10 @@ class DashboardScreen extends ConsumerWidget {
       children: [
         Text(
           'Quick Actions',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 16),
         GridView.builder(
@@ -277,68 +429,98 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildRecentActivity(BuildContext context) {
+  Widget _buildRecentDeposits(
+      BuildContext context, List<DepositModel> deposits) {
+    if (deposits.isEmpty) return const SizedBox.shrink();
+
+    final recentDeposits = deposits.take(3).toList();
+    final dateFormat = DateFormat('MMM dd');
+    final currencyFormat = NumberFormat.currency(symbol: 'KES ');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Recent Activity',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Recent Deposits',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            TextButton(
+              onPressed: () => context.push('/deposit-history'),
+              child: const Text('View All'),
+            ),
+          ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
-              children: [
-                _buildActivityItem(
-                  icon: Icons.check_circle,
-                  title: 'Deposit Approved',
-                  subtitle: 'KES 20,000 - 2 days ago',
-                  color: Colors.green,
-                ),
-                const Divider(),
-                _buildActivityItem(
-                  icon: Icons.people,
-                  title: 'Beneficiary Added',
-                  subtitle: 'John Doe - 5 days ago',
-                  color: Colors.blue,
-                ),
-                const Divider(),
-                _buildActivityItem(
-                  icon: Icons.file_copy,
-                  title: 'Document Verified',
-                  subtitle: 'ID Document - 1 week ago',
-                  color: Colors.orange,
-                ),
-              ],
+              children: recentDeposits.asMap().entries.map((entry) {
+                final index = entry.key;
+                final deposit = entry.value;
+
+                Color statusColor;
+                IconData statusIcon;
+                switch (deposit.status) {
+                  case 'APPROVED':
+                    statusColor = Colors.green;
+                    statusIcon = Icons.check_circle;
+                    break;
+                  case 'PENDING':
+                    statusColor = Colors.orange;
+                    statusIcon = Icons.schedule;
+                    break;
+                  case 'REJECTED':
+                    statusColor = Colors.red;
+                    statusIcon = Icons.cancel;
+                    break;
+                  default:
+                    statusColor = Colors.grey;
+                    statusIcon = Icons.help;
+                }
+
+                return Column(
+                  children: [
+                    if (index > 0) const Divider(),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: statusColor.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child:
+                        Icon(statusIcon, color: statusColor, size: 20),
+                      ),
+                      title: Text(
+                        currencyFormat.format(
+                            double.tryParse(deposit.amount) ?? 0),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        '${deposit.paymentMethod.replaceAll('_', ' ')} • ${dateFormat.format(deposit.createdAt)}',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      trailing: Text(
+                        deposit.status,
+                        style: TextStyle(
+                          color: statusColor,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
             ),
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildActivityItem({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-  }) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: color, size: 20),
-      ),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text(subtitle),
     );
   }
 }

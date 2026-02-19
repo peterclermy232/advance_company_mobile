@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../data/providers/auth_provider.dart';
 import 'loading_indicator.dart';
+
 class AppDrawer extends ConsumerWidget {
   const AppDrawer({super.key});
 
@@ -22,29 +23,55 @@ class AppDrawer extends ConsumerWidget {
               ),
               currentAccountPicture: CircleAvatar(
                 backgroundColor: Colors.white,
-                child: Text(
+                backgroundImage: user?.profilePhotoUrl != null
+                    ? NetworkImage(user!.profilePhotoUrl!)
+                    : null,
+                child: user?.profilePhotoUrl == null
+                    ? Text(
                   user?.fullName.substring(0, 1).toUpperCase() ?? 'U',
                   style: const TextStyle(
                     fontSize: 32,
                     color: Color(0xFF2563EB),
                     fontWeight: FontWeight.bold,
                   ),
-                ),
+                )
+                    : null,
               ),
-              accountName: Text(user?.fullName ?? 'User'),
+              accountName: Text(
+                user?.fullName ?? 'User',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
               accountEmail: Text(user?.email ?? ''),
+              otherAccountsPictures: user?.isAdmin == true
+                  ? [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    'ADMIN',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                )
+              ]
+                  : null,
             ),
-            loading: () => const DrawerHeader(
-              child: LoadingIndicator(),
-            ),
-            error: (_, __) => const DrawerHeader(
-              child: Text('Error loading user'),
-            ),
+            loading: () => const DrawerHeader(child: LoadingIndicator()),
+            error: (_, __) =>
+            const DrawerHeader(child: Text('Error loading user')),
           ),
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
+                // Main navigation
                 _buildDrawerItem(
                   context,
                   icon: Icons.dashboard,
@@ -61,6 +88,15 @@ class AppDrawer extends ConsumerWidget {
                   onTap: () {
                     Navigator.pop(context);
                     context.push('/financial');
+                  },
+                ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.history,
+                  title: 'Deposit History',
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/deposit-history');
                   },
                 ),
                 _buildDrawerItem(
@@ -99,6 +135,73 @@ class AppDrawer extends ConsumerWidget {
                     context.push('/notifications');
                   },
                 ),
+
+                // Admin section
+                userAsync.when(
+                  data: (user) => user?.isAdmin == true
+                      ? Column(
+                    children: [
+                      const Divider(),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        child: Text(
+                          'ADMINISTRATION',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade500,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ),
+                      _buildDrawerItem(
+                        context,
+                        icon: Icons.admin_panel_settings,
+                        title: 'Admin Dashboard',
+                        textColor: Colors.red.shade700,
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.push('/admin');
+                        },
+                      ),
+                      _buildDrawerItem(
+                        context,
+                        icon: Icons.pending_actions,
+                        title: 'Deposit Approvals',
+                        textColor: Colors.orange.shade700,
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.push('/admin/deposit-approvals');
+                        },
+                      ),
+                      _buildDrawerItem(
+                        context,
+                        icon: Icons.how_to_reg,
+                        title: 'Beneficiary Verification',
+                        textColor: Colors.blue.shade700,
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.push('/admin/beneficiary-verification');
+                        },
+                      ),
+                      _buildDrawerItem(
+                        context,
+                        icon: Icons.bar_chart,
+                        title: 'Analytics',
+                        textColor: Colors.purple.shade700,
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.push('/admin/analytics');
+                        },
+                      ),
+                    ],
+                  )
+                      : const SizedBox.shrink(),
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
+
                 const Divider(),
                 _buildDrawerItem(
                   context,
@@ -115,6 +218,7 @@ class AppDrawer extends ConsumerWidget {
                   title: 'Logout',
                   textColor: Colors.red,
                   onTap: () async {
+                    Navigator.pop(context);
                     await ref.read(currentUserProvider.notifier).logout();
                     if (context.mounted) {
                       context.go('/login');
@@ -130,19 +234,20 @@ class AppDrawer extends ConsumerWidget {
   }
 
   Widget _buildDrawerItem(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-    Color? textColor,
-  }) {
+      BuildContext context, {
+        required IconData icon,
+        required String title,
+        required VoidCallback onTap,
+        Color? textColor,
+      }) {
     return ListTile(
-      leading: Icon(icon, color: textColor),
+      leading: Icon(icon, color: textColor ?? Colors.grey.shade700),
       title: Text(
         title,
         style: TextStyle(color: textColor),
       ),
       onTap: onTap,
+      horizontalTitleGap: 8,
     );
   }
 }
