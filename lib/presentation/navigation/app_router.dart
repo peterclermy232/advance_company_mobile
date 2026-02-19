@@ -25,16 +25,36 @@ import '../screens/admin/admin_deposit_approvals_screen.dart';
 import '../screens/admin/admin_members_screen.dart';
 import '../screens/admin/beneficiary_verification_screen.dart';
 
+// ✅ Step 1: RouterNotifier lives as its own provider — created once, never recreated
+final _routerNotifierProvider = ChangeNotifierProvider<_RouterNotifier>(
+      (ref) => _RouterNotifier(ref),
+);
+
+class _RouterNotifier extends ChangeNotifier {
+  final Ref _ref;
+
+  _RouterNotifier(this._ref) {
+    // ✅ Listens to auth state changes and pings GoRouter to re-run redirect
+    _ref.listen<AsyncValue>(currentUserProvider, (previous, next) {
+      notifyListeners();
+    });
+  }
+}
+
+// ✅ Step 2: GoRouter is created once — uses refreshListenable, not ref.watch
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(currentUserProvider);
+  final notifier = ref.watch(_routerNotifierProvider);
 
   return GoRouter(
     initialLocation: '/login',
+    refreshListenable: notifier, // ✅ This replaces ref.watch — safe & correct
     redirect: (context, state) {
-      // Handle loading state - don't redirect while loading
+      final authState = ref.read(currentUserProvider); // ✅ read, not watch
+
+      // Don't redirect while loading (initial app boot)
       if (authState.isLoading) return null;
 
-      final isLoggedIn = authState.value != null;
+      final isLoggedIn = authState.valueOrNull != null;
       final location = state.uri.toString();
 
       final publicRoutes = [
@@ -83,8 +103,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/dashboard',
         builder: (context, state) => const DashboardScreen(),
       ),
-
-      // Financial
       GoRoute(
         path: '/financial',
         builder: (context, state) => const FinancialScreen(),
@@ -97,8 +115,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/deposit-history',
         builder: (context, state) => const DepositHistoryScreen(),
       ),
-
-      // Beneficiaries
       GoRoute(
         path: '/beneficiaries',
         builder: (context, state) => const BeneficiaryListScreen(),
@@ -107,8 +123,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/beneficiaries/add',
         builder: (context, state) => const BeneficiaryFormScreen(),
       ),
-
-      // Documents
       GoRoute(
         path: '/documents',
         builder: (context, state) => const DocumentListScreen(),
@@ -117,8 +131,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/document-upload',
         builder: (context, state) => const DocumentUploadScreen(),
       ),
-
-      // Applications
       GoRoute(
         path: '/applications',
         builder: (context, state) => const ApplicationListScreen(),
@@ -127,14 +139,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/applications/new',
         builder: (context, state) => const ApplicationFormScreen(),
       ),
-
-      // Notifications
       GoRoute(
         path: '/notifications',
         builder: (context, state) => const NotificationsScreen(),
       ),
-
-      // Settings & Profile
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),
@@ -180,10 +188,8 @@ final routerProvider = Provider<GoRouter>((ref) {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),
-            Text(
-              state.uri.toString(),
-              style: const TextStyle(color: Colors.grey),
-            ),
+            Text(state.uri.toString(),
+                style: const TextStyle(color: Colors.grey)),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () => context.go('/dashboard'),

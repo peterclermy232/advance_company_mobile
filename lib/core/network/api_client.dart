@@ -15,74 +15,73 @@ class ApiClient {
         baseUrl: ApiConfig.baseUrl,
         connectTimeout: ApiConfig.connectTimeout,
         receiveTimeout: ApiConfig.receiveTimeout,
-        sendTimeout: ApiConfig.sendTimeout,
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
+        // Important for better error handling
         validateStatus: (status) => status != null && status < 500,
       ),
     );
 
     _dio.interceptors.addAll([
       AuthInterceptor(_storage, _dio),
-      if (kDebugMode) // Only log in debug mode
-        PrettyDioLogger(
-          requestHeader: true,
-          requestBody: true,
-          responseBody: true,
-          responseHeader: false,
-          error: true,
-          compact: true,
-        ),
+      PrettyDioLogger(
+        requestHeader: true,
+        requestBody: true,
+        responseBody: true,
+        responseHeader: false,
+        error: true,
+        compact: true,
+      ),
     ]);
   }
 
   Dio get dio => _dio;
 
-  // GET Request with retry logic
+  // GET Request
   Future<Response> get(
-      String path, {
-        Map<String, dynamic>? queryParameters,
-        Options? options,
-        int maxRetries = 3,
-      }) async {
-    return _executeWithRetry(
-          () => _dio.get(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) async {
+    try {
+      return await _dio.get(
         path,
         queryParameters: queryParameters,
         options: options,
-      ),
-      maxRetries: maxRetries,
-    );
+      );
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
   }
 
-  // POST Request with retry logic
+  // POST Request
   Future<Response> post(
-      String path, {
-        dynamic data,
-        Map<String, dynamic>? queryParameters,
-        Options? options,
-        int maxRetries = 3,
-      }) async {
-    return _executeWithRetry(
-          () => _dio.post(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) async {
+    try {
+      return await _dio.post(
         path,
         data: data,
         queryParameters: queryParameters,
         options: options,
-      ),
-      maxRetries: maxRetries,
-    );
+      );
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
   }
 
   // PUT Request
   Future<Response> put(
-      String path, {
-        dynamic data,
-        Map<String, dynamic>? queryParameters,
-        Options? options,
-      }) async {
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) async {
     try {
       return await _dio.put(
         path,
@@ -97,11 +96,11 @@ class ApiClient {
 
   // PATCH Request
   Future<Response> patch(
-      String path, {
-        dynamic data,
-        Map<String, dynamic>? queryParameters,
-        Options? options,
-      }) async {
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) async {
     try {
       return await _dio.patch(
         path,
@@ -116,11 +115,11 @@ class ApiClient {
 
   // DELETE Request
   Future<Response> delete(
-      String path, {
-        dynamic data,
-        Map<String, dynamic>? queryParameters,
-        Options? options,
-      }) async {
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) async {
     try {
       return await _dio.delete(
         path,
@@ -135,11 +134,11 @@ class ApiClient {
 
   // Upload File
   Future<Response> uploadFile(
-      String path,
-      FormData formData, {
-        Options? options,
-        ProgressCallback? onSendProgress,
-      }) async {
+    String path,
+    FormData formData, {
+    Options? options,
+    ProgressCallback? onSendProgress,
+  }) async {
     try {
       return await _dio.post(
         path,
@@ -152,43 +151,8 @@ class ApiClient {
     }
   }
 
-  // Retry logic helper
-  Future<Response> _executeWithRetry(
-      Future<Response> Function() request, {
-        int maxRetries = 3,
-      }) async {
-    int retryCount = 0;
-
-    while (retryCount < maxRetries) {
-      try {
-        return await request();
-      } on DioException catch (e) {
-        if (retryCount == maxRetries - 1 || !_shouldRetry(e)) {
-          throw _handleError(e);
-        }
-        retryCount++;
-
-        // Exponential backoff: wait 2s, 4s, 8s...
-        await Future.delayed(Duration(seconds: 2 * retryCount));
-
-        if (kDebugMode) {
-          print('🔄 Retry attempt $retryCount of ${maxRetries - 1}');
-        }
-      }
-    }
-
-    throw Exception('Max retries exceeded');
-  }
-
-  // Determine if error is retryable
-  bool _shouldRetry(DioException error) {
-    return error.type == DioExceptionType.connectionTimeout ||
-        error.type == DioExceptionType.sendTimeout ||
-        error.type == DioExceptionType.receiveTimeout ||
-        error.type == DioExceptionType.connectionError;
-  }
-
   Exception _handleError(DioException error) {
+    // Log error details in debug mode
     if (kDebugMode) {
       print('❌ DioException Type: ${error.type}');
       print('❌ Error Message: ${error.message}');
@@ -200,85 +164,95 @@ class ApiClient {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        return Exception('Connection timeout. Please check your internet connection.');
+        return Exception('Connection timeout. Please check your internet connection and try again.');
 
       case DioExceptionType.connectionError:
-        return kIsWeb
-            ? Exception(
-            'Cannot connect to server. Please ensure the backend is running '
-                'and CORS is configured properly.')
-            : Exception(
-            'Network error. Please check your internet connection and try again.');
+        // This is the error you're experiencing
+        if (kIsWeb) {
+          return Exception(
+            'Network Error: Unable to connect to server.\n\n'
+            'Possible causes:\n'
+            '1. Backend server is not running\n'
+            '2. CORS is not configured on backend\n'
+            '3. Wrong API URL: ${ApiConfig.baseUrl}\n\n'
+            'Solutions:\n'
+            '• Start Django server: python manage.py runserver\n'
+            '• Install django-cors-headers\n'
+            '• Add CORS_ALLOW_ALL_ORIGINS = True to settings.py'
+          );
+        } else {
+          return Exception(
+            'Network Error: Cannot connect to server.\n\n'
+            'Please check:\n'
+            '• Your internet connection\n'
+            '• Backend server is running\n'
+            '• API URL is correct: ${ApiConfig.baseUrl}'
+          );
+        }
 
       case DioExceptionType.badResponse:
-        return _handleBadResponse(error);
+        final statusCode = error.response?.statusCode;
+        final data = error.response?.data;
+
+        if (statusCode == 401) {
+          return Exception('Unauthorized. Please login again.');
+        } else if (statusCode == 403) {
+          return Exception('Access forbidden.');
+        } else if (statusCode == 404) {
+          return Exception('Resource not found.');
+        } else if (statusCode == 500) {
+          return Exception('Server error. Please try again later.');
+        }
+
+        // Handle backend error response format
+        if (data is Map) {
+          // Try different common error field names
+          final message = data['message'] ?? 
+                         data['error'] ?? 
+                         data['detail'] ?? 
+                         data['non_field_errors'];
+          
+          if (message != null) {
+            if (message is List) {
+              return Exception(message.join(', '));
+            }
+            return Exception(message.toString());
+          }
+          
+          // Handle field-specific errors
+          final errors = <String>[];
+          data.forEach((key, value) {
+            if (value is List) {
+              errors.add('$key: ${value.join(', ')}');
+            } else if (value is String) {
+              errors.add('$key: $value');
+            }
+          });
+          
+          if (errors.isNotEmpty) {
+            return Exception(errors.join('\n'));
+          }
+        }
+
+        return Exception('An error occurred. Please try again.');
 
       case DioExceptionType.cancel:
         return Exception('Request cancelled.');
 
       case DioExceptionType.badCertificate:
-        return Exception('Security certificate error.');
+        return Exception('Security certificate error. Please check your connection.');
 
       case DioExceptionType.unknown:
         if (error.message?.contains('SocketException') ?? false) {
-          return Exception('No internet connection.');
+          return Exception('No internet connection. Please check your network settings.');
         }
-        return Exception(error.message ?? 'An unexpected error occurred.');
+        if (error.message?.contains('HandshakeException') ?? false) {
+          return Exception('Connection security error. Please try again.');
+        }
+        return Exception('An unexpected error occurred: ${error.message ?? 'Unknown error'}');
 
       default:
         return Exception('An error occurred. Please try again.');
     }
-  }
-
-  Exception _handleBadResponse(DioException error) {
-    final statusCode = error.response?.statusCode;
-    final data = error.response?.data;
-
-    switch (statusCode) {
-      case 401:
-        return Exception('Session expired. Please login again.');
-      case 403:
-        return Exception('Access denied.');
-      case 404:
-        return Exception('Resource not found.');
-      case 422:
-        return Exception('Validation error. Please check your input.');
-      case 500:
-      case 502:
-      case 503:
-        return Exception('Server error. Please try again later.');
-      default:
-        return _parseErrorMessage(data);
-    }
-  }
-
-  Exception _parseErrorMessage(dynamic data) {
-    if (data is Map) {
-      // Try common error field names
-      final message = data['message'] ??
-          data['error'] ??
-          data['detail'] ??
-          data['non_field_errors'];
-
-      if (message != null) {
-        return Exception(message is List ? message.join(', ') : message.toString());
-      }
-
-      // Handle field-specific errors
-      final errors = <String>[];
-      data.forEach((key, value) {
-        if (value is List) {
-          errors.add('$key: ${value.join(', ')}');
-        } else if (value is String) {
-          errors.add('$key: $value');
-        }
-      });
-
-      if (errors.isNotEmpty) {
-        return Exception(errors.join('\n'));
-      }
-    }
-
-    return Exception('An error occurred. Please try again.');
   }
 }

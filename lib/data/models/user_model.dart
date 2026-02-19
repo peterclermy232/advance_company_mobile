@@ -1,4 +1,3 @@
-
 import 'package:equatable/equatable.dart';
 
 class UserModel extends Equatable {
@@ -54,34 +53,47 @@ class UserModel extends Equatable {
     required this.updatedAt,
   });
 
+  // ✅ Safe date parser
+  static DateTime _parseDate(dynamic value) {
+    if (value == null) return DateTime.now();
+    try {
+      return DateTime.parse(value as String);
+    } catch (_) {
+      return DateTime.now();
+    }
+  }
+
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id'] as int,
-      email: json['email'] as String,
-      firstName: json['first_name'] as String,
-      lastName: json['last_name'] as String,
-      fullName: json['full_name'] as String,
-      phoneNumber: json['phone_number'] as String?,
-      age: json['age'] as int?,
-      gender: json['gender'] as String?,
-      maritalStatus: json['marital_status'] as String?,
-      profession: json['profession'] as String?,
-      profilePhoto: json['profile_photo'] as String?,
-      profilePhotoUrl: json['profile_photo_url'] as String?,
-      dateJoined: DateTime.parse(json['date_joined'] as String),
-      lastLogin: json['last_login'] != null
-          ? DateTime.parse(json['last_login'] as String)
-          : null,
-      isActive: json['is_active'] as bool,
-      isStaff: json['is_staff'] as bool,
-      isSuperuser: json['is_superuser'] as bool,
-      emailVerified: json['email_verified'] as bool,
-      twoFactorEnabled: json['two_factor_enabled'] as bool,
-      biometricEnabled: json['biometric_enabled'] as bool,
-      role: json['role'] as String?,
-      activityStatus: json['activity_status'] as String,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      // API returns uuid string, fallback to 0
+      id: json['id'] ?? 0,
+      email: json['email'] ?? '',
+      // API doesn't return first_name/last_name, derive from full_name
+      firstName: json['first_name'] ?? (json['full_name'] as String? ?? '').split(' ').first,
+      lastName: json['last_name'] ?? (json['full_name'] as String? ?? '').split(' ').skip(1).join(' '),
+      fullName: json['full_name'] ?? '',
+      phoneNumber: json['phone_number'],
+      age: json['age'],
+      gender: json['gender'],
+      maritalStatus: json['marital_status'],
+      profession: json['profession'],
+      profilePhoto: json['profile_photo'],
+      profilePhotoUrl: json['profile_photo_url'],
+      // API doesn't return date_joined, use created_at
+      dateJoined: _parseDate(json['date_joined'] ?? json['created_at']),
+      lastLogin: json['last_login'] != null ? _parseDate(json['last_login']) : null,
+      // API doesn't return is_active, derive from activity_status
+      isActive: json['is_active'] ?? (json['activity_status'] == 'Active'),
+      // API doesn't return is_staff, derive from role
+      isStaff: json['is_staff'] ?? (json['role'] == 'admin'),
+      isSuperuser: json['is_superuser'] ?? false,
+      emailVerified: json['email_verified'] ?? false,
+      twoFactorEnabled: json['two_factor_enabled'] ?? false,
+      biometricEnabled: json['biometric_enabled'] ?? false,
+      role: json['role'],
+      activityStatus: json['activity_status'] ?? 'Active',
+      createdAt: _parseDate(json['created_at']),
+      updatedAt: _parseDate(json['updated_at']),
     );
   }
 
@@ -118,29 +130,10 @@ class UserModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        email,
-        firstName,
-        lastName,
-        fullName,
-        phoneNumber,
-        age,
-        gender,
-        maritalStatus,
-        profession,
-        profilePhoto,
-        profilePhotoUrl,
-        dateJoined,
-        lastLogin,
-        isActive,
-        isStaff,
-        isSuperuser,
-        emailVerified,
-        twoFactorEnabled,
-        biometricEnabled,
-        role,
-        activityStatus,
-        createdAt,
-        updatedAt,
-      ];
+    id, email, firstName, lastName, fullName, phoneNumber, age, gender,
+    maritalStatus, profession, profilePhoto, profilePhotoUrl, dateJoined,
+    lastLogin, isActive, isStaff, isSuperuser, emailVerified,
+    twoFactorEnabled, biometricEnabled, role, activityStatus,
+    createdAt, updatedAt,
+  ];
 }

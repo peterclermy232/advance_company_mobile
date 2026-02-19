@@ -12,73 +12,129 @@ class AuthRepository {
 
   AuthRepository(this._apiClient, this._storage);
 
+  // ─── Login ────────────────────────────────────────────────────────────────
   Future<AuthResponse> login(String email, String password) async {
-    final response = await _apiClient.post(
-      ApiEndpoints.login,
-      data: {'email': email, 'password': password},
-    );
+    try {
+      final response = await _apiClient.post(
+        ApiEndpoints.login,
+        data: {'email': email, 'password': password},
+      );
 
-    final data = response.data['data'];
-    final authResponse = AuthResponse.fromJson(data);
-    
-    // Save tokens
-    await _storage.saveAccessToken(authResponse.accessToken);
-    await _storage.saveRefreshToken(authResponse.refreshToken);
-    await _storage.saveUserData(jsonEncode(authResponse.user.toJson()));
-    
-    return authResponse;
+      print('🔐 RAW LOGIN RESPONSE: ${response.data}');
+
+      final responseBody = response.data;
+
+      if (responseBody['success'] != true) {
+        throw Exception(responseBody['message'] ?? 'Login failed');
+      }
+
+      final data = responseBody['data'];
+      final authResponse = AuthResponse.fromJson(data);
+
+      await _storage.saveAccessToken(authResponse.accessToken);
+      await _storage.saveRefreshToken(authResponse.refreshToken);
+      await _storage.saveUserData(jsonEncode(authResponse.user.toJson()));
+
+      print('✅ AUTH REPO LOGIN: user=${authResponse.user.email}');
+      return authResponse;
+    } catch (e) {
+      print('❌ AUTH REPO LOGIN ERROR: $e');
+      rethrow;
+    }
   }
 
+  // ─── Register ─────────────────────────────────────────────────────────────
   Future<AuthResponse> register(Map<String, dynamic> data) async {
-    final response = await _apiClient.post(
-      ApiEndpoints.register,
-      data: data,
-    );
+    try {
+      final response = await _apiClient.post(
+        ApiEndpoints.register,
+        data: data,
+      );
 
-    final responseData = response.data['data'];
-    final authResponse = AuthResponse.fromJson(responseData);
-    
-    await _storage.saveAccessToken(authResponse.accessToken);
-    await _storage.saveRefreshToken(authResponse.refreshToken);
-    await _storage.saveUserData(jsonEncode(authResponse.user.toJson()));
-    
-    return authResponse;
+      final responseBody = response.data;
+      if (responseBody['success'] != true) {
+        throw Exception(responseBody['message'] ?? 'Registration failed');
+      }
+
+      final authResponse = AuthResponse.fromJson(responseBody['data']);
+
+      await _storage.saveAccessToken(authResponse.accessToken);
+      await _storage.saveRefreshToken(authResponse.refreshToken);
+      await _storage.saveUserData(jsonEncode(authResponse.user.toJson()));
+
+      return authResponse;
+    } catch (e) {
+      print('❌ AUTH REPO REGISTER ERROR: $e');
+      rethrow;
+    }
   }
 
+  // ─── Logout ───────────────────────────────────────────────────────────────
   Future<void> logout() async {
-    await _storage.clearAll();
+    try {
+      await _storage.clearAll();
+    } catch (e) {
+      print('❌ LOGOUT ERROR: $e');
+      await _storage.clearAll();
+    }
   }
 
+  // ─── Get Current User (from local storage) ────────────────────────────────
   Future<UserModel?> getCurrentUser() async {
-    final userData = await _storage.getUserData();
-    if (userData == null) return null;
-    
-    return UserModel.fromJson(jsonDecode(userData));
+    try {
+      final userData = await _storage.getUserData();
+      if (userData == null || userData.isEmpty) return null;
+
+      final decoded = jsonDecode(userData);
+      final user = UserModel.fromJson(decoded);
+      print('✅ CURRENT USER FROM STORAGE: ${user.email}');
+      return user;
+    } catch (e) {
+      print('❌ GET CURRENT USER ERROR: $e');
+      return null; // ✅ Return null instead of crashing
+    }
   }
 
+  // ─── Get User Profile (from API) ──────────────────────────────────────────
   Future<UserModel> getUserProfile() async {
-    final response = await _apiClient.get(ApiEndpoints.currentUser);
-    final user = UserModel.fromJson(response.data['data']);
-    
-    await _storage.saveUserData(jsonEncode(user.toJson()));
-    return user;
+    try {
+      final response = await _apiClient.get(ApiEndpoints.currentUser);
+      final data = response.data;
+
+      final userData = data['data'] ?? data;
+      final user = UserModel.fromJson(userData);
+
+      await _storage.saveUserData(jsonEncode(user.toJson()));
+      return user;
+    } catch (e) {
+      print('❌ GET USER PROFILE ERROR: $e');
+      rethrow;
+    }
   }
 
+  // ─── Update Profile ───────────────────────────────────────────────────────
   Future<UserModel> updateProfile(int userId, Map<String, dynamic> data) async {
-    final response = await _apiClient.patch(
-      ApiEndpoints.updateProfile.replaceAll('{id}', userId.toString()),
-      data: data,
-    );
+    try {
+      final response = await _apiClient.patch(
+        ApiEndpoints.updateProfile.replaceAll('{id}', userId.toString()),
+        data: data,
+      );
 
-    final user = UserModel.fromJson(response.data['data']);
-    await _storage.saveUserData(jsonEncode(user.toJson()));
-    return user;
+      final user = UserModel.fromJson(response.data['data']);
+      await _storage.saveUserData(jsonEncode(user.toJson()));
+      return user;
+    } catch (e) {
+      print('❌ UPDATE PROFILE ERROR: $e');
+      rethrow;
+    }
   }
 
+  // ─── Change Password ──────────────────────────────────────────────────────
   Future<void> changePassword(Map<String, dynamic> data) async {
     await _apiClient.post(ApiEndpoints.changePassword, data: data);
   }
 
+  // ─── 2FA ──────────────────────────────────────────────────────────────────
   Future<Map<String, dynamic>> enable2FA() async {
     final response = await _apiClient.post(ApiEndpoints.enable2FA, data: {});
     return response.data['data'];
@@ -99,6 +155,7 @@ class AuthRepository {
     );
   }
 
+  // ─── Forgot Password ──────────────────────────────────────────────────────
   Future<void> forgotPassword(String email) async {
     await _apiClient.post(
       ApiEndpoints.forgotPassword,
@@ -106,6 +163,7 @@ class AuthRepository {
     );
   }
 
+  // ─── Verify Email ─────────────────────────────────────────────────────────
   Future<void> verifyEmail(String email, String token) async {
     await _apiClient.post(
       ApiEndpoints.verifyEmail,
@@ -113,6 +171,7 @@ class AuthRepository {
     );
   }
 
+  // ─── Upload Profile Photo ─────────────────────────────────────────────────
   Future<UserModel> uploadProfilePhoto(String filePath) async {
     final formData = FormData.fromMap({
       'profile_photo': await MultipartFile.fromFile(filePath),

@@ -3,17 +3,16 @@ import '../repositories/auth_repository.dart';
 import '../models/user_model.dart';
 import 'core_providers.dart';
 
-// Auth Repository Provider
 final authRepositoryProvider = FutureProvider<AuthRepository>((ref) async {
   final apiClient = await ref.watch(apiClientProvider.future);
   final storage = await ref.watch(secureStorageProvider.future);
   return AuthRepository(apiClient, storage);
 });
 
-// Current User Provider
-final currentUserProvider = StateNotifierProvider<UserNotifier, AsyncValue<UserModel?>>((ref) {
-  return UserNotifier(ref);
-});
+final currentUserProvider =
+StateNotifierProvider<UserNotifier, AsyncValue<UserModel?>>(
+      (ref) => UserNotifier(ref),
+);
 
 class UserNotifier extends StateNotifier<AsyncValue<UserModel?>> {
   final Ref _ref;
@@ -23,13 +22,13 @@ class UserNotifier extends StateNotifier<AsyncValue<UserModel?>> {
   }
 
   Future<void> _loadUser() async {
-    state = const AsyncValue.loading();
     try {
       final authRepository = await _ref.read(authRepositoryProvider.future);
       final user = await authRepository.getCurrentUser();
       state = AsyncValue.data(user);
     } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+      // ✅ If no session found, set null (not error) so router goes to /login cleanly
+      state = const AsyncValue.data(null);
     }
   }
 
@@ -38,9 +37,12 @@ class UserNotifier extends StateNotifier<AsyncValue<UserModel?>> {
     try {
       final authRepository = await _ref.read(authRepositoryProvider.future);
       final authResponse = await authRepository.login(email, password);
+      // ✅ This triggers GoRouter redirect → /dashboard
       state = AsyncValue.data(authResponse.user);
     } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+      // ✅ On error, reset to null (not error state) so router stays on /login
+      state = const AsyncValue.data(null);
+      // ✅ Still rethrow so LoginScreen can show the SnackBar
       rethrow;
     }
   }
@@ -52,14 +54,16 @@ class UserNotifier extends StateNotifier<AsyncValue<UserModel?>> {
       final authResponse = await authRepository.register(data);
       state = AsyncValue.data(authResponse.user);
     } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+      state = const AsyncValue.data(null);
       rethrow;
     }
   }
 
   Future<void> logout() async {
-    final authRepository = await _ref.read(authRepositoryProvider.future);
-    await authRepository.logout();
+    try {
+      final authRepository = await _ref.read(authRepositoryProvider.future);
+      await authRepository.logout();
+    } catch (_) {}
     state = const AsyncValue.data(null);
   }
 
