@@ -43,6 +43,7 @@ class ApiEndpoints {
   
   // Application Endpoints
   static const String applications = '/applications/';
+  static const String applicationChoices = '/applications/choices/';
   static String applicationDetail(int id) => '/applications/$id/';
   static String approveApplication(int id) => '/applications/$id/approve/';
   static String rejectApplication(int id) => '/applications/$id/reject/';

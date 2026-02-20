@@ -1,8 +1,37 @@
-
 import 'package:equatable/equatable.dart';
+
+class ApplicationActivityModel extends Equatable {
+  final String id;
+  final String action;
+  final String? notes;
+  final DateTime createdAt;
+  final String? userName;
+
+  const ApplicationActivityModel({
+    required this.id,
+    required this.action,
+    this.notes,
+    required this.createdAt,
+    this.userName,
+  });
+
+  factory ApplicationActivityModel.fromJson(Map<String, dynamic> json) {
+    return ApplicationActivityModel(
+      id: json['id'] as String,
+      action: json['action'] as String,
+      notes: json['notes'] as String?,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      userName: json['user_name'] as String?,
+    );
+  }
+
+  @override
+  List<Object?> get props => [id, action, notes, createdAt, userName];
+}
+
 class ApplicationModel extends Equatable {
-  final int id;
-  final int user;
+  final String id;         // UUID string, e.g. "254c53f4-6bb0-..."
+  final String user;       // UUID string
   final String? userName;
   final String applicationType;
   final String reason;
@@ -12,9 +41,10 @@ class ApplicationModel extends Equatable {
   final DateTime submittedAt;
   final DateTime? reviewedAt;
   final DateTime? approvedAt;
-  final int? reviewedBy;
+  final String? reviewedBy; // UUID string or null
   final DateTime createdAt;
   final DateTime updatedAt;
+  final List<ApplicationActivityModel> activities;
 
   const ApplicationModel({
     required this.id,
@@ -31,12 +61,13 @@ class ApplicationModel extends Equatable {
     this.reviewedBy,
     required this.createdAt,
     required this.updatedAt,
+    this.activities = const [],
   });
 
   factory ApplicationModel.fromJson(Map<String, dynamic> json) {
     return ApplicationModel(
-      id: json['id'] as int,
-      user: json['user'] as int,
+      id: json['id'] as String,
+      user: json['user'] as String,
       userName: json['user_name'] as String?,
       applicationType: json['application_type'] as String,
       reason: json['reason'] as String,
@@ -50,27 +81,34 @@ class ApplicationModel extends Equatable {
       approvedAt: json['approved_at'] != null
           ? DateTime.parse(json['approved_at'] as String)
           : null,
-      reviewedBy: json['reviewed_by'] as int?,
+      reviewedBy: json['reviewed_by'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
+      activities: (json['activities'] as List<dynamic>? ?? [])
+          .map((e) => ApplicationActivityModel.fromJson(
+          e as Map<String, dynamic>))
+          .toList(),
     );
   }
 
+  // ── Status helpers ────────────────────────────────────────────────────────
+  bool get isPending => status == 'pending';
+  bool get isUnderReview => status == 'under_review';
+  bool get isApproved => status == 'approved';
+  bool get isRejected => status == 'rejected';
+
+  /// Human-readable label for the application type
+  String get applicationTypeLabel =>
+      applicationType.replaceAll('_', ' ').toUpperCase();
+
+  /// Most recent activity action, e.g. "submitted", "approved"
+  String? get latestActivity =>
+      activities.isNotEmpty ? activities.first.action : null;
+
   @override
   List<Object?> get props => [
-        id,
-        user,
-        userName,
-        applicationType,
-        reason,
-        supportingDocument,
-        status,
-        adminComments,
-        submittedAt,
-        reviewedAt,
-        approvedAt,
-        reviewedBy,
-        createdAt,
-        updatedAt,
-      ];
+    id, user, userName, applicationType, reason, supportingDocument,
+    status, adminComments, submittedAt, reviewedAt, approvedAt,
+    reviewedBy, createdAt, updatedAt, activities,
+  ];
 }
