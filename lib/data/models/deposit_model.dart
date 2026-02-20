@@ -1,11 +1,19 @@
-
 import 'package:equatable/equatable.dart';
+
 class DepositModel extends Equatable {
-  final int id;
+  // Backend sends "uuid" as the primary key (string), not an integer "id".
+  final String id;
+
   final String userName;
   final String amount;
+
+  /// Raw value from backend — may be uppercase e.g. "MPESA", "BANK".
+  /// Use [paymentMethodLabel] for display.
   final String paymentMethod;
+
+  /// Lowercase status from backend: 'pending' | 'completed' | 'failed'
   final String status;
+
   final String transactionReference;
   final String? mpesaPhone;
   final String? notes;
@@ -20,9 +28,11 @@ class DepositModel extends Equatable {
   final String? rejectionReason;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final int user;
-  final int? approvedBy;
-  final int? rejectedBy;
+
+  // Backend sends user/approvedBy/rejectedBy as UUID strings, not integers.
+  final String user;
+  final String? approvedBy;
+  final String? rejectedBy;
 
   const DepositModel({
     required this.id,
@@ -51,49 +61,141 @@ class DepositModel extends Equatable {
 
   factory DepositModel.fromJson(Map<String, dynamic> json) {
     return DepositModel(
-      id: json['id'] as int,
-      userName: json['user_name'] as String,
-      amount: json['amount'] as String,
-      paymentMethod: json['payment_method'] as String,
-      status: json['status'] as String,
-      transactionReference: json['transaction_reference'] as String,
-      mpesaPhone: json['mpesa_phone'] as String?,
-      notes: json['notes'] as String?,
-      mpesaCheckoutRequestId: json['mpesa_checkout_request_id'] as String?,
-      mpesaMerchantRequestId: json['mpesa_merchant_request_id'] as String?,
-      mpesaReceiptNumber: json['mpesa_receipt_number'] as String?,
+      // Backend uses "uuid" as primary key — fall back to "id" if ever present.
+      id: (json['uuid'] ?? json['id'] ?? '').toString(),
+
+      userName: (json['user_name'] ?? '').toString(),
+      amount: (json['amount'] ?? '0').toString(),
+      paymentMethod: (json['payment_method'] ?? '').toString(),
+      status: (json['status'] ?? '').toString(),
+      transactionReference:
+      (json['transaction_reference'] ?? '').toString(),
+      mpesaPhone: json['mpesa_phone']?.toString(),
+      notes: json['notes']?.toString(),
+      mpesaCheckoutRequestId:
+      json['mpesa_checkout_request_id']?.toString(),
+      mpesaMerchantRequestId:
+      json['mpesa_merchant_request_id']?.toString(),
+      mpesaReceiptNumber: json['mpesa_receipt_number']?.toString(),
       mpesaTransactionDate: json['mpesa_transaction_date'] != null
-          ? DateTime.parse(json['mpesa_transaction_date'] as String)
+          ? DateTime.tryParse(json['mpesa_transaction_date'].toString())
           : null,
-      mpesaResponseCode: json['mpesa_response_code'] as String?,
-      mpesaResponseDescription: json['mpesa_response_description'] as String?,
+      mpesaResponseCode: json['mpesa_response_code']?.toString(),
+      mpesaResponseDescription:
+      json['mpesa_response_description']?.toString(),
       approvedAt: json['approved_at'] != null
-          ? DateTime.parse(json['approved_at'] as String)
+          ? DateTime.tryParse(json['approved_at'].toString())
           : null,
       rejectedAt: json['rejected_at'] != null
-          ? DateTime.parse(json['rejected_at'] as String)
+          ? DateTime.tryParse(json['rejected_at'].toString())
           : null,
-      rejectionReason: json['rejection_reason'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
-      user: json['user'] as int,
-      approvedBy: json['approved_by'] as int?,
-      rejectedBy: json['rejected_by'] as int?,
+      rejectionReason: json['rejection_reason']?.toString(),
+      createdAt: DateTime.parse(
+          (json['created_at'] ?? DateTime.now().toIso8601String())
+              .toString()),
+      updatedAt: DateTime.parse(
+          (json['updated_at'] ?? DateTime.now().toIso8601String())
+              .toString()),
+      user: (json['user'] ?? '').toString(),
+      approvedBy: json['approved_by']?.toString(),
+      rejectedBy: json['rejected_by']?.toString(),
     );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'uuid': id,
+    'user_name': userName,
+    'amount': amount,
+    'payment_method': paymentMethod,
+    'status': status,
+    'transaction_reference': transactionReference,
+    'mpesa_phone': mpesaPhone,
+    'notes': notes,
+    'mpesa_checkout_request_id': mpesaCheckoutRequestId,
+    'mpesa_merchant_request_id': mpesaMerchantRequestId,
+    'mpesa_receipt_number': mpesaReceiptNumber,
+    'mpesa_transaction_date': mpesaTransactionDate?.toIso8601String(),
+    'mpesa_response_code': mpesaResponseCode,
+    'mpesa_response_description': mpesaResponseDescription,
+    'approved_at': approvedAt?.toIso8601String(),
+    'rejected_at': rejectedAt?.toIso8601String(),
+    'rejection_reason': rejectionReason,
+    'created_at': createdAt.toIso8601String(),
+    'updated_at': updatedAt.toIso8601String(),
+    'user': user,
+    'approved_by': approvedBy,
+    'rejected_by': rejectedBy,
+  };
+
+  // ─── Display helpers ────────────────────────────────────────────────────────
+
+  /// Lowercase status for safe comparisons.
+  String get statusNormalized => status.toLowerCase();
+
+  /// True when deposit is awaiting admin action.
+  bool get isPending =>
+      statusNormalized == 'pending' || statusNormalized == 'processing';
+
+  /// True when approved / completed.
+  bool get isApproved => statusNormalized == 'completed';
+
+  /// True when rejected / failed.
+  bool get isRejected =>
+      statusNormalized == 'failed' || statusNormalized == 'rejected';
+
+  /// Human-readable status matching the web app labels.
+  String get statusLabel {
+    switch (statusNormalized) {
+      case 'completed':
+        return 'Approved';
+      case 'pending':
+        return 'Pending';
+      case 'processing':
+        return 'Processing';
+      case 'failed':
+        return 'Rejected';
+      case 'cancelled':
+        return 'Cancelled';
+      default:
+        return status.isEmpty
+            ? 'Unknown'
+            : status[0].toUpperCase() + status.substring(1);
+    }
+  }
+
+  /// Human-readable payment method.
+  /// Handles uppercase ("MPESA") and lowercase ("mpesa") from backend.
+  String get paymentMethodLabel {
+    switch (paymentMethod.toUpperCase()) {
+      case 'MPESA':
+        return 'M-Pesa';
+      case 'BANK':
+        return 'Bank Transfer';
+      case 'MANSA_X':
+        return 'Mansa-X';
+      default:
+        return paymentMethod
+            .replaceAll('_', ' ')
+            .split(' ')
+            .map((w) => w.isEmpty
+            ? w
+            : w[0].toUpperCase() + w.substring(1).toLowerCase())
+            .join(' ');
+    }
   }
 
   @override
   List<Object?> get props => [
-        id,
-        userName,
-        amount,
-        paymentMethod,
-        status,
-        transactionReference,
-        mpesaPhone,
-        notes,
-        createdAt,
-        updatedAt,
-        user,
-      ];
+    id,
+    userName,
+    amount,
+    paymentMethod,
+    status,
+    transactionReference,
+    mpesaPhone,
+    notes,
+    createdAt,
+    updatedAt,
+    user,
+  ];
 }

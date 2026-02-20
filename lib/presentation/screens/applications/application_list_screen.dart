@@ -1,24 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/network/api_client.dart';
-import '../../../core/constants/api_endpoints.dart';
-import '../../../data/providers/core_providers.dart';
+import 'package:go_router/go_router.dart';
+import '../../../data/models/application_model.dart';
+import '../../../data/models/application_type_model.dart';
+import '../../../data/providers/application_providers.dart';
 import '../../widgets/common/loading_indicator.dart';
 import '../../widgets/common/empty_state.dart';
-
-// For application_list_screen.dart - REPLACE the provider:
-final applicationsProvider = FutureProvider.autoDispose((ref) async {
-  final apiClient = await ref.watch(apiClientProvider.future);
-  final response = await apiClient.get(ApiEndpoints.applications);
-  final data = response.data['data'];
-  
-  if (data is List) {
-    return data;
-  } else if (data is Map && data.containsKey('results')) {
-    return data['results'] as List;
-  }
-  return [];
-});
 
 class ApplicationListScreen extends ConsumerWidget {
   const ApplicationListScreen({super.key});
@@ -30,26 +17,36 @@ class ApplicationListScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Applications'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => _showApplicationDialog(context, ref),
-          ),
-        ],
       ),
       body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(applicationsProvider);
-        },
+        onRefresh: () => ref.read(applicationsProvider.notifier).refresh(),
         child: applicationsAsync.when(
+          loading: () => const LoadingIndicator(),
+          error: (error, _) => Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                const SizedBox(height: 16),
+                Text('Error: $error'),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () =>
+                      ref.read(applicationsProvider.notifier).refresh(),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
           data: (applications) {
             if (applications.isEmpty) {
               return EmptyState(
                 icon: Icons.assignment_outlined,
                 title: 'No Applications',
-                message: 'Submit applications for loans or withdrawals',
+                message: 'Submit applications for loans, withdrawals, or '
+                    'membership changes',
                 action: ElevatedButton.icon(
-                  onPressed: () => _showApplicationDialog(context, ref),
+                  onPressed: () => context.push('/applications/new'),
                   icon: const Icon(Icons.add),
                   label: const Text('New Application'),
                 ),
@@ -60,145 +57,43 @@ class ApplicationListScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               itemCount: applications.length,
               separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final app = applications[index];
-                return _ApplicationCard(application: app);
-              },
+              itemBuilder: (context, index) =>
+                  _ApplicationCard(application: applications[index]),
             );
           },
-          loading: () => const LoadingIndicator(),
-          error: (error, _) => Center(child: Text('Error: $error')),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showApplicationDialog(context, ref),
+        onPressed: () => context.push('/applications/new'),
         icon: const Icon(Icons.add),
         label: const Text('New Application'),
       ),
     );
   }
-
-  Future<void> _showApplicationDialog(BuildContext context, WidgetRef ref) async {
-    final reasonController = TextEditingController();
-    String selectedType = 'LOAN';
-
-    final types = ['LOAN', 'WITHDRAWAL', 'MEMBERSHIP_CHANGE', 'OTHER'];
-
-    await showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('New Application'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<String>(
-                initialValue: selectedType,
-                decoration: const InputDecoration(
-                  labelText: 'Application Type',
-                ),
-                items: types
-                    .map((type) => DropdownMenuItem(
-                          value: type,
-                          child: Text(type.replaceAll('_', ' ')),
-                        ))
-                    .toList(),
-                onChanged: (value) {
-                  setState(() => selectedType = value!);
-                },
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: reasonController,
-                decoration: const InputDecoration(
-                  labelText: 'Reason',
-                  hintText: 'Explain your request',
-                ),
-                maxLines: 3,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (reasonController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter a reason')),
-                  );
-                  return;
-                }
-
-                try {
-                  final apiClient = await ref.read(apiClientProvider.future);
-                  await apiClient.post(ApiEndpoints.applications, data: {
-                    'application_type': selectedType,
-                    'reason': reasonController.text,
-                  });
-
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Application submitted!'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                    ref.invalidate(applicationsProvider);
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(e.toString().replaceAll('Exception: ', '')),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              },
-              child: const Text('Submit'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
-class _ApplicationCard extends StatelessWidget {
-  final Map<String, dynamic> application;
+// ─── Application Card ─────────────────────────────────────────────────────────
 
+class _ApplicationCard extends ConsumerWidget {
   const _ApplicationCard({required this.application});
 
-  @override
-  Widget build(BuildContext context) {
-    final status = application['status'] as String;
-    Color statusColor;
-    IconData statusIcon;
+  final ApplicationModel application;
 
-    switch (status) {
-      case 'APPROVED':
-        statusColor = Colors.green;
-        statusIcon = Icons.check_circle;
-        break;
-      case 'PENDING':
-      case 'UNDER_REVIEW':
-        statusColor = Colors.orange;
-        statusIcon = Icons.schedule;
-        break;
-      case 'REJECTED':
-        statusColor = Colors.red;
-        statusIcon = Icons.cancel;
-        break;
-      default:
-        statusColor = Colors.grey;
-        statusIcon = Icons.help;
-    }
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Use status colour from the choices provider if available,
+    // otherwise fall back to a local default.
+    final statusChoicesAsync = ref.watch(statusChoicesProvider);
+    final Color statusColor = statusChoicesAsync.whenOrNull(
+      data: (choices) {
+        final match = choices.cast<StatusChoiceModel?>().firstWhere(
+              (c) => c?.value == application.status,
+          orElse: () => null,
+        );
+        return match != null ? Color(match.colorValue) : null;
+      },
+    ) ??
+        _defaultColor(application.status);
 
     return Card(
       child: Padding(
@@ -206,47 +101,46 @@ class _ApplicationCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  (application['application_type'] as String).replaceAll('_', ' '),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    application.applicationTypeLabel,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(statusIcon, size: 16, color: statusColor),
-                      const SizedBox(width: 4),
-                      Text(
-                        status,
-                        style: TextStyle(
-                          color: statusColor,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
+                const SizedBox(width: 8),
+                _StatusBadge(
+                  label: application.status.replaceAll('_', ' ').toUpperCase(),
+                  color: statusColor,
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+
+            const SizedBox(height: 10),
+
+            // Reason
             Text(
-              application['reason'] as String,
-              style: const TextStyle(color: Colors.grey),
+              application.reason,
+              style: TextStyle(color: Colors.grey.shade700, height: 1.4),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            if (application['admin_comments'] != null &&
-                (application['admin_comments'] as String).isNotEmpty) ...[
+
+            // Submitted date
+            const SizedBox(height: 8),
+            Text(
+              'Submitted ${_formatDate(application.submittedAt)}',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            ),
+
+            // Admin comments
+            if (application.adminComments != null &&
+                application.adminComments!.isNotEmpty) ...[
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(12),
@@ -255,12 +149,14 @@ class _ApplicationCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.comment, color: Colors.blue.shade700, size: 20),
+                    Icon(Icons.comment,
+                        color: Colors.blue.shade700, size: 18),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        application['admin_comments'] as String,
+                        application.adminComments!,
                         style: TextStyle(color: Colors.blue.shade900),
                       ),
                     ),
@@ -269,6 +165,50 @@ class _ApplicationCard extends StatelessWidget {
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+
+  Color _defaultColor(String status) {
+    switch (status) {
+      case 'approved':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      case 'under_review':
+        return Colors.blue;
+      default:
+        return Colors.orange;
+    }
+  }
+
+  String _formatDate(DateTime dt) {
+    return '${dt.day}/${dt.month}/${dt.year}';
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.4)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w600,
+          fontSize: 11,
         ),
       ),
     );

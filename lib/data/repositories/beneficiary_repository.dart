@@ -22,7 +22,7 @@ class BeneficiaryRepository {
     return [];
   }
 
-  Future<BeneficiaryModel> getBeneficiary(int id) async {
+  Future<BeneficiaryModel> getBeneficiary(String id) async {
     final response = await _apiClient.get(
       ApiEndpoints.beneficiaryDetail(id),
     );
@@ -37,7 +37,7 @@ class BeneficiaryRepository {
     return BeneficiaryModel.fromJson(response.data['data']);
   }
 
-  Future<BeneficiaryModel> updateBeneficiary(int id, FormData formData) async {
+  Future<BeneficiaryModel> updateBeneficiary(String id, FormData formData) async {
     final response = await _apiClient.uploadFile(
       ApiEndpoints.beneficiaryDetail(id),
       formData,
@@ -45,11 +45,11 @@ class BeneficiaryRepository {
     return BeneficiaryModel.fromJson(response.data['data']);
   }
 
-  Future<void> deleteBeneficiary(int id) async {
+  Future<void> deleteBeneficiary(String id) async {
     await _apiClient.delete(ApiEndpoints.beneficiaryDetail(id));
   }
 
-  Future<void> verifyBeneficiary(int id) async {
+  Future<void> verifyBeneficiary(String id) async {
     await _apiClient.post(ApiEndpoints.verifyBeneficiary(id), data: {});
   }
 }

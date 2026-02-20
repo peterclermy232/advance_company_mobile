@@ -1,7 +1,7 @@
 
 import 'package:equatable/equatable.dart';
 class BeneficiaryModel extends Equatable {
-  final int id;
+  final String id;
   final int user;
   final String? userName;
   final String name;
@@ -45,7 +45,7 @@ class BeneficiaryModel extends Equatable {
 
   factory BeneficiaryModel.fromJson(Map<String, dynamic> json) {
     return BeneficiaryModel(
-      id: json['id'] as int,
+      id: json['id'] as String,
       user: json['user'] as int,
       userName: json['user_name'] as String?,
       name: json['name'] as String,

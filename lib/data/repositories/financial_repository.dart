@@ -45,11 +45,11 @@ class FinancialRepository {
     return List<Map<String, dynamic>>.from(response.data['data']);
   }
 
-  Future<void> approveDeposit(int depositId) async {
+  Future<void> approveDeposit(String depositId) async {
     await _apiClient.post(ApiEndpoints.approveDeposit(depositId), data: {});
   }
 
-  Future<void> rejectDeposit(int depositId, String reason) async {
+  Future<void> rejectDeposit(String depositId, String reason) async {
     await _apiClient.post(
       ApiEndpoints.rejectDeposit(depositId),
       data: {'reason': reason},

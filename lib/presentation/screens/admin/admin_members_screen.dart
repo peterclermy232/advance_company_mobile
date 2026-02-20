@@ -8,9 +8,28 @@ import '../../widgets/common/empty_state.dart';
 final allMembersProvider = FutureProvider.autoDispose((ref) async {
   final apiClient = await ref.watch(apiClientProvider.future);
   final response = await apiClient.get(ApiEndpoints.adminAnalytics);
-  final data = response.data['data'];
-  if (data is List) return data;
-  if (data is Map && data.containsKey('results')) return data['results'] as List;
+
+  // The full response shape is:
+  // { "data": { "members": [...], "summary": {...}, "monthly_trends": [...] } }
+  // OR sometimes the outer wrapper is skipped.
+  // We try every known path until we find a List.
+  final raw = response.data;
+
+  // Path 1: raw['data']['members']  ← most likely
+  if (raw is Map && raw['data'] is Map && raw['data']['members'] is List) {
+    return raw['data']['members'] as List;
+  }
+  // Path 2: raw['data']  is already a List
+  if (raw is Map && raw['data'] is List) {
+    return raw['data'] as List;
+  }
+  // Path 3: raw['members']  (no outer 'data' wrapper)
+  if (raw is Map && raw['members'] is List) {
+    return raw['members'] as List;
+  }
+  // Path 4: raw itself is a List
+  if (raw is List) return raw;
+
   return [];
 });
 
@@ -60,11 +79,14 @@ class _AdminMembersScreenState extends ConsumerState<AdminMembersScreen> {
           Expanded(
             child: membersAsync.when(
               data: (members) {
+                // ✅ FIX: API returns 'full_name' not 'first_name'/'last_name'
                 final filtered = _searchQuery.isEmpty
                     ? members
                     : members.where((m) {
-                  final name = '${m['first_name']} ${m['last_name']}'.toLowerCase();
-                  final email = (m['email'] as String? ?? '').toLowerCase();
+                  final name =
+                  (m['full_name'] as String? ?? '').toLowerCase();
+                  final email =
+                  (m['email'] as String? ?? '').toLowerCase();
                   return name.contains(_searchQuery.toLowerCase()) ||
                       email.contains(_searchQuery.toLowerCase());
                 }).toList();
@@ -117,9 +139,15 @@ class _MemberListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fullName = '${member['first_name'] ?? ''} ${member['last_name'] ?? ''}'.trim();
+    // ✅ FIX: Use 'full_name' — the API doesn't return first_name/last_name
+    final fullName = member['full_name'] as String? ?? '';
     final email = member['email'] as String? ?? '';
-    final isActive = member['is_active'] as bool? ?? false;
+
+    // ✅ FIX: API returns 'activity_status' (String "Active"/"Inactive"),
+    //         not 'is_active' (bool)
+    final activityStatus = member['activity_status'] as String? ?? 'Active';
+    final isActive = activityStatus == 'Active';
+
     final role = member['role'] as String?;
 
     return ListTile(
@@ -163,7 +191,8 @@ class _MemberListTile extends StatelessWidget {
           ),
         ),
         child: Text(
-          isActive ? 'Active' : 'Inactive',
+          // ✅ Show the actual status string from the API
+          activityStatus,
           style: TextStyle(
             color: isActive ? Colors.green : Colors.red,
             fontSize: 11,
@@ -176,7 +205,7 @@ class _MemberListTile extends StatelessWidget {
   }
 
   void _showMemberDetails(BuildContext context, Map<String, dynamic> member) {
-    final fullName = '${member['first_name'] ?? ''} ${member['last_name'] ?? ''}'.trim();
+    final fullName = member['full_name'] as String? ?? '';
 
     showModalBottomSheet(
       context: context,
@@ -221,13 +250,31 @@ class _MemberListTile extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               _detailRow('Email', member['email']?.toString() ?? 'N/A'),
-              _detailRow('Phone', member['phone_number']?.toString() ?? 'N/A'),
+              _detailRow(
+                  'Phone', member['phone_number']?.toString() ?? 'N/A'),
               _detailRow('Role', member['role']?.toString() ?? 'Member'),
-              _detailRow('Status', (member['is_active'] as bool? ?? false) ? 'Active' : 'Inactive'),
-              _detailRow('Email Verified', (member['email_verified'] as bool? ?? false) ? 'Yes' : 'No'),
-              _detailRow('2FA Enabled', (member['two_factor_enabled'] as bool? ?? false) ? 'Yes' : 'No'),
-              if (member['date_joined'] != null)
-                _detailRow('Joined', member['date_joined'].toString().split('T').first),
+              // ✅ FIX: Use activity_status not is_active
+              _detailRow(
+                  'Status', member['activity_status']?.toString() ?? 'Active'),
+              _detailRow(
+                'Total Contributions',
+                member['total_contributions']?.toString() ?? '0',
+              ),
+              _detailRow(
+                'Total Deposits',
+                member['total_deposits']?.toString() ?? '0',
+              ),
+              _detailRow(
+                'Interest Earned',
+                member['interest_earned']?.toString() ?? '0',
+              ),
+              if (member['last_deposit_date'] != null)
+                _detailRow(
+                    'Last Deposit',
+                    member['last_deposit_date'].toString().split('T').first),
+              if (member['created_at'] != null)
+                _detailRow('Joined',
+                    member['created_at'].toString().split('T').first),
             ],
           ),
         ),
@@ -241,11 +288,12 @@ class _MemberListTile extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-            width: 120,
+            width: 140,
             child: Text(label, style: const TextStyle(color: Colors.grey)),
           ),
           Expanded(
-            child: Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
+            child: Text(value,
+                style: const TextStyle(fontWeight: FontWeight.w500)),
           ),
         ],
       ),

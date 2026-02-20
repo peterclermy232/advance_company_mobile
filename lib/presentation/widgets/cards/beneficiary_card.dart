@@ -13,25 +13,33 @@ class BeneficiaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Backend may return lowercase or uppercase — normalise to lowercase.
+    final statusLower = beneficiary.verificationStatus.toLowerCase();
+
     Color statusColor;
     IconData statusIcon;
+    String statusLabel;
 
-    switch (beneficiary.verificationStatus) {
-      case 'VERIFIED':
+    switch (statusLower) {
+      case 'verified':
         statusColor = Colors.green;
         statusIcon = Icons.verified;
+        statusLabel = 'Verified';
         break;
-      case 'PENDING':
+      case 'pending':
         statusColor = Colors.orange;
         statusIcon = Icons.schedule;
+        statusLabel = 'Pending';
         break;
-      case 'REJECTED':
+      case 'rejected':
         statusColor = Colors.red;
         statusIcon = Icons.cancel;
+        statusLabel = 'Rejected';
         break;
       default:
         statusColor = Colors.grey;
         statusIcon = Icons.help;
+        statusLabel = beneficiary.verificationStatus;
     }
 
     return Card(
@@ -95,7 +103,7 @@ class BeneficiaryCard extends StatelessWidget {
                         Icon(statusIcon, size: 16, color: statusColor),
                         const SizedBox(width: 4),
                         Text(
-                          beneficiary.verificationStatus,
+                          statusLabel,
                           style: TextStyle(
                             color: statusColor,
                             fontWeight: FontWeight.w600,
@@ -129,10 +137,7 @@ class BeneficiaryCard extends StatelessWidget {
       children: [
         Icon(icon, size: 16, color: Colors.grey),
         const SizedBox(width: 8),
-        Text(
-          text,
-          style: const TextStyle(fontSize: 14),
-        ),
+        Text(text, style: const TextStyle(fontSize: 14)),
       ],
     );
   }

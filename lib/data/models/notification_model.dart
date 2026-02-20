@@ -1,14 +1,14 @@
-
 import 'package:equatable/equatable.dart';
+
 class NotificationModel extends Equatable {
-  final int id;
-  final int user;
+  final String id;
+  final String user;
   final String userName;
   final String notificationType;
   final String title;
   final String message;
-  final int? relatedDepositId;
-  final int? relatedApplicationId;
+  final String? relatedDepositId;
+  final String? relatedApplicationId;
   final String? relatedUserName;
   final bool isRead;
   final DateTime? readAt;
@@ -33,14 +33,14 @@ class NotificationModel extends Equatable {
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     return NotificationModel(
-      id: json['id'] as int,
-      user: json['user'] as int,
+      id: json['uuid'] as String,
+      user: json['user'] as String,
       userName: json['user_name'] as String,
       notificationType: json['notification_type'] as String,
       title: json['title'] as String,
       message: json['message'] as String,
-      relatedDepositId: json['related_deposit_id'] as int?,
-      relatedApplicationId: json['related_application_id'] as int?,
+      relatedDepositId: json['related_deposit_id'] as String?,
+      relatedApplicationId: json['related_application_id'] as String?,
       relatedUserName: json['related_user_name'] as String?,
       isRead: json['is_read'] as bool,
       readAt: json['read_at'] != null
@@ -53,18 +53,18 @@ class NotificationModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        user,
-        userName,
-        notificationType,
-        title,
-        message,
-        relatedDepositId,
-        relatedApplicationId,
-        relatedUserName,
-        isRead,
-        readAt,
-        createdAt,
-        timeAgo,
-      ];
+    id,
+    user,
+    userName,
+    notificationType,
+    title,
+    message,
+    relatedDepositId,
+    relatedApplicationId,
+    relatedUserName,
+    isRead,
+    readAt,
+    createdAt,
+    timeAgo,
+  ];
 }

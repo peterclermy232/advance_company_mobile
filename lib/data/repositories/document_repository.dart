@@ -22,7 +22,7 @@ class DocumentRepository {
     return [];
   }
 
-  Future<DocumentModel> getDocument(int id) async {
+  Future<DocumentModel> getDocument(String id) async {
     final response = await _apiClient.get(
       ApiEndpoints.documentDetail(id),
     );
@@ -37,15 +37,15 @@ class DocumentRepository {
     return DocumentModel.fromJson(response.data['data']);
   }
 
-  Future<void> deleteDocument(int id) async {
+  Future<void> deleteDocument(String id) async {
     await _apiClient.delete(ApiEndpoints.documentDetail(id));
   }
 
-  Future<void> verifyDocument(int id) async {
+  Future<void> verifyDocument(String id) async {
     await _apiClient.post(ApiEndpoints.verifyDocument(id), data: {});
   }
 
-  Future<void> rejectDocument(int id, String reason) async {
+  Future<void> rejectDocument(String id, String reason) async {
     await _apiClient.post(
       ApiEndpoints.rejectDocument(id),
       data: {'reason': reason},

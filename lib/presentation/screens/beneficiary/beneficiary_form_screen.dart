@@ -30,22 +30,9 @@ class _BeneficiaryFormScreenState extends ConsumerState<BeneficiaryFormScreen> {
 
   bool _isLoading = false;
 
-  final List<String> _relations = [
-    'SPOUSE',
-    'CHILD',
-    'PARENT',
-    'SIBLING',
-    'OTHER',
-  ];
-
+  final List<String> _relations = ['SPOUSE', 'CHILD', 'PARENT', 'SIBLING', 'OTHER'];
   final List<String> _genders = ['MALE', 'FEMALE', 'OTHER'];
-
-  final List<String> _salaryRanges = [
-    'BELOW_20K',
-    '20K_50K',
-    '50K_100K',
-    'ABOVE_100K',
-  ];
+  final List<String> _salaryRanges = ['BELOW_20K', '20K_50K', '50K_100K', 'ABOVE_100K'];
 
   @override
   void dispose() {
@@ -60,8 +47,8 @@ class _BeneficiaryFormScreenState extends ConsumerState<BeneficiaryFormScreen> {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+      withData: true, // ✅ Required for web: populates file.bytes
     );
-
     if (result != null) {
       setState(() {
         if (fileType == 'identity') {
@@ -73,13 +60,23 @@ class _BeneficiaryFormScreenState extends ConsumerState<BeneficiaryFormScreen> {
     }
   }
 
+  /// ✅ Cross-platform: uses bytes on web, path on mobile/desktop.
+  Future<MultipartFile> _toMultipartFile(PlatformFile file) async {
+    if (file.bytes != null) {
+      return MultipartFile.fromBytes(file.bytes!, filename: file.name);
+    } else if (file.path != null) {
+      return await MultipartFile.fromFile(file.path!, filename: file.name);
+    }
+    throw Exception('Cannot read file "${file.name}": no bytes or path available.');
+  }
+
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isLoading = true);
 
     try {
-      final formData = FormData.fromMap({
+      // ✅ Await all MultipartFile conversions BEFORE FormData.fromMap()
+      final Map<String, dynamic> fields = {
         'name': _nameController.text.trim(),
         'relation': _selectedRelation,
         'age': _ageController.text,
@@ -87,20 +84,18 @@ class _BeneficiaryFormScreenState extends ConsumerState<BeneficiaryFormScreen> {
         'phone_number': _phoneController.text.trim(),
         'profession': _professionController.text.trim(),
         if (_selectedSalaryRange != null) 'salary_range': _selectedSalaryRange,
-        if (_identityDocument != null)
-          'identity_document': await MultipartFile.fromFile(
-            _identityDocument!.path!,
-            filename: _identityDocument!.name,
-          ),
-        if (_birthCertificate != null)
-          'birth_certificate': await MultipartFile.fromFile(
-            _birthCertificate!.path!,
-            filename: _birthCertificate!.name,
-          ),
-      });
+      };
 
+      if (_identityDocument != null) {
+        fields['identity_document'] = await _toMultipartFile(_identityDocument!);
+      }
+      if (_birthCertificate != null) {
+        fields['birth_certificate'] = await _toMultipartFile(_birthCertificate!);
+      }
+
+      final formData = FormData.fromMap(fields);
       final repository = await ref.read(beneficiaryRepositoryProvider.future);
-     await repository.createBeneficiary(formData);
+      await repository.createBeneficiary(formData);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -122,18 +117,14 @@ class _BeneficiaryFormScreenState extends ConsumerState<BeneficiaryFormScreen> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Add Beneficiary'),
-      ),
+      appBar: AppBar(title: const Text('Add Beneficiary')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -141,178 +132,123 @@ class _BeneficiaryFormScreenState extends ConsumerState<BeneficiaryFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildSection(
-                'Personal Information',
-                [
-                  CustomTextField(
-                    controller: _nameController,
-                    label: 'Full Name',
-                    hintText: 'Enter full name',
-                    validator: (value) =>
-                        value?.isEmpty ?? true ? 'Required' : null,
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Relation',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
+              _buildSection('Personal Information', [
+                CustomTextField(
+                  controller: _nameController,
+                  label: 'Full Name',
+                  hintText: 'Enter full name',
+                  validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Relation',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 8),
+                          DropdownButtonFormField<String>(
+                            value: _selectedRelation,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              filled: true,
+                              fillColor: Colors.grey[50],
                             ),
-                            const SizedBox(height: 8),
-                            DropdownButtonFormField<String>(
-                              value: _selectedRelation,
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                filled: true,
-                                fillColor: Colors.grey[50],
-                              ),
-                              items: _relations
-                                  .map((rel) => DropdownMenuItem(
-                                        value: rel,
-                                        child: Text(rel),
-                                      ))
-                                  .toList(),
-                              onChanged: (value) {
-                                setState(() => _selectedRelation = value!);
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: CustomTextField(
-                          controller: _ageController,
-                          label: 'Age',
-                          hintText: 'Age',
-                          keyboardType: TextInputType.number,
-                          validator: (value) {
-                            if (value?.isEmpty ?? true) return 'Required';
-                            final age = int.tryParse(value!);
-                            if (age == null || age <= 0) return 'Invalid';
-                            return null;
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Gender',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                        value: _selectedGender,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            items: _relations
+                                .map((rel) => DropdownMenuItem(value: rel, child: Text(rel)))
+                                .toList(),
+                            onChanged: (value) => setState(() => _selectedRelation = value!),
                           ),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                        ),
-                        items: _genders
-                            .map((gender) => DropdownMenuItem(
-                                  value: gender,
-                                  child: Text(gender),
-                                ))
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() => _selectedGender = value!);
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: CustomTextField(
+                        controller: _ageController,
+                        label: 'Age',
+                        hintText: 'Age',
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          if (value?.isEmpty ?? true) return 'Required';
+                          final age = int.tryParse(value!);
+                          if (age == null || age <= 0) return 'Invalid';
+                          return null;
                         },
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Gender',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: _selectedGender,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        filled: true,
+                        fillColor: Colors.grey[50],
+                      ),
+                      items: _genders
+                          .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                          .toList(),
+                      onChanged: (value) => setState(() => _selectedGender = value!),
+                    ),
+                  ],
+                ),
+              ]),
               const SizedBox(height: 24),
 
-              _buildSection(
-                'Contact Information',
-                [
-                  CustomTextField(
-                    controller: _phoneController,
-                    label: 'Phone Number',
-                    hintText: '+254712345678',
-                    keyboardType: TextInputType.phone,
-                    validator: (value) =>
-                        value?.isEmpty ?? true ? 'Required' : null,
-                  ),
-                  const SizedBox(height: 16),
-                  CustomTextField(
-                    controller: _professionController,
-                    label: 'Profession',
-                    hintText: 'Enter profession',
-                  ),
-                  const SizedBox(height: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Salary Range (Optional)',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
+              _buildSection('Contact Information', [
+                CustomTextField(
+                  controller: _phoneController,
+                  label: 'Phone Number',
+                  hintText: '+254712345678',
+                  keyboardType: TextInputType.phone,
+                  validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+                ),
+                const SizedBox(height: 16),
+                CustomTextField(
+                  controller: _professionController,
+                  label: 'Profession',
+                  hintText: 'Enter profession',
+                ),
+                const SizedBox(height: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Salary Range (Optional)',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: _selectedSalaryRange,
+                      hint: const Text('Select salary range'),
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        filled: true,
+                        fillColor: Colors.grey[50],
                       ),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                        value: _selectedSalaryRange,
-                        hint: const Text('Select salary range'),
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                        ),
-                        items: _salaryRanges
-                            .map((range) => DropdownMenuItem(
-                                  value: range,
-                                  child: Text(range.replaceAll('_', ' ')),
-                                ))
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() => _selectedSalaryRange = value);
-                        },
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                      items: _salaryRanges
+                          .map((r) => DropdownMenuItem(value: r, child: Text(r.replaceAll('_', ' '))))
+                          .toList(),
+                      onChanged: (value) => setState(() => _selectedSalaryRange = value),
+                    ),
+                  ],
+                ),
+              ]),
               const SizedBox(height: 24),
 
-              _buildSection(
-                'Documents',
-                [
-                  _buildFileUpload(
-                    'Identity Document',
-                    _identityDocument,
-                    () => _pickFile('identity'),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildFileUpload(
-                    'Birth Certificate',
-                    _birthCertificate,
-                    () => _pickFile('birth'),
-                  ),
-                ],
-              ),
+              _buildSection('Documents', [
+                _buildFileUpload('Identity Document', _identityDocument, () => _pickFile('identity')),
+                const SizedBox(height: 16),
+                _buildFileUpload('Birth Certificate', _birthCertificate, () => _pickFile('birth')),
+              ]),
               const SizedBox(height: 32),
 
               CustomButton(
@@ -334,12 +270,11 @@ class _BeneficiaryFormScreenState extends ConsumerState<BeneficiaryFormScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
+            Text(title,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             ...children,
           ],
@@ -348,21 +283,11 @@ class _BeneficiaryFormScreenState extends ConsumerState<BeneficiaryFormScreen> {
     );
   }
 
-  Widget _buildFileUpload(
-    String label,
-    PlatformFile? file,
-    VoidCallback onTap,
-  ) {
+  Widget _buildFileUpload(String label, PlatformFile? file, VoidCallback onTap) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         InkWell(
           onTap: onTap,
@@ -384,9 +309,7 @@ class _BeneficiaryFormScreenState extends ConsumerState<BeneficiaryFormScreen> {
                 Expanded(
                   child: Text(
                     file?.name ?? 'Tap to upload',
-                    style: TextStyle(
-                      color: file != null ? Colors.black : Colors.grey,
-                    ),
+                    style: TextStyle(color: file != null ? Colors.black : Colors.grey),
                   ),
                 ),
                 const Icon(Icons.arrow_forward_ios, size: 16),
@@ -398,4 +321,3 @@ class _BeneficiaryFormScreenState extends ConsumerState<BeneficiaryFormScreen> {
     );
   }
 }
-

@@ -7,12 +7,16 @@ import '../../../data/models/beneficiary_model.dart';
 import '../../widgets/common/loading_indicator.dart';
 import '../../widgets/common/empty_state.dart';
 
-// Provider for pending beneficiaries
-final pendingBeneficiariesProvider = FutureProvider.autoDispose((ref) async {
+// Provider for pending beneficiaries — backend status is lowercase 'pending'
+final pendingBeneficiariesProvider =
+FutureProvider.autoDispose((ref) async {
   final apiClient = await ref.watch(apiClientProvider.future);
   final response = await apiClient.get(ApiEndpoints.beneficiaries);
-  final data = response.data['data'];
-  
+
+  // Unwrap standard envelope: { success, data: [...] }
+  final raw = response.data;
+  final data = (raw is Map && raw['data'] != null) ? raw['data'] : raw;
+
   List<BeneficiaryModel> beneficiaries = [];
   if (data is List) {
     beneficiaries = data.map((e) => BeneficiaryModel.fromJson(e)).toList();
@@ -21,9 +25,11 @@ final pendingBeneficiariesProvider = FutureProvider.autoDispose((ref) async {
         .map((e) => BeneficiaryModel.fromJson(e))
         .toList();
   }
-  
-  // Filter only pending beneficiaries
-  return beneficiaries.where((b) => b.verificationStatus == 'PENDING').toList();
+
+  // Backend returns lowercase verification_status
+  return beneficiaries
+      .where((b) => b.verificationStatus.toLowerCase() == 'pending')
+      .toList();
 });
 
 class BeneficiaryVerificationScreen extends ConsumerWidget {
@@ -65,7 +71,8 @@ class BeneficiaryVerificationScreen extends ConsumerWidget {
               itemBuilder: (context, index) {
                 return _BeneficiaryVerificationCard(
                   beneficiary: beneficiaries[index],
-                  onVerified: () => ref.invalidate(pendingBeneficiariesProvider),
+                  onVerified: () =>
+                      ref.invalidate(pendingBeneficiariesProvider),
                 );
               },
             );
@@ -80,7 +87,8 @@ class BeneficiaryVerificationScreen extends ConsumerWidget {
                 Text('Error: $error'),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () => ref.invalidate(pendingBeneficiariesProvider),
+                  onPressed: () =>
+                      ref.invalidate(pendingBeneficiariesProvider),
                   child: const Text('Retry'),
                 ),
               ],
@@ -112,59 +120,57 @@ class _BeneficiaryVerificationCardState
   bool _isProcessing = false;
 
   Future<void> _verifyBeneficiary() async {
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Verify Beneficiary'),
-      content: Text(
-        'Are you sure you want to verify ${widget.beneficiary.name}?',
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Verify Beneficiary'),
+        content: Text(
+            'Are you sure you want to verify ${widget.beneficiary.name}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text('Verify'),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () => Navigator.pop(context, true),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-          child: const Text('Verify'),
-        ),
-      ],
-    ),
-  );
+    );
 
-  if (confirmed != true) return;
+    if (confirmed != true) return;
 
-  setState(() => _isProcessing = true);
+    setState(() => _isProcessing = true);
 
-  try {
-    final repository = await ref.read(beneficiaryRepositoryProvider.future);
-    await repository.verifyBeneficiary(widget.beneficiary.id);
+    try {
+      final repository =
+      await ref.read(beneficiaryRepositoryProvider.future);
+      await repository.verifyBeneficiary(widget.beneficiary.id);
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Beneficiary verified successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      widget.onVerified();
-    }
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceAll('Exception: ', '')),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  } finally {
-    if (mounted) {
-      setState(() => _isProcessing = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Beneficiary verified successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        widget.onVerified();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
-}
 
   Future<void> _rejectBeneficiary() async {
     final reasonController = TextEditingController();
@@ -216,9 +222,13 @@ class _BeneficiaryVerificationCardState
     setState(() => _isProcessing = true);
 
     try {
-      // Note: You'll need to add a reject endpoint in the repository
-      // For now, we'll just show a message
-      await Future.delayed(const Duration(seconds: 1));
+      // POST to mark_deceased or a custom reject endpoint if available.
+      // For now mirror the API call structure used for verify.
+      final apiClient = await ref.read(apiClientProvider.future);
+      await apiClient.post(
+        ApiEndpoints.beneficiaryDetail(widget.beneficiary.id),
+        data: {'rejection_reason': reasonController.text},
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -239,9 +249,7 @@ class _BeneficiaryVerificationCardState
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isProcessing = false);
-      }
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
@@ -265,36 +273,33 @@ class _BeneficiaryVerificationCardState
             ),
             title: Text(
               widget.beneficiary.name,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 4),
                 Text(
-                  '${widget.beneficiary.relation} • ${widget.beneficiary.age} years • ${widget.beneficiary.gender}',
+                  '${widget.beneficiary.relation} • '
+                      '${widget.beneficiary.age} years • '
+                      '${widget.beneficiary.gender}',
                 ),
                 if (widget.beneficiary.userName != null) ...[
                   const SizedBox(height: 4),
                   Text(
                     'Member: ${widget.beneficiary.userName}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
                 ],
               ],
             ),
             trailing: IconButton(
-              icon: Icon(_isExpanded ? Icons.expand_less : Icons.expand_more),
-              onPressed: () => setState(() => _isExpanded = !_isExpanded),
+              icon: Icon(
+                  _isExpanded ? Icons.expand_less : Icons.expand_more),
+              onPressed: () =>
+                  setState(() => _isExpanded = !_isExpanded),
             ),
           ),
-          
           if (_isExpanded) ...[
             const Divider(),
             Padding(
@@ -302,36 +307,27 @@ class _BeneficiaryVerificationCardState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Beneficiary Details
-                  _buildDetailRow('Phone', widget.beneficiary.phoneNumber ?? 'N/A'),
-                  _buildDetailRow('Profession', widget.beneficiary.profession ?? 'N/A'),
-                  _buildDetailRow('Salary Range', widget.beneficiary.salaryRange ?? 'N/A'),
-                  
+                  _buildDetailRow(
+                      'Phone', widget.beneficiary.phoneNumber ?? 'N/A'),
+                  _buildDetailRow(
+                      'Profession', widget.beneficiary.profession ?? 'N/A'),
+                  _buildDetailRow(
+                      'Salary Range', widget.beneficiary.salaryRange ?? 'N/A'),
                   const SizedBox(height: 16),
                   const Text(
                     'Documents',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
-                  
-                  // Documents
                   if (widget.beneficiary.identityDocument != null)
                     _buildDocumentChip('Identity Document', Icons.badge),
                   if (widget.beneficiary.birthCertificate != null)
                     _buildDocumentChip('Birth Certificate', Icons.description),
                   if (widget.beneficiary.identityDocument == null &&
                       widget.beneficiary.birthCertificate == null)
-                    const Text(
-                      'No documents uploaded',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  
+                    const Text('No documents uploaded',
+                        style: TextStyle(color: Colors.grey)),
                   const SizedBox(height: 24),
-                  
-                  // Action Buttons
                   if (_isProcessing)
                     const Center(child: CircularProgressIndicator())
                   else
@@ -356,6 +352,7 @@ class _BeneficiaryVerificationCardState
                             label: const Text('Verify'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
                             ),
                           ),
                         ),
@@ -377,22 +374,13 @@ class _BeneficiaryVerificationCardState
         children: [
           SizedBox(
             width: 120,
-            child: Text(
-              '$label:',
-              style: const TextStyle(
-                color: Colors.grey,
-                fontSize: 14,
-              ),
-            ),
+            child: Text('$label:',
+                style: const TextStyle(color: Colors.grey, fontSize: 14)),
           ),
           Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-                fontSize: 14,
-              ),
-            ),
+            child: Text(value,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w500, fontSize: 14)),
           ),
         ],
       ),

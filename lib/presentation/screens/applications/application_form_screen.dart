@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:dio/dio.dart';
-import '../../../core/network/api_client.dart';
-import '../../../core/constants/api_endpoints.dart';
-import '../../../data/providers/core_providers.dart';
+import '../../../data/models/application_type_model.dart';
+import '../../../data/providers/application_providers.dart';
 import '../../widgets/common/custom_button.dart';
 import '../../widgets/common/custom_text_field.dart';
 
@@ -17,35 +15,22 @@ class ApplicationFormScreen extends ConsumerStatefulWidget {
       _ApplicationFormScreenState();
 }
 
-class _ApplicationFormScreenState extends ConsumerState<ApplicationFormScreen> {
+class _ApplicationFormScreenState
+    extends ConsumerState<ApplicationFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _reasonController = TextEditingController();
-  
-  String _selectedType = 'LOAN';
+
+  String? _selectedType;
   PlatformFile? _supportingDocument;
   bool _isLoading = false;
-
-  final List<String> _applicationTypes = [
-    'LOAN',
-    'WITHDRAWAL',
-    'MEMBERSHIP_CHANGE',
-    'BENEFICIARY_UPDATE',
-    'OTHER',
-  ];
-
-  final Map<String, String> _typeDescriptions = {
-    'LOAN': 'Apply for a loan against your contributions',
-    'WITHDRAWAL': 'Request to withdraw from your account',
-    'MEMBERSHIP_CHANGE': 'Update your membership details',
-    'BENEFICIARY_UPDATE': 'Modify beneficiary information',
-    'OTHER': 'Any other application or request',
-  };
 
   @override
   void dispose() {
     _reasonController.dispose();
     super.dispose();
   }
+
+  // ── File picking ────────────────────────────────────────────────────────────
 
   Future<void> _pickDocument() async {
     try {
@@ -54,109 +39,88 @@ class _ApplicationFormScreenState extends ConsumerState<ApplicationFormScreen> {
         allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
         allowMultiple: false,
       );
-
       if (result != null && result.files.isNotEmpty) {
-        setState(() {
-          _supportingDocument = result.files.first;
-        });
+        setState(() => _supportingDocument = result.files.first);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error picking file: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      _showSnackBar('Error picking file: $e', isError: true);
     }
   }
 
+  // ── Submit ──────────────────────────────────────────────────────────────────
+
   Future<void> _submitApplication() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedType == null) return;
 
     setState(() => _isLoading = true);
 
     try {
-      final apiClient = await ref.read(apiClientProvider.future);
-      
-      FormData formData;
-      
-      if (_supportingDocument != null) {
-        formData = FormData.fromMap({
-          'application_type': _selectedType,
-          'reason': _reasonController.text.trim(),
-          'supporting_document': await MultipartFile.fromFile(
-            _supportingDocument!.path!,
-            filename: _supportingDocument!.name,
-          ),
-        });
-        
-        await apiClient.uploadFile(ApiEndpoints.applications, formData);
-      } else {
-        await apiClient.post(
-          ApiEndpoints.applications,
-          data: {
-            'application_type': _selectedType,
-            'reason': _reasonController.text.trim(),
-          },
-        );
-      }
+      await ref.read(applicationsProvider.notifier).submitApplication(
+        applicationType: _selectedType!,
+        reason: _reasonController.text.trim(),
+        documentPath: _supportingDocument?.path,
+        documentName: _supportingDocument?.name,
+      );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Application submitted successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        context.pop(true); // Return true to indicate success
+        _showSnackBar('Application submitted successfully!');
+        context.pop(true);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.red,
-          ),
+        _showSnackBar(
+          e.toString().replaceAll('Exception: ', ''),
+          isError: true,
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  // ── Helpers ─────────────────────────────────────────────────────────────────
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+      ),
+    );
+  }
+
+  // ── Build ───────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
+    final typesAsync = ref.watch(applicationTypesProvider);
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('New Application'),
-      ),
+      appBar: AppBar(title: const Text('New Application')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Info Card
+              // ── Info banner
               Card(
                 color: Colors.blue.shade50,
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
                       Icon(Icons.info_outline, color: Colors.blue.shade700),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Submit applications for loans, withdrawals, or membership changes. All applications are reviewed by admin.',
+                          'Submit applications for loans, withdrawals, or '
+                              'membership changes. All applications are reviewed '
+                              'by admin.',
                           style: TextStyle(
-                            color: Colors.blue.shade900,
-                            fontSize: 13,
-                          ),
+                              color: Colors.blue.shade900, fontSize: 13),
                         ),
                       ),
                     ],
@@ -165,102 +129,154 @@ class _ApplicationFormScreenState extends ConsumerState<ApplicationFormScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Application Details Section
+              // ── Application details card
               Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Application Details',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 20),
 
-                      // Application Type
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Application Type',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
+                      const Text(
+                        'Application Type',
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 8),
+
+                      typesAsync.when(
+                        loading: () => const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16),
+                            child: CircularProgressIndicator(),
                           ),
-                          const SizedBox(height: 8),
-                          DropdownButtonFormField<String>(
-                            initialValue: _selectedType,
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[50],
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                            ),
-                            items: _applicationTypes.map((type) {
-                              return DropdownMenuItem(
-                                value: type,
+                        ),
+                        error: (error, _) => Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.red.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.error_outline,
+                                  color: Colors.red.shade700),
+                              const SizedBox(width: 8),
+                              const Expanded(
                                 child: Text(
-                                  type.replaceAll('_', ' '),
-                                  style: const TextStyle(fontSize: 14),
+                                  'Failed to load application types.',
                                 ),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              setState(() => _selectedType = value!);
-                            },
+                              ),
+                              TextButton(
+                                onPressed: () =>
+                                    ref.refresh(applicationChoicesProvider),
+                                child: const Text('Retry'),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.help_outline,
-                                  size: 16,
-                                  color: Colors.grey.shade600,
+                        ),
+                        data: (types) {
+                          // Auto-select first type
+                          if (_selectedType == null && types.isNotEmpty) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (mounted) {
+                                setState(
+                                        () => _selectedType = types.first.value);
+                              }
+                            });
+                          }
+
+                          final selected = types.cast<ApplicationTypeModel?>().firstWhere(
+                                (t) => t?.value == _selectedType,
+                            orElse: () =>
+                            types.isNotEmpty ? types.first : null,
+                          );
+
+                          return Column(
+                            children: [
+                              DropdownButtonFormField<String>(
+                                value: _selectedType,
+                                decoration: InputDecoration(
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.grey[50],
+                                  contentPadding:
+                                  const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 12),
                                 ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    _typeDescriptions[_selectedType] ?? '',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey.shade700,
-                                    ),
+                                items: types
+                                    .map((t) => DropdownMenuItem(
+                                  value: t.value,
+                                  child: Text(t.label,
+                                      style: const TextStyle(
+                                          fontSize: 14)),
+                                ))
+                                    .toList(),
+                                onChanged: (value) =>
+                                    setState(() => _selectedType = value),
+                                validator: (value) =>
+                                (value == null || value.isEmpty)
+                                    ? 'Please select an application type'
+                                    : null,
+                              ),
+                              if (selected != null &&
+                                  selected.description.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.help_outline,
+                                          size: 16,
+                                          color: Colors.grey.shade600),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          selected.description,
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey.shade700),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
-                            ),
-                          ),
-                        ],
+                            ],
+                          );
+                        },
                       ),
+
                       const SizedBox(height: 20),
 
-                      // Reason
                       CustomTextField(
                         controller: _reasonController,
                         label: 'Reason for Application',
-                        hintText: 'Explain why you are submitting this application',
+                        hintText:
+                        'Explain why you are submitting this application',
                         maxLines: 5,
                         validator: (value) {
                           if (value?.isEmpty ?? true) {
                             return 'Please provide a reason';
                           }
                           if (value!.length < 20) {
-                            return 'Please provide more details (at least 20 characters)';
+                            return 'Please provide more details '
+                                '(at least 20 characters)';
                           }
                           return null;
                         },
@@ -271,22 +287,21 @@ class _ApplicationFormScreenState extends ConsumerState<ApplicationFormScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Supporting Documents Section
+              // ── Supporting document card
               Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Supporting Documents (Optional)',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 16),
-
-                      // File picker
                       InkWell(
                         onTap: _isLoading ? null : _pickDocument,
                         borderRadius: BorderRadius.circular(12),
@@ -334,29 +349,25 @@ class _ApplicationFormScreenState extends ConsumerState<ApplicationFormScreen> {
                                 Text(
                                   '${(_supportingDocument!.size / 1024).toStringAsFixed(2)} KB',
                                   style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade600,
-                                  ),
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600),
                                 ),
                               ],
                             ],
                           ),
                         ),
                       ),
-                      
                       if (_supportingDocument != null) ...[
                         const SizedBox(height: 12),
                         TextButton.icon(
                           onPressed: _isLoading
                               ? null
-                              : () {
-                                  setState(() => _supportingDocument = null);
-                                },
+                              : () => setState(
+                                  () => _supportingDocument = null),
                           icon: const Icon(Icons.close),
                           label: const Text('Remove document'),
                           style: TextButton.styleFrom(
-                            foregroundColor: Colors.red,
-                          ),
+                              foregroundColor: Colors.red),
                         ),
                       ],
                     ],
@@ -365,7 +376,6 @@ class _ApplicationFormScreenState extends ConsumerState<ApplicationFormScreen> {
               ),
               const SizedBox(height: 32),
 
-              // Submit Button
               CustomButton(
                 onPressed: _isLoading ? null : _submitApplication,
                 isLoading: _isLoading,
@@ -373,13 +383,10 @@ class _ApplicationFormScreenState extends ConsumerState<ApplicationFormScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Help Text
               Text(
-                'Your application will be reviewed by an administrator. You will receive a notification once it has been processed.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                ),
+                'Your application will be reviewed by an administrator. '
+                    'You will receive a notification once it has been processed.',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 textAlign: TextAlign.center,
               ),
             ],
