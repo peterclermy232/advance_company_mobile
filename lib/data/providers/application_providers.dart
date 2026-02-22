@@ -15,10 +15,6 @@ class ApplicationChoicesNotifier
   Future<ApplicationChoicesModel> _fetch() async {
     final apiClient = await ref.read(apiClientProvider.future);
     final response = await apiClient.get(ApiEndpoints.applicationChoices);
-    // Unwrap standard { success, data: {...} } envelope
-    final raw = response.data;
-    final payload = (raw is Map && raw['data'] != null) ? raw['data'] : raw;
-    return ApplicationChoicesModel.fromJson(payload as Map<String, dynamic>);
   }
 }
 
@@ -52,10 +48,6 @@ class ApplicationsNotifier extends AsyncNotifier<List<ApplicationModel>> {
   Future<List<ApplicationModel>> _fetch() async {
     final apiClient = await ref.read(apiClientProvider.future);
     final response = await apiClient.get(ApiEndpoints.applications);
-    // Unwrap: { success, data: [...] }  OR  { success, data: { results: [...] } }
-    final raw = response.data;
-    final payload = (raw is Map && raw['data'] != null) ? raw['data'] : raw;
-    return _asList(payload)
         .map((e) => ApplicationModel.fromJson(e as Map<String, dynamic>))
         .toList();
   }
@@ -96,9 +88,7 @@ class ApplicationsNotifier extends AsyncNotifier<List<ApplicationModel>> {
   }
 
   // ── Admin actions ───────────────────────────────────────────────────────────
-  // NOTE: application IDs are UUID strings, NOT integers.
 
-  Future<void> approveApplication(String id, {String comments = ''}) async {
     final apiClient = await ref.read(apiClientProvider.future);
     await apiClient.post(
       ApiEndpoints.approveApplication(id),
@@ -107,7 +97,6 @@ class ApplicationsNotifier extends AsyncNotifier<List<ApplicationModel>> {
     await refresh();
   }
 
-  Future<void> rejectApplication(String id, {String comments = ''}) async {
     final apiClient = await ref.read(apiClientProvider.future);
     await apiClient.post(
       ApiEndpoints.rejectApplication(id),
@@ -116,7 +105,6 @@ class ApplicationsNotifier extends AsyncNotifier<List<ApplicationModel>> {
     await refresh();
   }
 
-  Future<void> markUnderReview(String id) async {
     final apiClient = await ref.read(apiClientProvider.future);
     await apiClient.post(ApiEndpoints.reviewApplication(id));
     await refresh();
@@ -129,15 +117,10 @@ AsyncNotifierProvider<ApplicationsNotifier, List<ApplicationModel>>(
 );
 
 // ─── Single application detail ────────────────────────────────────────────────
-// IDs are UUID strings.
 
 final applicationDetailProvider =
-FutureProvider.family<ApplicationModel, String>((ref, id) async {
   final apiClient = await ref.read(apiClientProvider.future);
   final response = await apiClient.get(ApiEndpoints.applicationDetail(id));
-  final raw = response.data;
-  final payload = (raw is Map && raw['data'] != null) ? raw['data'] : raw;
-  return ApplicationModel.fromJson(payload as Map<String, dynamic>);
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
