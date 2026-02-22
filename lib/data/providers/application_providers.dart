@@ -5,7 +5,7 @@ import '../models/application_model.dart';
 import '../models/application_type_model.dart';
 import 'core_providers.dart';
 
-// ─── Choices: GET /applications/choices/ ─────────────────────────────────────
+// ─── Choices ──────────────────────────────────────────────────────────────────
 
 class ApplicationChoicesNotifier
     extends AsyncNotifier<ApplicationChoicesModel> {
@@ -15,6 +15,13 @@ class ApplicationChoicesNotifier
   Future<ApplicationChoicesModel> _fetch() async {
     final apiClient = await ref.read(apiClientProvider.future);
     final response = await apiClient.get(ApiEndpoints.applicationChoices);
+    return ApplicationChoicesModel.fromJson(
+        response.data as Map<String, dynamic>);
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(_fetch);
   }
 }
 
@@ -23,7 +30,6 @@ AsyncNotifierProvider<ApplicationChoicesNotifier, ApplicationChoicesModel>(
   ApplicationChoicesNotifier.new,
 );
 
-/// Derived: just the type list — used by ApplicationFormScreen dropdown.
 final applicationTypesProvider =
 Provider<AsyncValue<List<ApplicationTypeModel>>>((ref) {
   return ref
@@ -31,7 +37,6 @@ Provider<AsyncValue<List<ApplicationTypeModel>>>((ref) {
       .whenData((c) => c.applicationTypes);
 });
 
-/// Derived: just the status list — useful for filter chips / card badges.
 final statusChoicesProvider =
 Provider<AsyncValue<List<StatusChoiceModel>>>((ref) {
   return ref
@@ -48,6 +53,7 @@ class ApplicationsNotifier extends AsyncNotifier<List<ApplicationModel>> {
   Future<List<ApplicationModel>> _fetch() async {
     final apiClient = await ref.read(apiClientProvider.future);
     final response = await apiClient.get(ApiEndpoints.applications);
+    return _asList(response.data)
         .map((e) => ApplicationModel.fromJson(e as Map<String, dynamic>))
         .toList();
   }
@@ -56,8 +62,6 @@ class ApplicationsNotifier extends AsyncNotifier<List<ApplicationModel>> {
     state = const AsyncLoading();
     state = await AsyncValue.guard(_fetch);
   }
-
-  // ── Member actions ──────────────────────────────────────────────────────────
 
   Future<void> submitApplication({
     required String applicationType,
@@ -83,30 +87,34 @@ class ApplicationsNotifier extends AsyncNotifier<List<ApplicationModel>> {
         data: {'application_type': applicationType, 'reason': reason},
       );
     }
-
     await refresh();
   }
 
-  // ── Admin actions ───────────────────────────────────────────────────────────
+  // ── Admin actions ─────────────────────────────────────────────────────────
 
+  /// [id] is the UUID string from ApplicationModel.id
+  Future<void> approveApplication(String id, {String comments = ''}) async {
     final apiClient = await ref.read(apiClientProvider.future);
+    // The endpoint helper uses int; we POST to the raw path instead
     await apiClient.post(
-      ApiEndpoints.approveApplication(id),
+      '/applications/$id/approve/',
       data: {'comments': comments},
     );
     await refresh();
   }
 
+  Future<void> rejectApplication(String id, {String comments = ''}) async {
     final apiClient = await ref.read(apiClientProvider.future);
     await apiClient.post(
-      ApiEndpoints.rejectApplication(id),
+      '/applications/$id/reject/',
       data: {'comments': comments},
     );
     await refresh();
   }
 
+  Future<void> markUnderReview(String id) async {
     final apiClient = await ref.read(apiClientProvider.future);
-    await apiClient.post(ApiEndpoints.reviewApplication(id));
+    await apiClient.post('/applications/$id/review/');
     await refresh();
   }
 }
@@ -116,11 +124,13 @@ AsyncNotifierProvider<ApplicationsNotifier, List<ApplicationModel>>(
   ApplicationsNotifier.new,
 );
 
-// ─── Single application detail ────────────────────────────────────────────────
+// ─── Single application detail (UUID string key) ──────────────────────────────
 
 final applicationDetailProvider =
+FutureProvider.family<ApplicationModel, String>((ref, id) async {
   final apiClient = await ref.read(apiClientProvider.future);
-  final response = await apiClient.get(ApiEndpoints.applicationDetail(id));
+  final response = await apiClient.get('/applications/$id/');
+  return ApplicationModel.fromJson(response.data as Map<String, dynamic>);
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

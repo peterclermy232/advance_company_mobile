@@ -8,9 +8,7 @@ class AdminDashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Admin Dashboard'),
-      ),
+      appBar: AppBar(title: const Text('Admin Dashboard')),
       body: GridView.count(
         crossAxisCount: 2,
         padding: const EdgeInsets.all(16),
@@ -22,6 +20,12 @@ class AdminDashboardScreen extends ConsumerWidget {
             icon: Icons.pending_actions,
             color: Colors.orange,
             onTap: () => context.push('/admin/deposit-approvals'),
+          ),
+          _AdminTile(
+            title: 'Application Reviews',
+            icon: Icons.assignment_outlined,
+            color: Colors.teal,
+            onTap: () => context.push('/admin/applications'),
           ),
           _AdminTile(
             title: 'Analytics',
@@ -76,13 +80,16 @@ class _AdminTile extends StatelessWidget {
           children: [
             Icon(icon, color: color, size: 40),
             const SizedBox(height: 12),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
               ),
             ),
           ],

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/providers/financial_provider.dart';
+import '../../widgets/common/custom_button.dart';
+import '../../widgets/common/loading_indicator.dart';
 
 class DepositFormScreen extends ConsumerStatefulWidget {
   const DepositFormScreen({super.key});
@@ -10,610 +13,532 @@ class DepositFormScreen extends ConsumerStatefulWidget {
 }
 
 class _DepositFormScreenState extends ConsumerState<DepositFormScreen> {
-  static const double kMonthlyDepositAmount = 20000;
+  final _formKey = GlobalKey<FormState>();
+  final _amountCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _notesCtrl = TextEditingController();
 
   String _paymentMethod = 'mpesa';
-  final _phoneController = TextEditingController();
-  final _notesController = TextEditingController();
-  bool _isSubmitting = false;
-  bool _canDeposit = true;
-  bool _showMpesaInstructions = false;
-  bool _phoneValid = false;
-
-  final _mpesaRegex = RegExp(r'^(\+?254|0)?[17]\d{8}$');
-
-  @override
-  void initState() {
-    super.initState();
-    _checkEligibility();
-    _phoneController.addListener(() {
-      setState(() {
-        _phoneValid = _mpesaRegex.hasMatch(_phoneController.text.trim());
-      });
-    });
-  }
+  bool _isLoading = false;
 
   @override
   void dispose() {
-    _phoneController.dispose();
-    _notesController.dispose();
+    _amountCtrl.dispose();
+    _phoneCtrl.dispose();
+    _notesCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _checkEligibility() async {
-    try {
-      final repo = await ref.read(financialRepositoryProvider.future);
-      final result = await repo.canDeposit() as Map<String, dynamic>;
-      if (mounted) {
-        final canDep = result['can_deposit'] as bool? ?? true;
-        final message = result['message'] as String? ?? '';
-        setState(() => _canDeposit = canDep);
-        if (!canDep && message.isNotEmpty) {
-          _showSnackBar(message, Colors.orange);
-        }
-      }
-    } catch (_) {}
-  }
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
 
-  String _formatPhone(String phone) {
-    String cleaned = phone.replaceAll(RegExp(r'\D'), '');
-    if (cleaned.startsWith('0')) return '254${cleaned.substring(1)}';
-    if (cleaned.startsWith('7') || cleaned.startsWith('1')) return '254$cleaned';
-    return cleaned;
-  }
-
-  void _showSnackBar(String message, Color color) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: color),
-    );
-  }
-
-  Future<void> _onSubmit() async {
-    if (!_canDeposit) {
-      _showSnackBar('You have already made a deposit this month', Colors.orange);
-      return;
-    }
-    if (_paymentMethod == 'mpesa' && !_phoneValid) {
-      _showSnackBar('Please enter a valid Safaricom number', Colors.red);
-      return;
+    if (_paymentMethod == 'mpesa') {
+      // Show M-Pesa PIN prompt bottom sheet AFTER phone number is confirmed
+      final confirmed = await _showMpesaBottomSheet();
+      if (confirmed != true) return;
     }
 
-    setState(() {
-      _isSubmitting = true;
-      if (_paymentMethod == 'mpesa') _showMpesaInstructions = true;
-    });
-
-    final formData = {
-      'payment_method': _paymentMethod,
-      'notes': _notesController.text,
-      if (_paymentMethod == 'mpesa')
-        'mpesa_phone': _formatPhone(_phoneController.text.trim()),
-    };
+    setState(() => _isLoading = true);
 
     try {
       final repo = await ref.read(financialRepositoryProvider.future);
-      await repo.createDeposit(formData);
+      await repo.createDeposit({
+        'amount': double.parse(_amountCtrl.text.replaceAll(',', '')),
+        'payment_method': _paymentMethod,
+        'phone_number': _phoneCtrl.text.trim(),
+        'notes': _notesCtrl.text.trim(),
+      });
 
       if (mounted) {
-        setState(() {
-          _isSubmitting = false;
-          _canDeposit = false;
-          _showMpesaInstructions = false;
-          _phoneController.clear();
-          _notesController.clear();
-        });
-        if (_paymentMethod == 'mpesa') {
-          _showSnackBar(
-              'M-Pesa STK Push sent! Enter your PIN to complete payment.',
-              Colors.green);
-        } else {
-          _showSnackBar('Deposit of KES 20,000 initiated successfully!',
-              Colors.green);
-        }
-        ref.invalidate(depositsProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Deposit request submitted! Check your phone for M-Pesa prompt.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 4),
+          ),
+        );
+        Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _isSubmitting = false;
-          _showMpesaInstructions = false;
-        });
-        _showSnackBar(
-            e.toString().replaceAll('Exception: ', ''), Colors.red);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  /// Shows the M-Pesa confirmation bottom sheet that tells the user
+  /// to check their phone for the STK Push PIN prompt.
+  Future<bool?> _showMpesaBottomSheet() {
+    final phone = _phoneCtrl.text.trim();
+    final amount = _amountCtrl.text.trim();
+
+    return showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _MpesaPinBottomSheet(
+        phone: phone,
+        amount: amount,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        SingleChildScrollView(
+    return Scaffold(
+      appBar: AppBar(title: const Text('Make a Deposit')),
+      body: Form(
+        key: _formKey,
+        child: ListView(
           padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildDepositFormCard(),
-            ],
-          ),
-        ),
-        if (_showMpesaInstructions) _buildMpesaModal(),
-      ],
-    );
-  }
-
-  Widget _buildDepositFormCard() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue.shade500, width: 2),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Make Monthly Deposit',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text('Fixed Amount: KES 20,000',
-                    style: TextStyle(
-                        color: Colors.blue.shade700,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12)),
+          children: [
+            // ── Amount ─────────────────────────────────────────────────
+            const Text('Amount (KES)',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _amountCtrl,
+              keyboardType:
+              const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
+              ],
+              decoration: InputDecoration(
+                hintText: '0.00',
+                prefixText: 'KES ',
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                filled: true,
+                fillColor: Colors.grey.shade50,
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
+              validator: (v) {
+                if (v == null || v.isEmpty) return 'Enter an amount';
+                final amount = double.tryParse(v.replaceAll(',', ''));
+                if (amount == null || amount <= 0) {
+                  return 'Enter a valid amount';
+                }
+                if (amount < 100) return 'Minimum deposit is KES 100';
+                return null;
+              },
+            ),
 
-          // Cannot deposit warning
-          if (!_canDeposit) ...[
-            _buildWarningBanner(),
-            const SizedBox(height: 12),
-          ],
+            const SizedBox(height: 20),
 
-          // Info box
-          _buildInfoBox(),
-          const SizedBox(height: 16),
-
-          // Fixed amount display
-          _buildFixedAmountField(),
-          const SizedBox(height: 16),
-
-          // Payment method
-          _buildPaymentMethodDropdown(),
-          const SizedBox(height: 16),
-
-          // M-Pesa phone field
-          if (_paymentMethod == 'mpesa') ...[
-            _buildPhoneField(),
-            const SizedBox(height: 16),
-          ],
-
-          // Bank info
-          if (_paymentMethod == 'bank') ...[
-            _buildBankInfo(),
-            const SizedBox(height: 16),
-          ],
-
-          // Notes
-          _buildNotesField(),
-          const SizedBox(height: 20),
-
-          // Submit button
-          _buildSubmitButton(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWarningBanner() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.yellow.shade50,
-        border: Border.all(color: Colors.yellow.shade300, width: 2),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.warning_amber_rounded,
-              color: Colors.yellow.shade800, size: 24),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            // ── Payment Method ──────────────────────────────────────────
+            const Text('Payment Method',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+            const SizedBox(height: 8),
+            Row(
               children: [
-                Text('Already Deposited This Month',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.yellow.shade900)),
-                const SizedBox(height: 4),
-                Text(
-                    'You can only make one deposit per month. Your next deposit will be available next month.',
-                    style: TextStyle(
-                        color: Colors.yellow.shade800, fontSize: 13)),
+                Expanded(
+                  child: _PaymentMethodCard(
+                    label: 'M-Pesa',
+                    icon: Icons.phone_android,
+                    color: const Color(0xFF00A651),
+                    selected: _paymentMethod == 'mpesa',
+                    onTap: () => setState(() => _paymentMethod = 'mpesa'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _PaymentMethodCard(
+                    label: 'Bank',
+                    icon: Icons.account_balance,
+                    color: Colors.blue,
+                    selected: _paymentMethod == 'bank',
+                    onTap: () => setState(() => _paymentMethod = 'bank'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _PaymentMethodCard(
+                    label: 'Cash',
+                    icon: Icons.money,
+                    color: Colors.orange,
+                    selected: _paymentMethod == 'cash',
+                    onTap: () => setState(() => _paymentMethod = 'cash'),
+                  ),
+                ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildInfoBox() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.blue.shade50,
-        border: Border.all(color: Colors.blue.shade200),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text.rich(
-              TextSpan(children: [
-                TextSpan(
-                    text: 'Important: ',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade800)),
-                TextSpan(
-                    text:
-                    'Monthly deposits are fixed at KES 20,000. You can only make one deposit per month.',
-                    style: TextStyle(color: Colors.blue.shade800, fontSize: 13)),
-              ]),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+            const SizedBox(height: 20),
 
-  Widget _buildFixedAmountField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Amount (Fixed)',
-            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
-        const SizedBox(height: 6),
-        Stack(
-          alignment: Alignment.centerRight,
-          children: [
-            TextFormField(
-              enabled: false,
-              initialValue: 'KES 20,000',
-              decoration: InputDecoration(
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8)),
-                filled: true,
-                fillColor: Colors.grey.shade100,
-                contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              ),
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, color: Colors.black54),
-            ),
-            Positioned(
-              right: 8,
-              child: Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade600,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text('FIXED',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold)),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text('Monthly deposit amount is fixed at KES 20,000',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-      ],
-    );
-  }
-
-  Widget _buildPaymentMethodDropdown() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Payment Method *',
-            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
-        const SizedBox(height: 6),
-        DropdownButtonFormField<String>(
-          value: _paymentMethod,
-          decoration: InputDecoration(
-            border:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          ),
-          items: const [
-            DropdownMenuItem(value: 'mpesa', child: Text('M-Pesa (Instant)')),
-            DropdownMenuItem(value: 'bank', child: Text('Bank Transfer')),
-            DropdownMenuItem(value: 'mansa_x', child: Text('Mansa-X')),
-          ],
-          onChanged: (v) => setState(() => _paymentMethod = v!),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPhoneField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('M-Pesa Phone Number *',
-            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
-        const SizedBox(height: 6),
-        TextFormField(
-          controller: _phoneController,
-          keyboardType: TextInputType.phone,
-          maxLength: 13,
-          decoration: InputDecoration(
-            hintText: '0712345678 or +254712345678',
-            prefixIcon: const Icon(Icons.phone),
-            border:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            counterText: '',
-          ),
-        ),
-        const SizedBox(height: 4),
-        if (!_phoneValid && _phoneController.text.isNotEmpty)
-          Row(
-            children: const [
-              Icon(Icons.error_outline, size: 14, color: Colors.red),
-              SizedBox(width: 4),
-              Text('Please enter a valid Safaricom number (07XX or 01XX)',
-                  style: TextStyle(color: Colors.red, fontSize: 12)),
-            ],
-          )
-        else if (_phoneValid)
-          Row(
-            children: const [
-              Icon(Icons.check_circle_outline, size: 14, color: Colors.green),
-              SizedBox(width: 4),
-              Text("You'll receive a payment prompt on this number",
-                  style: TextStyle(color: Colors.green, fontSize: 12)),
-            ],
-          ),
-      ],
-    );
-  }
-
-  Widget _buildBankInfo() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Bank Transfer Details:',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-          const SizedBox(height: 8),
-          ...[
-            'Bank: Example Bank',
-            'Account: 1234567890',
-            'Amount: KES 20,000',
-          ].map((t) => Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Text(t,
-                style: const TextStyle(fontSize: 13, color: Colors.black87)),
-          )),
-          const SizedBox(height: 4),
-          Text('Send confirmation to admin after transfer',
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNotesField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Notes (Optional)',
-            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
-        const SizedBox(height: 6),
-        TextFormField(
-          controller: _notesController,
-          maxLines: 3,
-          decoration: InputDecoration(
-            hintText: 'Add any notes about this payment...',
-            border:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            contentPadding: const EdgeInsets.all(12),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSubmitButton() {
-    final bool isDisabled =
-        _isSubmitting || !_canDeposit || (_paymentMethod == 'mpesa' && !_phoneValid);
-
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: isDisabled ? null : _onSubmit,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue.shade600,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          disabledBackgroundColor: Colors.blue.shade200,
-        ),
-        icon: _isSubmitting
-            ? const SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(
-                strokeWidth: 2, color: Colors.white))
-            : const Icon(Icons.monetization_on),
-        label: Text(
-          _isSubmitting
-              ? 'Processing Payment...'
-              : _paymentMethod == 'mpesa'
-              ? 'Pay KES 20,000 via M-Pesa'
-              : 'Submit Deposit',
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMpesaModal() {
-    return Container(
-      color: Colors.black54,
-      child: Center(
-        child: Container(
-          margin: const EdgeInsets.all(24),
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: Colors.green.shade100,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.phone_android,
-                    size: 40, color: Colors.green.shade600),
-              ),
-              const SizedBox(height: 16),
-              const Text('Check Your Phone',
-                  style: TextStyle(
-                      fontSize: 22, fontWeight: FontWeight.bold)),
+            // ── Phone Number (M-Pesa only) ──────────────────────────────
+            if (_paymentMethod == 'mpesa') ...[
+              const Text('M-Pesa Phone Number',
+                  style:
+                  TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
               const SizedBox(height: 8),
-              const Text(
-                'An M-Pesa payment request has been sent to your phone',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  border: Border.all(color: Colors.green.shade200, width: 2),
-                  borderRadius: BorderRadius.circular(12),
+              TextFormField(
+                controller: _phoneCtrl,
+                keyboardType: TextInputType.phone,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(12),
+                ],
+                decoration: InputDecoration(
+                  hintText: '0712345678 or 254712345678',
+                  prefixIcon: const Icon(Icons.phone, color: Color(0xFF00A651)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                  helperText:
+                  'You will receive an M-Pesa PIN prompt on this number',
+                  helperStyle: TextStyle(color: Colors.grey.shade600),
                 ),
-                child: Column(
+                onChanged: (_) => setState(() {}), // rebuild to enable button
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Enter your M-Pesa number';
+                  final digits = v.replaceAll(RegExp(r'\D'), '');
+                  if (digits.length < 9 || digits.length > 12) {
+                    return 'Enter a valid phone number';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              // M-Pesa info banner
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF00A651).withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: const Color(0xFF00A651).withOpacity(0.3)),
+                ),
+                child: const Row(
                   children: [
-                    _buildMpesaStep(1, 'Check for M-Pesa notification on your phone'),
-                    const SizedBox(height: 8),
-                    _buildMpesaStep(2, 'Enter your M-Pesa PIN'),
-                    const SizedBox(height: 8),
-                    _buildMpesaStep(3, 'Confirm payment of KES 20,000'),
+                    Icon(Icons.info_outline,
+                        color: Color(0xFF00A651), size: 18),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'After tapping "Proceed", you\'ll be asked to enter your M-Pesa PIN on your phone to complete the payment.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF007A3D),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
               const SizedBox(height: 20),
-              Row(
+            ],
+
+            // ── Notes ───────────────────────────────────────────────────
+            const Text('Notes (optional)',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _notesCtrl,
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: 'e.g. Monthly contribution',
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                filled: true,
+                fillColor: Colors.grey.shade50,
+              ),
+            ),
+
+            const SizedBox(height: 32),
+
+            // ── Submit ──────────────────────────────────────────────────
+            CustomButton(
+              onPressed: _isLoading ? null : _submit,
+              child: _isLoading
+                  ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white),
+              )
+                  : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => setState(
-                              () => _showMpesaInstructions = false),
-                      style: OutlinedButton.styleFrom(
-                          padding:
-                          const EdgeInsets.symmetric(vertical: 12)),
-                      child: const Text('Close'),
-                    ),
+                  Icon(
+                    _paymentMethod == 'mpesa'
+                        ? Icons.phone_android
+                        : Icons.check_circle_outline,
+                    color: Colors.white,
+                    size: 20,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        setState(() => _showMpesaInstructions = false);
-                        _checkEligibility();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green.shade600,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: const Text("I've Paid"),
-                    ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _paymentMethod == 'mpesa'
+                        ? 'Proceed to M-Pesa'
+                        : 'Submit Deposit',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Text(
-                'Payment pending admin approval after successful M-Pesa payment',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildMpesaStep(int number, String text) {
+// ── Payment Method Selector Card ───────────────────────────────────────────────
+class _PaymentMethodCard extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _PaymentMethodCard({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: selected ? color.withOpacity(0.1) : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? color : Colors.grey.shade300,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: selected ? color : Colors.grey, size: 24),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: selected ? color : Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── M-Pesa PIN Bottom Sheet ────────────────────────────────────────────────────
+class _MpesaPinBottomSheet extends StatelessWidget {
+  final String phone;
+  final String amount;
+
+  const _MpesaPinBottomSheet({
+    required this.phone,
+    required this.amount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Format phone for display
+    String displayPhone = phone;
+    if (phone.startsWith('0') && phone.length == 10) {
+      displayPhone = '+254${phone.substring(1)}';
+    } else if (phone.startsWith('254')) {
+      displayPhone = '+$phone';
+    }
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 32,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle bar
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // M-Pesa logo area
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: const Color(0xFF00A651).withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.phone_android,
+                color: Color(0xFF00A651),
+                size: 36,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          const Text(
+            'M-Pesa Payment',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1F2937),
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          Text(
+            'An M-Pesa STK Push has been sent to',
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            displayPhone,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF00A651),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Step-by-step instructions
+          _InstructionStep(
+            step: '1',
+            text: 'Check your phone for the M-Pesa prompt',
+            color: const Color(0xFF00A651),
+          ),
+          const SizedBox(height: 12),
+          _InstructionStep(
+            step: '2',
+            text: 'Enter your M-Pesa PIN to authorize KES $amount',
+            color: const Color(0xFF00A651),
+          ),
+          const SizedBox(height: 12),
+          _InstructionStep(
+            step: '3',
+            text: 'Tap "I\'ve Entered My PIN" once done',
+            color: const Color(0xFF00A651),
+          ),
+
+          const SizedBox(height: 28),
+
+          // Confirm button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00A651),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                elevation: 0,
+              ),
+              child: const Text(
+                "I've Entered My PIN ✓",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Cancel button
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Instruction Step Widget ────────────────────────────────────────────────────
+class _InstructionStep extends StatelessWidget {
+  final String step;
+  final String text;
+  final Color color;
+
+  const _InstructionStep({
+    required this.step,
+    required this.text,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 24,
-          height: 24,
+          width: 28,
+          height: 28,
           decoration: BoxDecoration(
-            color: Colors.green.shade600,
+            color: color.withOpacity(0.15),
             shape: BoxShape.circle,
           ),
           child: Center(
-            child: Text('$number',
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold)),
+            child: Text(
+              step,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Text(text,
-              style: const TextStyle(fontSize: 13, color: Colors.black87)),
+          child: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              text,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF374151),
+              ),
+            ),
+          ),
         ),
       ],
     );

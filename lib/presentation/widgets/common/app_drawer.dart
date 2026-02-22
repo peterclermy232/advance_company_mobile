@@ -16,13 +16,12 @@ class AppDrawer extends ConsumerWidget {
       backgroundColor: Colors.white,
       child: Column(
         children: [
-          // ── Logo Header ────────────────────────────────────────
+          // ── Logo Header ────────────────────────────────────────────────
           Container(
             padding: const EdgeInsets.fromLTRB(16, 48, 16, 16),
             decoration: const BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: Color(0xFFE5E7EB)),
-              ),
+              border:
+              Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
             ),
             child: Row(
               children: [
@@ -36,59 +35,46 @@ class AppDrawer extends ConsumerWidget {
                       colors: [Color(0xFF2563EB), Color(0xFF4338CA)],
                     ),
                     borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF2563EB).withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
                   ),
                   child: const Center(
-                    child: Text(
-                      'AC',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
+                    child: Text('AC',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        )),
                   ),
                 ),
                 const SizedBox(width: 12),
-                Column(
+                const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'Advance',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: Color(0xFF1F2937),
-                      ),
-                    ),
-                    Text(
-                      'Company',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF6B7280),
-                      ),
-                    ),
+                  children: [
+                    Text('Advance',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: Color(0xFF1F2937),
+                        )),
+                    Text('Company',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6B7280),
+                        )),
                   ],
                 ),
               ],
             ),
           ),
 
-          // ── User Profile ───────────────────────────────────────
+          // ── User Profile ──────────────────────────────────────────────
           userAsync.when(
             data: (user) => user != null
                 ? Container(
               padding: const EdgeInsets.all(16),
               decoration: const BoxDecoration(
                 border: Border(
-                  bottom: BorderSide(color: Color(0xFFE5E7EB)),
-                ),
+                    bottom:
+                    BorderSide(color: Color(0xFFE5E7EB))),
               ),
               child: Row(
                 children: [
@@ -100,15 +86,14 @@ class AppDrawer extends ConsumerWidget {
                         : null,
                     child: user.profilePhotoUrl == null
                         ? Text(
-                      user.fullName.isNotEmpty
-                          ? user.fullName[0].toUpperCase()
-                          : 'U',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF2563EB),
-                      ),
-                    )
+                        user.fullName.isNotEmpty
+                            ? user.fullName[0].toUpperCase()
+                            : 'U',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2563EB),
+                        ))
                         : null,
                   ),
                   const SizedBox(width: 12),
@@ -116,24 +101,20 @@ class AppDrawer extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          user.fullName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                            color: Color(0xFF1F2937),
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        Text(user.fullName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              color: Color(0xFF1F2937),
+                            ),
+                            overflow: TextOverflow.ellipsis),
                         const SizedBox(height: 2),
-                        Text(
-                          user.email,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF6B7280),
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        Text(user.email,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF6B7280),
+                            ),
+                            overflow: TextOverflow.ellipsis),
                       ],
                     ),
                   ),
@@ -145,182 +126,182 @@ class AppDrawer extends ConsumerWidget {
                         color: const Color(0xFFEFF6FF),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                            color: const Color(0xFF2563EB), width: 1),
+                            color: const Color(0xFF2563EB),
+                            width: 1),
                       ),
-                      child: const Text(
-                        'ADMIN',
-                        style: TextStyle(
-                          color: Color(0xFF2563EB),
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
+                      child: const Text('ADMIN',
+                          style: TextStyle(
+                            color: Color(0xFF2563EB),
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          )),
                     ),
                 ],
               ),
             )
                 : const SizedBox.shrink(),
             loading: () => const Padding(
-              padding: EdgeInsets.all(16),
-              child: LoadingIndicator(),
-            ),
+                padding: EdgeInsets.all(16),
+                child: LoadingIndicator()),
             error: (_, __) => const SizedBox.shrink(),
           ),
 
-          // ── Navigation Items ───────────────────────────────────
+          // ── Navigation ────────────────────────────────────────────────
           Expanded(
             child: userAsync.when(
               data: (user) => ListView(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                padding:
+                const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                 children: [
-                  _buildNavItem(
-                    context,
-                    icon: Icons.dashboard_outlined,
-                    activeIcon: Icons.dashboard,
-                    label: 'Dashboard',
-                    route: '/dashboard',
-                    currentLocation: currentLocation,
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.go('/dashboard');
-                    },
-                  ),
-                  _buildNavItem(
-                    context,
-                    icon: Icons.account_balance_wallet_outlined,
-                    activeIcon: Icons.account_balance_wallet,
-                    label: 'Financial',
-                    route: '/financial',
-                    currentLocation: currentLocation,
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push('/financial');
-                    },
-                  ),
-                  _buildNavItem(
-                    context,
-                    icon: Icons.bar_chart_outlined,
-                    activeIcon: Icons.bar_chart,
-                    label: 'Reports',
-                    route: '/reports',
-                    currentLocation: currentLocation,
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push('/deposit-history');
-                    },
-                  ),
-                  _buildNavItem(
-                    context,
-                    icon: Icons.people_outline,
-                    activeIcon: Icons.people,
-                    label: 'Beneficiary',
-                    route: '/beneficiaries',
-                    currentLocation: currentLocation,
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push('/beneficiaries');
-                    },
-                  ),
-                  if (user != null && user.isAdmin) ...[
-                    _buildNavItem(
-                      context,
-                      icon: Icons.how_to_reg_outlined,
-                      activeIcon: Icons.how_to_reg,
-                      label: 'Verify Beneficiaries',
-                      route: '/admin/beneficiary-verification',
+                  _navItem(context,
+                      icon: Icons.dashboard_outlined,
+                      activeIcon: Icons.dashboard,
+                      label: 'Dashboard',
+                      route: '/dashboard',
                       currentLocation: currentLocation,
                       onTap: () {
                         Navigator.pop(context);
-                        context.push('/admin/beneficiary-verification');
-                      },
-                    ),
-                    _buildNavItem(
-                      context,
-                      icon: Icons.pending_actions_outlined,
-                      activeIcon: Icons.pending_actions,
-                      label: 'Deposit Approvals',
-                      route: '/admin/deposit-approvals',
+                        context.go('/dashboard');
+                      }),
+                  _navItem(context,
+                      icon: Icons.account_balance_wallet_outlined,
+                      activeIcon: Icons.account_balance_wallet,
+                      label: 'Financial',
+                      route: '/financial',
                       currentLocation: currentLocation,
                       onTap: () {
                         Navigator.pop(context);
-                        context.push('/admin/deposit-approvals');
-                      },
-                    ),
-                    _buildNavItem(
-                      context,
+                        context.push('/financial');
+                      }),
+                  _navItem(context,
+                      icon: Icons.receipt_long_outlined,
+                      activeIcon: Icons.receipt_long,
+                      label: 'Deposit History',
+                      route: '/deposit-history',
+                      currentLocation: currentLocation,
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/deposit-history');
+                      }),
+                  _navItem(context,
                       icon: Icons.people_outline,
                       activeIcon: Icons.people,
-                      label: 'Members',
-                      route: '/admin/members',
+                      label: 'Beneficiaries',
+                      route: '/beneficiaries',
                       currentLocation: currentLocation,
                       onTap: () {
                         Navigator.pop(context);
-                        context.push('/admin/members');
-                      },
+                        context.push('/beneficiaries');
+                      }),
+                  _navItem(context,
+                      icon: Icons.description_outlined,
+                      activeIcon: Icons.description,
+                      label: 'Documents',
+                      route: '/documents',
+                      currentLocation: currentLocation,
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/documents');
+                      }),
+                  _navItem(context,
+                      icon: Icons.assignment_outlined,
+                      activeIcon: Icons.assignment,
+                      label: 'Applications',
+                      route: '/applications',
+                      currentLocation: currentLocation,
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/applications');
+                      }),
+                  _navItem(context,
+                      icon: Icons.notifications_outlined,
+                      activeIcon: Icons.notifications,
+                      label: 'Notifications',
+                      route: '/notifications',
+                      currentLocation: currentLocation,
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/notifications');
+                      }),
+
+                  // ── Admin only ─────────────────────────────────────
+                  if (user != null && user.isAdmin) ...[
+                    const Divider(),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
+                      child: Text('ADMIN',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                            color: Colors.grey.shade500,
+                          )),
                     ),
+                    _navItem(context,
+                        icon: Icons.pending_actions_outlined,
+                        activeIcon: Icons.pending_actions,
+                        label: 'Deposit Approvals',
+                        route: '/admin/deposit-approvals',
+                        currentLocation: currentLocation,
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.push('/admin/deposit-approvals');
+                        }),
+                    _navItem(context,
+                        icon: Icons.assignment_turned_in_outlined,
+                        activeIcon: Icons.assignment_turned_in,
+                        label: 'Application Reviews',
+                        route: '/admin/applications',
+                        currentLocation: currentLocation,
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.push('/admin/applications');
+                        }),
+                    _navItem(context,
+                        icon: Icons.how_to_reg_outlined,
+                        activeIcon: Icons.how_to_reg,
+                        label: 'Verify Beneficiaries',
+                        route: '/admin/beneficiary-verification',
+                        currentLocation: currentLocation,
+                        onTap: () {
+                          Navigator.pop(context);
+                          context
+                              .push('/admin/beneficiary-verification');
+                        }),
+                    _navItem(context,
+                        icon: Icons.people_outline,
+                        activeIcon: Icons.people,
+                        label: 'Members',
+                        route: '/admin/members',
+                        currentLocation: currentLocation,
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.push('/admin/members');
+                        }),
+                    _navItem(context,
+                        icon: Icons.analytics_outlined,
+                        activeIcon: Icons.analytics,
+                        label: 'Analytics',
+                        route: '/admin/analytics',
+                        currentLocation: currentLocation,
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.push('/admin/analytics');
+                        }),
                   ],
-                  _buildNavItem(
-                    context,
-                    icon: Icons.description_outlined,
-                    activeIcon: Icons.description,
-                    label: 'Documents',
-                    route: '/documents',
-                    currentLocation: currentLocation,
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push('/documents');
-                    },
-                  ),
-                  _buildNavItem(
-                    context,
-                    icon: Icons.assignment_outlined,
-                    activeIcon: Icons.assignment,
-                    label: 'Applications',
-                    route: '/applications',
-                    currentLocation: currentLocation,
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push('/applications');
-                    },
-                  ),
-                  _buildNavItem(
-                    context,
-                    icon: Icons.settings_outlined,
-                    activeIcon: Icons.settings,
-                    label: 'Settings',
-                    route: '/settings',
-                    currentLocation: currentLocation,
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push('/settings');
-                    },
-                  ),
-                  _buildNavItem(
-                    context,
-                    icon: Icons.help_outline,
-                    activeIcon: Icons.help,
-                    label: 'Support',
-                    route: '/support',
-                    currentLocation: currentLocation,
-                    onTap: () {
-                      Navigator.pop(context);
-                      // TODO: Push to /support when implemented
-                    },
-                  ),
-                  if (user != null && user.isAdmin)
-                    _buildNavItem(
-                      context,
-                      icon: Icons.analytics_outlined,
-                      activeIcon: Icons.analytics,
-                      label: 'Analytics',
-                      route: '/admin/analytics',
+
+                  _navItem(context,
+                      icon: Icons.settings_outlined,
+                      activeIcon: Icons.settings,
+                      label: 'Settings',
+                      route: '/settings',
                       currentLocation: currentLocation,
                       onTap: () {
                         Navigator.pop(context);
-                        context.push('/admin/analytics');
-                      },
-                    ),
+                        context.push('/settings');
+                      }),
                 ],
               ),
               loading: () => const LoadingIndicator(),
@@ -328,29 +309,30 @@ class AppDrawer extends ConsumerWidget {
             ),
           ),
 
-          // ── Logout Button ──────────────────────────────────────
+          // ── Logout ────────────────────────────────────────────────────
           Container(
             padding: const EdgeInsets.all(12),
             decoration: const BoxDecoration(
-              border: Border(
-                top: BorderSide(color: Color(0xFFE5E7EB)),
-              ),
+              border:
+              Border(top: BorderSide(color: Color(0xFFE5E7EB))),
             ),
             child: InkWell(
               onTap: () async {
                 Navigator.pop(context);
                 final confirmed = await showDialog<bool>(
                   context: context,
-                  builder: (context) => AlertDialog(
+                  builder: (ctx) => AlertDialog(
                     title: const Text('Logout'),
-                    content: const Text('Are you sure you want to logout?'),
+                    content: const Text(
+                        'Are you sure you want to logout?'),
                     actions: [
                       TextButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text('Cancel'),
-                      ),
+                          onPressed: () =>
+                              Navigator.pop(ctx, false),
+                          child: const Text('Cancel')),
                       ElevatedButton(
-                        onPressed: () => Navigator.pop(context, true),
+                        onPressed: () =>
+                            Navigator.pop(ctx, true),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red,
                           foregroundColor: Colors.white,
@@ -361,30 +343,27 @@ class AppDrawer extends ConsumerWidget {
                   ),
                 );
                 if (confirmed == true && context.mounted) {
-                  await ref.read(currentUserProvider.notifier).logout();
+                  await ref
+                      .read(currentUserProvider.notifier)
+                      .logout();
                   context.go('/login');
                 }
               },
               borderRadius: BorderRadius.circular(8),
               child: Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                child: Row(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 12),
+                child: const Row(
                   children: [
-                    const Icon(
-                      Icons.logout,
-                      color: Color(0xFFDC2626),
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Logout',
-                      style: TextStyle(
-                        color: Color(0xFFDC2626),
-                        fontWeight: FontWeight.w500,
-                        fontSize: 14,
-                      ),
-                    ),
+                    Icon(Icons.logout,
+                        color: Color(0xFFDC2626), size: 20),
+                    SizedBox(width: 12),
+                    Text('Logout',
+                        style: TextStyle(
+                          color: Color(0xFFDC2626),
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                        )),
                   ],
                 ),
               ),
@@ -395,7 +374,7 @@ class AppDrawer extends ConsumerWidget {
     );
   }
 
-  Widget _buildNavItem(
+  Widget _navItem(
       BuildContext context, {
         required IconData icon,
         required IconData activeIcon,
@@ -413,9 +392,12 @@ class AppDrawer extends ConsumerWidget {
         borderRadius: BorderRadius.circular(8),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding:
+          const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: isActive ? const Color(0xFF2563EB) : Colors.transparent,
+            color: isActive
+                ? const Color(0xFF2563EB)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -423,7 +405,9 @@ class AppDrawer extends ConsumerWidget {
               Icon(
                 isActive ? activeIcon : icon,
                 size: 20,
-                color: isActive ? Colors.white : const Color(0xFF4B5563),
+                color: isActive
+                    ? Colors.white
+                    : const Color(0xFF4B5563),
               ),
               const SizedBox(width: 12),
               Text(
@@ -431,7 +415,9 @@ class AppDrawer extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: isActive ? Colors.white : const Color(0xFF4B5563),
+                  color: isActive
+                      ? Colors.white
+                      : const Color(0xFF4B5563),
                 ),
               ),
             ],

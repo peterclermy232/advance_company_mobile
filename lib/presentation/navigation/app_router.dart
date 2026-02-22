@@ -23,9 +23,12 @@ import '../screens/admin/admin_dashboard_screen.dart';
 import '../screens/admin/admin_analytics_screen.dart';
 import '../screens/admin/admin_deposit_approvals_screen.dart';
 import '../screens/admin/admin_members_screen.dart';
+import '../screens/admin/admin_applications_screen.dart';   // ← NEW
 import '../screens/admin/beneficiary_verification_screen.dart';
+import '../screens/debug/network_diagnostic_screen.dart';
 
-// ✅ Step 1: RouterNotifier lives as its own provider — created once, never recreated
+// ── Router Notifier ──────────────────────────────────────────────────────────
+
 final _routerNotifierProvider = ChangeNotifierProvider<_RouterNotifier>(
       (ref) => _RouterNotifier(ref),
 );
@@ -34,24 +37,23 @@ class _RouterNotifier extends ChangeNotifier {
   final Ref _ref;
 
   _RouterNotifier(this._ref) {
-    // ✅ Listens to auth state changes and pings GoRouter to re-run redirect
     _ref.listen<AsyncValue>(currentUserProvider, (previous, next) {
       notifyListeners();
     });
   }
 }
 
-// ✅ Step 2: GoRouter is created once — uses refreshListenable, not ref.watch
+// ── Router ───────────────────────────────────────────────────────────────────
+
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = ref.watch(_routerNotifierProvider);
 
   return GoRouter(
     initialLocation: '/login',
-    refreshListenable: notifier, // ✅ This replaces ref.watch — safe & correct
+    refreshListenable: notifier,
     redirect: (context, state) {
-      final authState = ref.read(currentUserProvider); // ✅ read, not watch
+      final authState = ref.read(currentUserProvider);
 
-      // Don't redirect while loading (initial app boot)
       if (authState.isLoading) return null;
 
       final isLoggedIn = authState.valueOrNull != null;
@@ -64,117 +66,58 @@ final routerProvider = Provider<GoRouter>((ref) {
         '/verify-email',
       ];
 
-      final isPublicRoute =
-      publicRoutes.any((route) => location.startsWith(route));
+      final isPublic = publicRoutes.any((r) => location.startsWith(r));
 
-      if (!isLoggedIn && !isPublicRoute) return '/login';
-      if (isLoggedIn && isPublicRoute) return '/dashboard';
-
+      if (!isLoggedIn && !isPublic) return '/login';
+      if (isLoggedIn && isPublic) return '/dashboard';
       return null;
     },
     routes: [
-      // ═══════════════════════════════════════════
-      // AUTH ROUTES
-      // ═══════════════════════════════════════════
+      // ── Auth ────────────────────────────────────────────────────────────
       GoRoute(
         path: '/login',
-        builder: (context, state) => const LoginScreen(),
+        builder: (_, __) => const LoginScreen(),
       ),
       GoRoute(
         path: '/register',
-        builder: (context, state) => const RegisterScreen(),
+        builder: (_, __) => const RegisterScreen(),
       ),
       GoRoute(
         path: '/forgot-password',
-        builder: (context, state) => const ForgotPasswordScreen(),
+        builder: (_, __) => const ForgotPasswordScreen(),
       ),
       GoRoute(
         path: '/verify-email',
-        builder: (context, state) => VerifyEmailScreen(
+        builder: (_, state) => VerifyEmailScreen(
           email: state.uri.queryParameters['email'] ?? '',
           token: state.uri.queryParameters['token'],
         ),
       ),
 
-      // ═══════════════════════════════════════════
-      // MAIN APP ROUTES
-      // ═══════════════════════════════════════════
-      GoRoute(
-        path: '/dashboard',
-        builder: (context, state) => const DashboardScreen(),
-      ),
-      GoRoute(
-        path: '/financial',
-        builder: (context, state) => const FinancialScreen(),
-      ),
-      GoRoute(
-        path: '/deposit-form',
-        builder: (context, state) => const DepositFormScreen(),
-      ),
-      GoRoute(
-        path: '/deposit-history',
-        builder: (context, state) => const DepositHistoryScreen(),
-      ),
-      GoRoute(
-        path: '/beneficiaries',
-        builder: (context, state) => const BeneficiaryListScreen(),
-      ),
-      GoRoute(
-        path: '/beneficiaries/add',
-        builder: (context, state) => const BeneficiaryFormScreen(),
-      ),
-      GoRoute(
-        path: '/documents',
-        builder: (context, state) => const DocumentListScreen(),
-      ),
-      GoRoute(
-        path: '/document-upload',
-        builder: (context, state) => const DocumentUploadScreen(),
-      ),
-      GoRoute(
-        path: '/applications',
-        builder: (context, state) => const ApplicationListScreen(),
-      ),
-      GoRoute(
-        path: '/applications/new',
-        builder: (context, state) => const ApplicationFormScreen(),
-      ),
-      GoRoute(
-        path: '/notifications',
-        builder: (context, state) => const NotificationsScreen(),
-      ),
-      GoRoute(
-        path: '/settings',
-        builder: (context, state) => const SettingsScreen(),
-      ),
-      GoRoute(
-        path: '/profile/edit',
-        builder: (context, state) => const ProfileEditScreen(),
-      ),
+      // ── Main App ─────────────────────────────────────────────────────────
+      GoRoute(path: '/dashboard', builder: (_, __) => const DashboardScreen()),
+      GoRoute(path: '/financial', builder: (_, __) => const FinancialScreen()),
+      GoRoute(path: '/deposit-form', builder: (_, __) => const DepositFormScreen()),
+      GoRoute(path: '/deposit-history', builder: (_, __) => const DepositHistoryScreen()),
+      GoRoute(path: '/beneficiaries', builder: (_, __) => const BeneficiaryListScreen()),
+      GoRoute(path: '/beneficiaries/add', builder: (_, __) => const BeneficiaryFormScreen()),
+      GoRoute(path: '/documents', builder: (_, __) => const DocumentListScreen()),
+      GoRoute(path: '/document-upload', builder: (_, __) => const DocumentUploadScreen()),
+      GoRoute(path: '/applications', builder: (_, __) => const ApplicationListScreen()),
+      GoRoute(path: '/applications/new', builder: (_, __) => const ApplicationFormScreen()),
+      GoRoute(path: '/notifications', builder: (_, __) => const NotificationsScreen()),
+      GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
+      GoRoute(path: '/profile/edit', builder: (_, __) => const ProfileEditScreen()),
 
-      // ═══════════════════════════════════════════
-      // ADMIN ROUTES
-      // ═══════════════════════════════════════════
-      GoRoute(
-        path: '/admin',
-        builder: (context, state) => const AdminDashboardScreen(),
-      ),
-      GoRoute(
-        path: '/admin/analytics',
-        builder: (context, state) => const AdminAnalyticsScreen(),
-      ),
-      GoRoute(
-        path: '/admin/deposit-approvals',
-        builder: (context, state) => const AdminDepositApprovalsScreen(),
-      ),
-      GoRoute(
-        path: '/admin/beneficiary-verification',
-        builder: (context, state) => const BeneficiaryVerificationScreen(),
-      ),
-      GoRoute(
-        path: '/admin/members',
-        builder: (context, state) => const AdminMembersScreen(),
-      ),
+      // ── Admin ─────────────────────────────────────────────────────────────
+      GoRoute(path: '/admin', builder: (_, __) => const AdminDashboardScreen()),
+      GoRoute(path: '/admin/analytics', builder: (_, __) => const AdminAnalyticsScreen()),
+      GoRoute(path: '/admin/deposit-approvals', builder: (_, __) => const AdminDepositApprovalsScreen()),
+      GoRoute(path: '/admin/beneficiary-verification', builder: (_, __) => const BeneficiaryVerificationScreen()),
+      GoRoute(path: '/admin/members', builder: (_, __) => const AdminMembersScreen()),
+      GoRoute(path: '/admin/applications', builder: (_, __) => const AdminApplicationsScreen()), // ← NEW
+
+      GoRoute(path: '/debug/network', builder: (_, __) => const NetworkDiagnosticScreen()),
     ],
     errorBuilder: (context, state) => Scaffold(
       body: Center(
@@ -183,10 +126,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           children: [
             const Icon(Icons.error_outline, size: 64, color: Colors.red),
             const SizedBox(height: 16),
-            Text(
-              'Page not found',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
+            Text('Page not found',
+                style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 8),
             Text(state.uri.toString(),
                 style: const TextStyle(color: Colors.grey)),

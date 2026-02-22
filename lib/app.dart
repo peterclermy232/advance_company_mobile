@@ -14,9 +14,17 @@ class AdvanceCompanyApp extends ConsumerWidget {
       title: 'Advance Company',
       debugShowCheckedModeBanner: false,
       theme: ThemeConfig.lightTheme,
-      // darkTheme: ThemeConfig.darkTheme,
       themeMode: ThemeMode.light,
       routerConfig: router,
+      builder: (context, child) {
+        // Global scaffold: applies text scaling guard + offline banner
+        return MediaQuery(
+          // Clamp text scale so the app doesn't break at system large-font sizes
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: const TextScaler.linear(1.0)),
+          child: child!,
+        );
+      },
     );
   }
 }

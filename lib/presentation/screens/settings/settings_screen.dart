@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../data/providers/auth_provider.dart';
 import '../../widgets/common/custom_button.dart';
+import '../../widgets/common/loading_indicator.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -15,120 +16,164 @@ class SettingsScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Settings')),
       body: userAsync.when(
         data: (user) {
-          if (user == null) return const SizedBox();
+          if (user == null) return const SizedBox.shrink();
 
           return ListView(
             children: [
-              // Profile Section
-              Container(
-                padding: const EdgeInsets.all(20),
-                color: Theme.of(context).primaryColor.withOpacity(0.1),
-                child: Column(
-                  children: [
-                    GestureDetector(
-                      onTap: () => context.push('/profile/edit'),
-                      child: Stack(
-                        children: [
-                          CircleAvatar(
-                            radius: 50,
-                            backgroundColor: Colors.blue,
-                            backgroundImage: user.profilePhotoUrl != null
-                                ? NetworkImage(user.profilePhotoUrl!)
-                                : null,
-                            child: user.profilePhotoUrl == null
-                                ? Text(
-                              user.fullName.isNotEmpty
-                                  ? user.fullName[0].toUpperCase()
-                                  : 'U',
-                              style: const TextStyle(
-                                fontSize: 40,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            )
-                                : null,
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: const BoxDecoration(
-                                color: Colors.blue,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.edit,
-                                  color: Colors.white, size: 16),
-                            ),
-                          ),
-                        ],
-                      ),
+              // ── Profile Header ──────────────────────────────────────────
+              GestureDetector(
+                onTap: () => context.push('/profile/edit'),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF2563EB), Color(0xFF4F46E5)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      user.fullName,
-                      style: const TextStyle(
-                          fontSize: 22, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      user.email,
-                      style:
-                      const TextStyle(color: Colors.grey, fontSize: 14),
-                    ),
-                    if (user.isAdmin) ...[
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.blue),
-                        ),
-                        child: const Text(
-                          'ADMIN',
-                          style: TextStyle(
-                            color: Colors.blue,
-                            fontSize: 12,
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 36,
+                        backgroundColor: Colors.white30,
+                        backgroundImage: user.profilePhotoUrl != null
+                            ? NetworkImage(user.profilePhotoUrl!)
+                            : null,
+                        child: user.profilePhotoUrl == null
+                            ? Text(
+                          user.fullName.isNotEmpty
+                              ? user.fullName[0].toUpperCase()
+                              : 'U',
+                          style: const TextStyle(
+                            fontSize: 28,
+                            color: Colors.white,
                             fontWeight: FontWeight.bold,
                           ),
+                        )
+                            : null,
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              user.fullName,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              user.email,
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 13),
+                            ),
+                            const SizedBox(height: 4),
+                            if (user.isAdmin)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.white24,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Text(
+                                  'ADMIN',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
+                      const Icon(Icons.edit, color: Colors.white70),
                     ],
-                  ],
+                  ),
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-              _buildSettingsSection(context, 'Account', [
+              // ── Account Section ─────────────────────────────────────────
+              _buildSection(context, 'Account', [
                 _SettingsTile(
                   icon: Icons.person,
                   title: 'Edit Profile',
-                  // ✅ Fixed: was empty — now navigates to profile edit screen
+                  subtitle: 'Update your personal information',
                   onTap: () => context.push('/profile/edit'),
                 ),
                 _SettingsTile(
-                  icon: Icons.lock,
+                  icon: Icons.lock_outline,
                   title: 'Change Password',
+                  subtitle: 'Update your login credentials',
                   onTap: () => _showChangePasswordDialog(context, ref),
                 ),
                 _SettingsTile(
                   icon: Icons.security,
                   title: 'Two-Factor Authentication',
+                  subtitle: user.twoFactorEnabled ? 'Enabled' : 'Disabled',
                   trailing: Switch(
                     value: user.twoFactorEnabled,
                     onChanged: (value) {
-                      // TODO: call enable/disable 2FA endpoint
+                      // TODO: hook up 2FA toggle
+                    },
+                  ),
+                ),
+                _SettingsTile(
+                  icon: Icons.fingerprint,
+                  title: 'Biometric Login',
+                  subtitle: user.biometricEnabled ? 'Enabled' : 'Disabled',
+                  trailing: Switch(
+                    value: user.biometricEnabled,
+                    onChanged: (value) {
+                      // TODO: hook up biometric toggle
                     },
                   ),
                 ),
               ]),
 
-              _buildSettingsSection(context, 'Preferences', [
+              // ── Admin Section ─────────────────────────────────────────
+              if (user.isAdmin)
+                _buildSection(context, 'Admin', [
+                  _SettingsTile(
+                    icon: Icons.pending_actions,
+                    title: 'Deposit Approvals',
+                    onTap: () => context.push('/admin/deposit-approvals'),
+                  ),
+                  _SettingsTile(
+                    icon: Icons.assignment_outlined,
+                    title: 'Application Reviews',
+                    onTap: () => context.push('/admin/applications'),
+                  ),
+                  _SettingsTile(
+                    icon: Icons.verified_user_outlined,
+                    title: 'Beneficiary Verification',
+                    onTap: () =>
+                        context.push('/admin/beneficiary-verification'),
+                  ),
+                  _SettingsTile(
+                    icon: Icons.people_outline,
+                    title: 'Member Management',
+                    onTap: () => context.push('/admin/members'),
+                  ),
+                  _SettingsTile(
+                    icon: Icons.bar_chart,
+                    title: 'Analytics',
+                    onTap: () => context.push('/admin/analytics'),
+                  ),
+                ]),
+
+              // ── Preferences ───────────────────────────────────────────
+              _buildSection(context, 'Preferences', [
                 _SettingsTile(
-                  icon: Icons.notifications,
+                  icon: Icons.notifications_outlined,
                   title: 'Notifications',
                   onTap: () => context.push('/notifications'),
                 ),
@@ -138,39 +183,40 @@ class SettingsScreen extends ConsumerWidget {
                   subtitle: 'English',
                   onTap: () {},
                 ),
-                _SettingsTile(
-                  icon: Icons.dark_mode,
-                  title: 'Dark Mode',
-                  trailing: Switch(
-                    value: false,
-                    onChanged: (value) {
-                      // TODO: implement dark mode
-                    },
-                  ),
-                ),
               ]),
 
-              _buildSettingsSection(context, 'About', [
+              // ── About ─────────────────────────────────────────────────
+              _buildSection(context, 'About', [
                 _SettingsTile(
-                  icon: Icons.info,
+                  icon: Icons.info_outline,
                   title: 'App Version',
                   subtitle: '1.0.0',
+                  onTap: () {},
                 ),
                 _SettingsTile(
-                  icon: Icons.privacy_tip,
+                  icon: Icons.privacy_tip_outlined,
                   title: 'Privacy Policy',
                   onTap: () {},
                 ),
                 _SettingsTile(
-                  icon: Icons.description,
+                  icon: Icons.description_outlined,
                   title: 'Terms of Service',
+                  onTap: () {},
+                ),
+                _SettingsTile(
+                  icon: Icons.support_agent,
+                  title: 'Contact Support',
+                  subtitle: 'support@advancecompany.com',
                   onTap: () {},
                 ),
               ]),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 8),
+
+              // ── Logout ────────────────────────────────────────────────
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: CustomButton(
                   onPressed: () async {
                     final confirmed = await showDialog<bool>(
@@ -187,13 +233,14 @@ class SettingsScreen extends ConsumerWidget {
                           ElevatedButton(
                             onPressed: () => Navigator.pop(context, true),
                             style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red),
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                            ),
                             child: const Text('Logout'),
                           ),
                         ],
                       ),
                     );
-
                     if (confirmed == true && context.mounted) {
                       await ref
                           .read(currentUserProvider.notifier)
@@ -205,27 +252,32 @@ class SettingsScreen extends ConsumerWidget {
                   child: const Text('Logout'),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 32),
             ],
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Error: $error')),
+        loading: () => const LoadingIndicator(),
+        error: (e, _) => Center(child: Text('Error: $e')),
       ),
     );
   }
 
-  Widget _buildSettingsSection(
-      BuildContext context, String title, List<_SettingsTile> tiles) {
+  Widget _buildSection(
+      BuildContext context,
+      String title,
+      List<_SettingsTile> tiles,
+      ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(
-            title,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            title.toUpperCase(),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: Colors.grey,
+              letterSpacing: 1.2,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -233,18 +285,39 @@ class SettingsScreen extends ConsumerWidget {
         Card(
           margin: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(
-            children: tiles
-                .map((tile) => ListTile(
-              leading: Icon(tile.icon),
-              title: Text(tile.title),
-              subtitle: tile.subtitle != null
-                  ? Text(tile.subtitle!)
-                  : null,
-              trailing:
-              tile.trailing ?? const Icon(Icons.chevron_right),
-              onTap: tile.onTap,
-            ))
-                .toList(),
+            children: tiles.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final tile = entry.value;
+              return Column(
+                children: [
+                  if (idx != 0) const Divider(height: 1, indent: 56),
+                  ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(tile.icon,
+                          color: Colors.blue.shade700, size: 20),
+                    ),
+                    title: Text(tile.title,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w500)),
+                    subtitle: tile.subtitle != null
+                        ? Text(tile.subtitle!,
+                        style: const TextStyle(fontSize: 12))
+                        : null,
+                    trailing: tile.trailing ??
+                        (tile.onTap != null
+                            ? const Icon(Icons.chevron_right,
+                            color: Colors.grey)
+                            : null),
+                    onTap: tile.onTap,
+                  ),
+                ],
+              );
+            }).toList(),
           ),
         ),
         const SizedBox(height: 16),
@@ -253,90 +326,122 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Future<void> _showChangePasswordDialog(
-      BuildContext context, WidgetRef ref) async {
-    final oldPasswordController = TextEditingController();
-    final newPasswordController = TextEditingController();
-    final confirmPasswordController = TextEditingController();
+      BuildContext context,
+      WidgetRef ref,
+      ) async {
+    final oldPasswordCtrl = TextEditingController();
+    final newPasswordCtrl = TextEditingController();
+    final confirmPasswordCtrl = TextEditingController();
+    bool obscureOld = true;
+    bool obscureNew = true;
 
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Change Password'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: oldPasswordController,
-              decoration:
-              const InputDecoration(labelText: 'Current Password'),
-              obscureText: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Change Password'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: oldPasswordCtrl,
+                  obscureText: obscureOld,
+                  decoration: InputDecoration(
+                    labelText: 'Current Password',
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: Icon(obscureOld
+                          ? Icons.visibility
+                          : Icons.visibility_off),
+                      onPressed: () =>
+                          setState(() => obscureOld = !obscureOld),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: newPasswordCtrl,
+                  obscureText: obscureNew,
+                  decoration: InputDecoration(
+                    labelText: 'New Password (min 12 chars)',
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: Icon(obscureNew
+                          ? Icons.visibility
+                          : Icons.visibility_off),
+                      onPressed: () =>
+                          setState(() => obscureNew = !obscureNew),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: confirmPasswordCtrl,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Confirm New Password',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: newPasswordController,
-              decoration: const InputDecoration(labelText: 'New Password'),
-              obscureText: true,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: confirmPasswordController,
-              decoration:
-              const InputDecoration(labelText: 'Confirm Password'),
-              obscureText: true,
+            ElevatedButton(
+              onPressed: () async {
+                if (newPasswordCtrl.text.length < 12) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Password must be at least 12 characters')),
+                  );
+                  return;
+                }
+                if (newPasswordCtrl.text != confirmPasswordCtrl.text) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Passwords do not match')),
+                  );
+                  return;
+                }
+                try {
+                  final repo =
+                  await ref.read(authRepositoryProvider.future);
+                  await repo.changePassword({
+                    'old_password': oldPasswordCtrl.text,
+                    'new_password': newPasswordCtrl.text,
+                    'new_password_confirm': confirmPasswordCtrl.text,
+                  });
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Password changed successfully!'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(e
+                            .toString()
+                            .replaceAll('Exception: ', '')),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Change'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (newPasswordController.text !=
-                  confirmPasswordController.text) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('Passwords do not match')),
-                );
-                return;
-              }
-
-              try {
-                final authRepository =
-                await ref.read(authRepositoryProvider.future);
-                await authRepository.changePassword({
-                  'old_password': oldPasswordController.text,
-                  'new_password': newPasswordController.text,
-                  // Match backend field names
-                  'new_password_confirm': confirmPasswordController.text,
-                });
-
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Password changed successfully!'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(e
-                          .toString()
-                          .replaceAll('Exception: ', '')),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            child: const Text('Change'),
-          ),
-        ],
       ),
     );
   }
