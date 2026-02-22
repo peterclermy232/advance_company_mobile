@@ -87,17 +87,20 @@ class NotificationCard extends StatelessWidget {
   }
 
   IconData _getNotificationIcon(String type) {
-    switch (type) {
-      case 'DEPOSIT_APPROVED':
-      case 'DEPOSIT_REJECTED':
+    // API returns lowercase snake_case
+    switch (type.toLowerCase()) {
+      case 'deposit_approved':
+      case 'deposit_rejected':
+      case 'deposit_created':
         return Icons.account_balance_wallet;
-      case 'APPLICATION_APPROVED':
-      case 'APPLICATION_REJECTED':
+      case 'application_approved':
+      case 'application_rejected':
+      case 'application_submitted':
         return Icons.assignment;
-      case 'BENEFICIARY_VERIFIED':
+      case 'beneficiary_verified':
         return Icons.people;
-      case 'DOCUMENT_VERIFIED':
-      case 'DOCUMENT_REJECTED':
+      case 'document_verified':
+      case 'document_rejected':
         return Icons.file_copy;
       default:
         return Icons.notifications;
