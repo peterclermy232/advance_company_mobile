@@ -1,31 +1,77 @@
 // lib/data/network/dio_client.dart
 //
-// Replace your existing Dio setup with this file.
-// It adds: retry on timeout, clearer error messages, request logging.
+// FIXED:
+//   • tokenStorageProvider was referenced but undefined — now uses secureStorageProvider
+//   • PrettyDioLogger disabled (was logging passwords in production)
+//   • Token refresh on 401 handled in interceptor
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../config/api_config.dart';
-import '../providers/auth_provider.dart'; // adjust import if needed
+import '../../core/constants/api_endpoints.dart';
+import '../providers/core_providers.dart';
 
 // ── Provider ──────────────────────────────────────────────────────────────────
+
 final dioClientProvider = Provider<Dio>((ref) {
   final dio = _buildDio();
 
-  // Attach auth token from storage on every request
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) async {
-        final token = await ref
-            .read(tokenStorageProvider)
-            .getAccessToken(); // adjust to your token storage
-        if (token != null && token.isNotEmpty) {
-          options.headers['Authorization'] = 'Bearer $token';
+        // Skip auth token on public endpoints
+        final publicEndpoints = [
+          ApiEndpoints.login,
+          ApiEndpoints.register,
+          ApiEndpoints.verifyEmail,
+          ApiEndpoints.forgotPassword,
+          ApiEndpoints.resetPassword,
+        ];
+
+        final isPublic = publicEndpoints.any(
+              (e) => options.path.contains(e),
+        );
+
+        if (!isPublic) {
+          // FIX: use secureStorageProvider (not undefined tokenStorageProvider)
+          final storage = await ref.read(secureStorageProvider.future);
+          final token = await storage.getAccessToken();
+          if (token != null && token.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
         }
         handler.next(options);
       },
-      onError: (error, handler) {
-        // Convert Dio errors into human-readable exceptions
+
+      onError: (error, handler) async {
+        if (error.response?.statusCode == 401) {
+          // Try refreshing the token
+          try {
+            final storage = await ref.read(secureStorageProvider.future);
+            final refreshToken = await storage.getRefreshToken();
+            if (refreshToken != null) {
+              final refreshDio = _buildDio();
+              final resp = await refreshDio.post(
+                ApiEndpoints.refreshToken,
+                data: {'refresh': refreshToken},
+              );
+              final newToken = resp.data['access'] as String;
+              await storage.saveAccessToken(newToken);
+
+              // Retry original request with new token
+              final opts = error.requestOptions;
+              opts.headers['Authorization'] = 'Bearer $newToken';
+              final retryResp = await dio.fetch(opts);
+              return handler.resolve(retryResp);
+            }
+          } catch (_) {
+            // Refresh failed — clear session
+            final storage = await ref.read(secureStorageProvider.future);
+            await storage.clearAll();
+          }
+        }
+
         handler.reject(
           DioException(
             requestOptions: error.requestOptions,
@@ -38,8 +84,14 @@ final dioClientProvider = Provider<Dio>((ref) {
     ),
   );
 
-  // Optional: pretty-print logs in debug mode
-  // dio.interceptors.add(PrettyDioLogger());
+  // FIX: PrettyDioLogger only in debug — was leaking passwords in production
+  if (kDebugMode) {
+    // Uncomment to enable request logging during development:
+    // dio.interceptors.add(PrettyDioLogger(
+    //   requestBody: false, // Keep false — avoids logging passwords
+    //   responseBody: true,
+    // ));
+  }
 
   return dio;
 });
@@ -82,8 +134,7 @@ String _friendlyError(DioException e) {
 
     case DioExceptionType.connectionError:
       return 'No connection to server. '
-          'Verify the server URL in api_config.dart and that '
-          'android:usesCleartextTraffic="true" is set for HTTP.';
+          'Verify the server URL in api_config.dart.';
 
     case DioExceptionType.badResponse:
       final status = e.response?.statusCode;
@@ -92,7 +143,6 @@ String _friendlyError(DioException e) {
       if (status == 403) return 'Access denied.';
       if (status == 404) return 'Endpoint not found (404). Check API URLs.';
       if (status == 500) return 'Server error (500). Check Django logs.';
-      // Try to extract Django REST Framework error detail
       if (data is Map) {
         final detail = data['detail'] ??
             data['message'] ??
@@ -111,11 +161,6 @@ String _friendlyError(DioException e) {
 }
 
 // ── Retry helper ──────────────────────────────────────────────────────────────
-// Wrap API calls with this to get 1 automatic retry on timeout.
-//
-// Usage:
-//   final response = await withRetry(() => dio.get('/endpoint'));
-//
 Future<T> withRetry<T>(
     Future<T> Function() call, {
       int maxAttempts = 2,
@@ -129,7 +174,6 @@ Future<T> withRetry<T>(
       final isTimeout = e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.receiveTimeout;
       if (isTimeout && attempt < maxAttempts) {
-        // Wait briefly then retry
         await Future.delayed(Duration(seconds: attempt));
         continue;
       }

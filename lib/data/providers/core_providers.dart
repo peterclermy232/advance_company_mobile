@@ -23,16 +23,14 @@ final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
 });
 
 // ── 3. SecureStorage ──────────────────────────────────────────────────────────
-//  FutureProvider so callers can do: await ref.watch(secureStorageProvider.future)
 
 final secureStorageProvider = FutureProvider<SecureStorage>((ref) async {
   final secure = ref.watch(flutterSecureStorageProvider);
-  final prefs  = ref.watch(sharedPreferencesProvider); // sync after main.dart override
+  final prefs  = ref.watch(sharedPreferencesProvider);
   return SecureStorage(secure, prefs);
 });
 
 // ── 4. ApiClient ──────────────────────────────────────────────────────────────
-//  FutureProvider — matches every callsite: await ref.read(apiClientProvider.future)
 
 final apiClientProvider = FutureProvider<ApiClient>((ref) async {
   final storage = await ref.watch(secureStorageProvider.future);
