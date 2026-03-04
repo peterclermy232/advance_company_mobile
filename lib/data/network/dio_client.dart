@@ -6,7 +6,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../config/api_config.dart';
-import '../providers/auth_provider.dart'; // adjust import if needed
+import '../providers/auth_provider.dart';
+import '../providers/core_providers.dart'; // adjust import if needed
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 final dioClientProvider = Provider<Dio>((ref) {
@@ -15,15 +16,18 @@ final dioClientProvider = Provider<Dio>((ref) {
   // Attach auth token from storage on every request
   dio.interceptors.add(
     InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        final token = await ref
-            .read(tokenStorageProvider)
-            .getAccessToken(); // adjust to your token storage
-        if (token != null && token.isNotEmpty) {
-          options.headers['Authorization'] = 'Bearer $token';
-        }
-        handler.next(options);
-      },
+        onRequest: (options, handler) async {
+          try {
+            final storage = await ref.read(secureStorageProvider.future);
+            final token = await storage.getAccessToken();
+
+            if (token != null && token.isNotEmpty) {
+              options.headers['Authorization'] = 'Bearer $token';
+            }
+          } catch (_) {}
+
+          handler.next(options);
+        },
       onError: (error, handler) {
         // Convert Dio errors into human-readable exceptions
         handler.reject(
