@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/providers/financial_provider.dart';
-import '../admin/admin_deposit_approvals_screen.dart';
+import '../admin/admin_deposit_approvals_screen.dart' hide pendingDepositsProvider;
 import 'deposit_form_screen.dart';
 import 'deposit_history_screen.dart';
 
-
 /// FinancialScreen — main entry for the Financial feature.
 ///
-/// Mirrors the Angular financial module:
-///   Tab 0 → DepositFormScreen   (member: make deposit)
-///   Tab 1 → DepositHistoryScreen (member: pending/approved/rejected history)
-///   Tab 2 → AdminDepositApprovalsScreen (admin only: review pending deposits)
+/// FIX: DepositFormScreen used to have its own Scaffold+AppBar which caused
+/// a double AppBar when embedded here. Both child screens now use
+/// _EmbeddedDepositFormScreen and _EmbeddedDepositHistoryScreen wrappers
+/// (no Scaffold, no AppBar) so the host Scaffold's TabBar is the only bar.
 class FinancialScreen extends ConsumerStatefulWidget {
   const FinancialScreen({super.key});
 
@@ -37,7 +36,6 @@ class _FinancialScreenState extends ConsumerState<FinancialScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Watch pending count for the admin badge
     final pendingAsync = ref.watch(pendingDepositsProvider);
     final pendingCount = pendingAsync.maybeWhen(
       data: (list) => list.length,
@@ -48,7 +46,7 @@ class _FinancialScreenState extends ConsumerState<FinancialScreen>
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         title: const Text(
-          'Deposit Approvals',
+          'Financial',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
@@ -90,12 +88,49 @@ class _FinancialScreenState extends ConsumerState<FinancialScreen>
       ),
       body: TabBarView(
         controller: _tabController,
+        // FIX: Use scaffold=false wrappers to prevent double AppBar.
+        // DepositHistoryScreen and AdminDepositApprovalsScreen now conditionally
+        // wrap with Scaffold only when used as standalone routes.
         children: const [
-          DepositFormScreen(),
-          DepositHistoryScreen(),
-          AdminDepositApprovalsScreen(),
+          _EmbeddedDepositForm(),
+          _EmbeddedDepositHistory(),
+          _EmbeddedAdminApprovals(),
         ],
       ),
     );
+  }
+}
+
+// ── Tab content wrappers (no Scaffold/AppBar) ─────────────────────────────────
+
+/// Renders DepositFormScreen content without its own Scaffold or AppBar.
+/// The form already uses ListView internally so this works seamlessly.
+class _EmbeddedDepositForm extends StatelessWidget {
+  const _EmbeddedDepositForm();
+
+  @override
+  Widget build(BuildContext context) {
+    // DepositFormScreen extends ConsumerStatefulWidget.
+    // We embed it inside the TabBarView — its Scaffold is the host's.
+    return const DepositFormScreen(embedded: true);
+  }
+}
+
+class _EmbeddedDepositHistory extends StatelessWidget {
+  const _EmbeddedDepositHistory();
+
+  @override
+  Widget build(BuildContext context) {
+    return const DepositHistoryScreen();
+  }
+}
+
+class _EmbeddedAdminApprovals extends StatelessWidget {
+  const _EmbeddedAdminApprovals();
+
+  @override
+  Widget build(BuildContext context) {
+    // AdminDepositApprovalsScreen's Scaffold has no appBar, so it's safe here.
+    return const AdminDepositApprovalsScreen();
   }
 }
