@@ -15,24 +15,46 @@ class BeneficiaryFormScreen extends ConsumerStatefulWidget {
       _BeneficiaryFormScreenState();
 }
 
-class _BeneficiaryFormScreenState extends ConsumerState<BeneficiaryFormScreen> {
+class _BeneficiaryFormScreenState
+    extends ConsumerState<BeneficiaryFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _ageController = TextEditingController();
   final _phoneController = TextEditingController();
   final _professionController = TextEditingController();
+  final _allocationController = TextEditingController(text: '0');
 
-  String _selectedRelation = 'SPOUSE';
-  String _selectedGender = 'MALE';
+  // Backend expects lowercase relation choices
+  String _selectedRelation = 'spouse';
+  // Backend gender field maps to User.GENDER_CHOICES — typically 'M'/'F'/'O'
+  String _selectedGender = 'M';
   String? _selectedSalaryRange;
   PlatformFile? _identityDocument;
   PlatformFile? _birthCertificate;
 
   bool _isLoading = false;
 
-  final List<String> _relations = ['SPOUSE', 'CHILD', 'PARENT', 'SIBLING', 'OTHER'];
-  final List<String> _genders = ['MALE', 'FEMALE', 'OTHER'];
-  final List<String> _salaryRanges = ['BELOW_20K', '20K_50K', '50K_100K', 'ABOVE_100K'];
+  // Values MUST match backend model choices exactly
+  final List<Map<String, String>> _relations = [
+    {'value': 'spouse',  'label': 'Spouse'},
+    {'value': 'child',   'label': 'Child'},
+    {'value': 'parent',  'label': 'Parent'},
+    {'value': 'sibling', 'label': 'Sibling'},
+    {'value': 'other',   'label': 'Other'},
+  ];
+
+  final List<Map<String, String>> _genders = [
+    {'value': 'M', 'label': 'Male'},
+    {'value': 'F', 'label': 'Female'},
+    {'value': 'O', 'label': 'Other'},
+  ];
+
+  final List<String> _salaryRanges = [
+    'BELOW_20K',
+    '20K_50K',
+    '50K_100K',
+    'ABOVE_100K',
+  ];
 
   @override
   void dispose() {
@@ -40,6 +62,7 @@ class _BeneficiaryFormScreenState extends ConsumerState<BeneficiaryFormScreen> {
     _ageController.dispose();
     _phoneController.dispose();
     _professionController.dispose();
+    _allocationController.dispose();
     super.dispose();
   }
 
@@ -47,7 +70,7 @@ class _BeneficiaryFormScreenState extends ConsumerState<BeneficiaryFormScreen> {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
-      withData: true, // ✅ Required for web: populates file.bytes
+      withData: true, // required on web
     );
     if (result != null) {
       setState(() {
@@ -60,42 +83,58 @@ class _BeneficiaryFormScreenState extends ConsumerState<BeneficiaryFormScreen> {
     }
   }
 
-  /// ✅ Cross-platform: uses bytes on web, path on mobile/desktop.
+  /// Cross-platform: use bytes on web, path on mobile/desktop.
   Future<MultipartFile> _toMultipartFile(PlatformFile file) async {
     if (file.bytes != null) {
       return MultipartFile.fromBytes(file.bytes!, filename: file.name);
     } else if (file.path != null) {
       return await MultipartFile.fromFile(file.path!, filename: file.name);
     }
-    throw Exception('Cannot read file "${file.name}": no bytes or path available.');
+    throw Exception(
+        'Cannot read file "${file.name}": no bytes or path available.');
   }
 
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Identity document is required by backend model
+    if (_identityDocument == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Identity document is required'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
-      // ✅ Await all MultipartFile conversions BEFORE FormData.fromMap()
       final Map<String, dynamic> fields = {
         'name': _nameController.text.trim(),
-        'relation': _selectedRelation,
+        'relation': _selectedRelation,   // lowercase: 'spouse', 'child', etc.
         'age': _ageController.text,
-        'gender': _selectedGender,
+        'gender': _selectedGender,       // 'M', 'F', or 'O'
         'phone_number': _phoneController.text.trim(),
         'profession': _professionController.text.trim(),
+        'percentage_allocation':
+        double.tryParse(_allocationController.text) ?? 0.0,
         if (_selectedSalaryRange != null) 'salary_range': _selectedSalaryRange,
       };
 
-      if (_identityDocument != null) {
-        fields['identity_document'] = await _toMultipartFile(_identityDocument!);
-      }
+      // Await all file conversions before building FormData
+      fields['identity_document'] =
+      await _toMultipartFile(_identityDocument!);
       if (_birthCertificate != null) {
-        fields['birth_certificate'] = await _toMultipartFile(_birthCertificate!);
+        fields['birth_certificate'] =
+        await _toMultipartFile(_birthCertificate!);
       }
 
       final formData = FormData.fromMap(fields);
-      final repository = await ref.read(beneficiaryRepositoryProvider.future);
-      await repository.createBeneficiary(formData);
+      await ref
+          .read(beneficiariesProvider.notifier)
+          .addBeneficiary(formData);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -105,7 +144,6 @@ class _BeneficiaryFormScreenState extends ConsumerState<BeneficiaryFormScreen> {
           ),
         );
         context.pop();
-        ref.invalidate(beneficiariesProvider);
       }
     } catch (e) {
       if (mounted) {
@@ -137,31 +175,19 @@ class _BeneficiaryFormScreenState extends ConsumerState<BeneficiaryFormScreen> {
                   controller: _nameController,
                   label: 'Full Name',
                   hintText: 'Enter full name',
-                  validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+                  validator: (v) =>
+                  v?.isEmpty ?? true ? 'Required' : null,
                 ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Relation',
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 8),
-                          DropdownButtonFormField<String>(
-                            value: _selectedRelation,
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                              filled: true,
-                              fillColor: Colors.grey[50],
-                            ),
-                            items: _relations
-                                .map((rel) => DropdownMenuItem(value: rel, child: Text(rel)))
-                                .toList(),
-                            onChanged: (value) => setState(() => _selectedRelation = value!),
-                          ),
-                        ],
+                      child: _buildDropdown(
+                        label: 'Relation',
+                        value: _selectedRelation,
+                        items: _relations,
+                        onChanged: (v) =>
+                            setState(() => _selectedRelation = v!),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -171,9 +197,9 @@ class _BeneficiaryFormScreenState extends ConsumerState<BeneficiaryFormScreen> {
                         label: 'Age',
                         hintText: 'Age',
                         keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value?.isEmpty ?? true) return 'Required';
-                          final age = int.tryParse(value!);
+                        validator: (v) {
+                          if (v?.isEmpty ?? true) return 'Required';
+                          final age = int.tryParse(v!);
                           if (age == null || age <= 0) return 'Invalid';
                           return null;
                         },
@@ -182,36 +208,25 @@ class _BeneficiaryFormScreenState extends ConsumerState<BeneficiaryFormScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Gender',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      value: _selectedGender,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        filled: true,
-                        fillColor: Colors.grey[50],
-                      ),
-                      items: _genders
-                          .map((g) => DropdownMenuItem(value: g, child: Text(g)))
-                          .toList(),
-                      onChanged: (value) => setState(() => _selectedGender = value!),
-                    ),
-                  ],
+                _buildDropdown(
+                  label: 'Gender',
+                  value: _selectedGender,
+                  items: _genders,
+                  onChanged: (v) =>
+                      setState(() => _selectedGender = v!),
                 ),
               ]),
+
               const SizedBox(height: 24),
 
-              _buildSection('Contact Information', [
+              _buildSection('Contact & Financial', [
                 CustomTextField(
                   controller: _phoneController,
                   label: 'Phone Number',
                   hintText: '+254712345678',
                   keyboardType: TextInputType.phone,
-                  validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+                  validator: (v) =>
+                  v?.isEmpty ?? true ? 'Required' : null,
                 ),
                 const SizedBox(height: 16),
                 CustomTextField(
@@ -220,35 +235,71 @@ class _BeneficiaryFormScreenState extends ConsumerState<BeneficiaryFormScreen> {
                   hintText: 'Enter profession',
                 ),
                 const SizedBox(height: 16),
+                // Salary range dropdown
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text('Salary Range (Optional)',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
                       value: _selectedSalaryRange,
                       hint: const Text('Select salary range'),
                       decoration: InputDecoration(
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         filled: true,
                         fillColor: Colors.grey[50],
                       ),
                       items: _salaryRanges
-                          .map((r) => DropdownMenuItem(value: r, child: Text(r.replaceAll('_', ' '))))
+                          .map((r) => DropdownMenuItem(
+                          value: r,
+                          child: Text(
+                              r.replaceAll('_', ' '))))
                           .toList(),
-                      onChanged: (value) => setState(() => _selectedSalaryRange = value),
+                      onChanged: (v) =>
+                          setState(() => _selectedSalaryRange = v),
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
+                // Percentage allocation
+                CustomTextField(
+                  controller: _allocationController,
+                  label: 'Allocation Percentage (%)',
+                  hintText: 'e.g. 25',
+                  keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true),
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return 'Required';
+                    final val = double.tryParse(v);
+                    if (val == null) return 'Enter a valid number';
+                    if (val < 0 || val > 100) {
+                      return 'Must be between 0 and 100';
+                    }
+                    return null;
+                  },
+                ),
               ]),
+
               const SizedBox(height: 24),
 
               _buildSection('Documents', [
-                _buildFileUpload('Identity Document', _identityDocument, () => _pickFile('identity')),
+                _buildFileUpload(
+                  'Identity Document *',
+                  _identityDocument,
+                      () => _pickFile('identity'),
+                  required: true,
+                ),
                 const SizedBox(height: 16),
-                _buildFileUpload('Birth Certificate', _birthCertificate, () => _pickFile('birth')),
+                _buildFileUpload(
+                  'Birth Certificate (Optional)',
+                  _birthCertificate,
+                      () => _pickFile('birth'),
+                ),
               ]),
+
               const SizedBox(height: 32),
 
               CustomButton(
@@ -283,11 +334,51 @@ class _BeneficiaryFormScreenState extends ConsumerState<BeneficiaryFormScreen> {
     );
   }
 
-  Widget _buildFileUpload(String label, PlatformFile? file, VoidCallback onTap) {
+  Widget _buildDropdown({
+    required String label,
+    required String value,
+    required List<Map<String, String>> items,
+    required ValueChanged<String?> onChanged,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+        Text(label,
+            style: const TextStyle(
+                fontSize: 14, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          value: value,
+          decoration: InputDecoration(
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12)),
+            filled: true,
+            fillColor: Colors.grey[50],
+          ),
+          items: items
+              .map((item) => DropdownMenuItem(
+            value: item['value'],
+            child: Text(item['label']!),
+          ))
+              .toList(),
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFileUpload(
+      String label,
+      PlatformFile? file,
+      VoidCallback onTap, {
+        bool required = false,
+      }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(
+                fontSize: 14, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         InkWell(
           onTap: onTap,
@@ -295,7 +386,11 @@ class _BeneficiaryFormScreenState extends ConsumerState<BeneficiaryFormScreen> {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(
+                color: (required && file == null)
+                    ? Colors.red.shade300
+                    : Colors.grey.shade300,
+              ),
               borderRadius: BorderRadius.circular(12),
               color: Colors.grey[50],
             ),
@@ -309,7 +404,9 @@ class _BeneficiaryFormScreenState extends ConsumerState<BeneficiaryFormScreen> {
                 Expanded(
                   child: Text(
                     file?.name ?? 'Tap to upload',
-                    style: TextStyle(color: file != null ? Colors.black : Colors.grey),
+                    style: TextStyle(
+                        color:
+                        file != null ? Colors.black : Colors.grey),
                   ),
                 ),
                 const Icon(Icons.arrow_forward_ios, size: 16),

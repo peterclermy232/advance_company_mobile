@@ -1,43 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/constants/api_endpoints.dart';
-import '../../../data/providers/core_providers.dart';
 import '../../../data/providers/beneficiary_provider.dart';
 import '../../../data/models/beneficiary_model.dart';
 import '../../widgets/common/loading_indicator.dart';
 import '../../widgets/common/empty_state.dart';
-
-// Provider for pending beneficiaries — backend status is lowercase 'pending'
-final pendingBeneficiariesProvider =
-FutureProvider.autoDispose((ref) async {
-  final apiClient = await ref.watch(apiClientProvider.future);
-  final response = await apiClient.get(ApiEndpoints.beneficiaries);
-
-  // Unwrap standard envelope: { success, data: [...] }
-  final raw = response.data;
-  final data = (raw is Map && raw['data'] != null) ? raw['data'] : raw;
-
-  List<BeneficiaryModel> beneficiaries = [];
-  if (data is List) {
-    beneficiaries = data.map((e) => BeneficiaryModel.fromJson(e)).toList();
-  } else if (data is Map && data.containsKey('results')) {
-    beneficiaries = (data['results'] as List)
-        .map((e) => BeneficiaryModel.fromJson(e))
-        .toList();
-  }
-
-  // Backend returns lowercase verification_status
-  return beneficiaries
-      .where((b) => b.verificationStatus.toLowerCase() == 'pending')
-      .toList();
-});
 
 class BeneficiaryVerificationScreen extends ConsumerWidget {
   const BeneficiaryVerificationScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final beneficiariesAsync = ref.watch(pendingBeneficiariesProvider);
+    final pendingAsync = ref.watch(pendingBeneficiariesProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -45,16 +18,15 @@ class BeneficiaryVerificationScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => ref.invalidate(pendingBeneficiariesProvider),
+            onPressed: () =>
+                ref.read(beneficiariesProvider.notifier).refresh(),
           ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(pendingBeneficiariesProvider);
-          await ref.read(pendingBeneficiariesProvider.future);
-        },
-        child: beneficiariesAsync.when(
+        onRefresh: () =>
+            ref.read(beneficiariesProvider.notifier).refresh(),
+        child: pendingAsync.when(
           data: (beneficiaries) {
             if (beneficiaries.isEmpty) {
               return const EmptyState(
@@ -63,32 +35,31 @@ class BeneficiaryVerificationScreen extends ConsumerWidget {
                 message: 'All beneficiaries have been verified',
               );
             }
-
             return ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: beneficiaries.length,
               separatorBuilder: (_, __) => const SizedBox(height: 16),
-              itemBuilder: (context, index) {
-                return _BeneficiaryVerificationCard(
-                  beneficiary: beneficiaries[index],
-                  onVerified: () =>
-                      ref.invalidate(pendingBeneficiariesProvider),
-                );
-              },
+              itemBuilder: (context, index) =>
+                  _BeneficiaryVerificationCard(
+                    beneficiary: beneficiaries[index],
+                    onActionComplete: () =>
+                        ref.read(beneficiariesProvider.notifier).refresh(),
+                  ),
             );
           },
           loading: () => const LoadingIndicator(),
-          error: (error, _) => Center(
+          error: (e, _) => Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const Icon(Icons.error_outline,
+                    size: 64, color: Colors.red),
                 const SizedBox(height: 16),
-                Text('Error: $error'),
+                Text('Error: $e'),
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () =>
-                      ref.invalidate(pendingBeneficiariesProvider),
+                      ref.read(beneficiariesProvider.notifier).refresh(),
                   child: const Text('Retry'),
                 ),
               ],
@@ -100,13 +71,15 @@ class BeneficiaryVerificationScreen extends ConsumerWidget {
   }
 }
 
+// ─── Card ─────────────────────────────────────────────────────────────────────
+
 class _BeneficiaryVerificationCard extends ConsumerStatefulWidget {
   final BeneficiaryModel beneficiary;
-  final VoidCallback onVerified;
+  final VoidCallback onActionComplete;
 
   const _BeneficiaryVerificationCard({
     required this.beneficiary,
-    required this.onVerified,
+    required this.onActionComplete,
   });
 
   @override
@@ -119,36 +92,34 @@ class _BeneficiaryVerificationCardState
   bool _isExpanded = false;
   bool _isProcessing = false;
 
-  Future<void> _verifyBeneficiary() async {
+  Future<void> _verify() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Text('Verify Beneficiary'),
         content: Text(
-            'Are you sure you want to verify ${widget.beneficiary.name}?'),
+            'Verify ${widget.beneficiary.name} for member '
+                '${widget.beneficiary.userName ?? "unknown"}?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            onPressed: () => Navigator.pop(ctx, true),
+            style:
+            ElevatedButton.styleFrom(backgroundColor: Colors.green),
             child: const Text('Verify'),
           ),
         ],
       ),
     );
-
     if (confirmed != true) return;
 
     setState(() => _isProcessing = true);
-
     try {
-      final repository =
+      final repo =
       await ref.read(beneficiaryRepositoryProvider.future);
-      await repository.verifyBeneficiary(widget.beneficiary.id);
-
+      await repo.verifyBeneficiary(widget.beneficiary.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -156,7 +127,7 @@ class _BeneficiaryVerificationCardState
             backgroundColor: Colors.green,
           ),
         );
-        widget.onVerified();
+        widget.onActionComplete();
       }
     } catch (e) {
       if (mounted) {
@@ -172,12 +143,11 @@ class _BeneficiaryVerificationCardState
     }
   }
 
-  Future<void> _rejectBeneficiary() async {
+  Future<void> _reject() async {
     final reasonController = TextEditingController();
-
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Text('Reject Beneficiary'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -187,8 +157,7 @@ class _BeneficiaryVerificationCardState
             TextField(
               controller: reasonController,
               decoration: const InputDecoration(
-                labelText: 'Reason',
-                hintText: 'Enter rejection reason',
+                labelText: 'Reason *',
                 border: OutlineInputBorder(),
               ),
               maxLines: 3,
@@ -197,39 +166,37 @@ class _BeneficiaryVerificationCardState
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
               if (reasonController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please enter a reason')),
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  const SnackBar(
+                      content: Text('Reason is required')),
                 );
                 return;
               }
-              Navigator.pop(context, true);
+              Navigator.pop(ctx, true);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style:
+            ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Reject'),
           ),
         ],
       ),
     );
-
     if (confirmed != true) return;
 
     setState(() => _isProcessing = true);
-
     try {
-      // POST to mark_deceased or a custom reject endpoint if available.
-      // For now mirror the API call structure used for verify.
-      final apiClient = await ref.read(apiClientProvider.future);
-      await apiClient.post(
-        ApiEndpoints.beneficiaryDetail(widget.beneficiary.id),
-        data: {'rejection_reason': reasonController.text},
+      final repo =
+      await ref.read(beneficiaryRepositoryProvider.future);
+      // POST /beneficiary/{uuid}/reject/ with { reason: "..." }
+      await repo.rejectBeneficiary(
+        widget.beneficiary.id,
+        reason: reasonController.text,
       );
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -237,7 +204,7 @@ class _BeneficiaryVerificationCardState
             backgroundColor: Colors.orange,
           ),
         );
-        widget.onVerified();
+        widget.onActionComplete();
       }
     } catch (e) {
       if (mounted) {
@@ -255,40 +222,49 @@ class _BeneficiaryVerificationCardState
 
   @override
   Widget build(BuildContext context) {
+    final b = widget.beneficiary;
     return Card(
       child: Column(
         children: [
           ListTile(
             leading: CircleAvatar(
-              radius: 30,
+              radius: 28,
               backgroundColor: Colors.blue.shade100,
               child: Text(
-                widget.beneficiary.name[0].toUpperCase(),
+                b.name[0].toUpperCase(),
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: Colors.blue.shade700,
                 ),
               ),
             ),
-            title: Text(
-              widget.beneficiary.name,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+            title: Text(b.name,
+                style: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.bold)),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 4),
                 Text(
-                  '${widget.beneficiary.relation} • '
-                      '${widget.beneficiary.age} years • '
-                      '${widget.beneficiary.gender}',
+                  '${b.relationDisplay ?? b.relation} • '
+                      '${b.age} yrs • '
+                      '${b.genderDisplay ?? b.gender}',
                 ),
-                if (widget.beneficiary.userName != null) ...[
+                if (b.userName != null) ...[
                   const SizedBox(height: 4),
                   Text(
-                    'Member: ${widget.beneficiary.userName}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    'Member: ${b.userName}',
+                    style: TextStyle(
+                        fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                ],
+                if (b.percentageAllocation > 0) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Allocation: ${b.percentageAllocation.toStringAsFixed(0)}%',
+                    style: TextStyle(
+                        fontSize: 12, color: Colors.blue.shade600),
                   ),
                 ],
               ],
@@ -307,24 +283,20 @@ class _BeneficiaryVerificationCardState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildDetailRow(
-                      'Phone', widget.beneficiary.phoneNumber ?? 'N/A'),
-                  _buildDetailRow(
-                      'Profession', widget.beneficiary.profession ?? 'N/A'),
-                  _buildDetailRow(
-                      'Salary Range', widget.beneficiary.salaryRange ?? 'N/A'),
+                  _detailRow('Phone', b.phoneNumber ?? 'N/A'),
+                  _detailRow('Profession', b.profession ?? 'N/A'),
+                  _detailRow('Salary Range', b.salaryRange ?? 'N/A'),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Documents',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  if (widget.beneficiary.identityDocument != null)
-                    _buildDocumentChip('Identity Document', Icons.badge),
-                  if (widget.beneficiary.birthCertificate != null)
-                    _buildDocumentChip('Birth Certificate', Icons.description),
-                  if (widget.beneficiary.identityDocument == null &&
-                      widget.beneficiary.birthCertificate == null)
+                  const Text('Documents',
+                      style: TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  if (b.identityDocument != null)
+                    _docChip('Identity Document', Icons.badge),
+                  if (b.birthCertificate != null)
+                    _docChip('Birth Certificate', Icons.description),
+                  if (b.identityDocument == null &&
+                      b.birthCertificate == null)
                     const Text('No documents uploaded',
                         style: TextStyle(color: Colors.grey)),
                   const SizedBox(height: 24),
@@ -335,19 +307,20 @@ class _BeneficiaryVerificationCardState
                       children: [
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: _rejectBeneficiary,
+                            onPressed: _reject,
                             icon: const Icon(Icons.close),
                             label: const Text('Reject'),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.red,
-                              side: const BorderSide(color: Colors.red),
+                              side: const BorderSide(
+                                  color: Colors.red),
                             ),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: _verifyBeneficiary,
+                            onPressed: _verify,
                             icon: const Icon(Icons.check),
                             label: const Text('Verify'),
                             style: ElevatedButton.styleFrom(
@@ -367,31 +340,30 @@ class _BeneficiaryVerificationCardState
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _detailRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           SizedBox(
-            width: 120,
-            child: Text('$label:',
-                style: const TextStyle(color: Colors.grey, fontSize: 14)),
-          ),
+              width: 120,
+              child: Text(label,
+                  style: const TextStyle(
+                      color: Colors.grey, fontSize: 13))),
           Expanded(
-            child: Text(value,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w500, fontSize: 14)),
-          ),
+              child: Text(value,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w500, fontSize: 13))),
         ],
       ),
     );
   }
 
-  Widget _buildDocumentChip(String label, IconData icon) {
+  Widget _docChip(String label, IconData icon) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Chip(
-        avatar: Icon(icon, size: 18),
+        avatar: Icon(icon, size: 16),
         label: Text(label),
         backgroundColor: Colors.blue.shade50,
       ),

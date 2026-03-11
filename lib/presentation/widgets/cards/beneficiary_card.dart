@@ -13,33 +13,26 @@ class BeneficiaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Backend may return lowercase or uppercase — normalise to lowercase.
-    final statusLower = beneficiary.verificationStatus.toLowerCase();
+    final Color statusColor;
+    final IconData statusIcon;
+    final String statusLabel;
 
-    Color statusColor;
-    IconData statusIcon;
-    String statusLabel;
-
-    switch (statusLower) {
-      case 'verified':
-        statusColor = Colors.green;
-        statusIcon = Icons.verified;
-        statusLabel = 'Verified';
-        break;
-      case 'pending':
-        statusColor = Colors.orange;
-        statusIcon = Icons.schedule;
-        statusLabel = 'Pending';
-        break;
-      case 'rejected':
-        statusColor = Colors.red;
-        statusIcon = Icons.cancel;
-        statusLabel = 'Rejected';
-        break;
-      default:
-        statusColor = Colors.grey;
-        statusIcon = Icons.help;
-        statusLabel = beneficiary.verificationStatus;
+    if (beneficiary.isVerified) {
+      statusColor = Colors.green;
+      statusIcon = Icons.verified;
+      statusLabel = beneficiary.verificationStatusDisplay ?? 'Verified';
+    } else if (beneficiary.isPending) {
+      statusColor = Colors.orange;
+      statusIcon = Icons.schedule;
+      statusLabel = beneficiary.verificationStatusDisplay ?? 'Pending';
+    } else if (beneficiary.isRejected) {
+      statusColor = Colors.red;
+      statusIcon = Icons.cancel;
+      statusLabel = beneficiary.verificationStatusDisplay ?? 'Rejected';
+    } else {
+      statusColor = Colors.grey;
+      statusIcon = Icons.help;
+      statusLabel = beneficiary.verificationStatus;
     }
 
     return Card(
@@ -51,15 +44,16 @@ class BeneficiaryCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ── Header ──────────────────────────────────────────────────
               Row(
                 children: [
                   CircleAvatar(
-                    radius: 30,
+                    radius: 28,
                     backgroundColor: Colors.blue.shade100,
                     child: Text(
                       beneficiary.name[0].toUpperCase(),
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.blue.shade700,
                       ),
@@ -73,26 +67,47 @@ class BeneficiaryCard extends StatelessWidget {
                         Text(
                           beneficiary.name,
                           style: const TextStyle(
-                            fontSize: 18,
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${beneficiary.relation} • ${beneficiary.age} years',
+                          '${beneficiary.relationDisplay ?? beneficiary.relation} '
+                              '• ${beneficiary.age} yrs'
+                              '${beneficiary.genderDisplay != null ? ' • ${beneficiary.genderDisplay}' : ''}',
                           style: TextStyle(
                             color: Colors.grey.shade600,
-                            fontSize: 14,
+                            fontSize: 13,
                           ),
                         ),
+                        // Allocation badge
+                        if (beneficiary.percentageAllocation > 0) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(Icons.pie_chart_outline,
+                                  size: 13,
+                                  color: Colors.blue.shade600),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${beneficiary.percentageAllocation.toStringAsFixed(0)}% allocation',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.blue.shade600,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
+                  // Verification status chip
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
+                        horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: statusColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
@@ -100,14 +115,14 @@ class BeneficiaryCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(statusIcon, size: 16, color: statusColor),
+                        Icon(statusIcon, size: 14, color: statusColor),
                         const SizedBox(width: 4),
                         Text(
                           statusLabel,
                           style: TextStyle(
                             color: statusColor,
                             fontWeight: FontWeight.w600,
-                            fontSize: 12,
+                            fontSize: 11,
                           ),
                         ),
                       ],
@@ -115,13 +130,15 @@ class BeneficiaryCard extends StatelessWidget {
                   ),
                 ],
               ),
+
+              // ── Details ──────────────────────────────────────────────────
               if (beneficiary.phoneNumber != null ||
                   beneficiary.profession != null) ...[
-                const Divider(height: 24),
+                const Divider(height: 20),
                 if (beneficiary.phoneNumber != null)
                   _buildInfoRow(Icons.phone, beneficiary.phoneNumber!),
                 if (beneficiary.profession != null) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   _buildInfoRow(Icons.work, beneficiary.profession!),
                 ],
               ],
@@ -135,9 +152,9 @@ class BeneficiaryCard extends StatelessWidget {
   Widget _buildInfoRow(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: Colors.grey),
+        Icon(icon, size: 15, color: Colors.grey),
         const SizedBox(width: 8),
-        Text(text, style: const TextStyle(fontSize: 14)),
+        Text(text, style: const TextStyle(fontSize: 13)),
       ],
     );
   }
