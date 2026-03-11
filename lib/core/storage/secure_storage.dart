@@ -1,49 +1,65 @@
 // lib/core/storage/secure_storage.dart
 //
-// Plain class only — NO providers inside here.
-// Providers live in core_providers.dart (see that file).
+// Centralised storage for auth tokens and user preferences.
+// Wraps flutter_secure_storage (encrypted) + shared_preferences (non-sensitive).
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SecureStorage {
-  static const String _accessTokenKey    = 'access_token';
-  static const String _refreshTokenKey   = 'refresh_token';
-  static const String _userDataKey       = 'user_data';
-  static const String _biometricEnabledKey = 'biometric_enabled';
+  final FlutterSecureStorage _secure;
+  final SharedPreferences _prefs;
 
-  final FlutterSecureStorage _secureStorage;
-  final SharedPreferences    _prefs;
+  // Keys
+  static const _kAccessToken  = 'access_token';
+  static const _kRefreshToken = 'refresh_token';
+  static const _kUserId       = 'user_id';
+  static const _kUserRole     = 'user_role';
+  static const _kBiometricEnabled = 'biometric_enabled';
+  static const _kOnboardingDone   = 'onboarding_done';
 
-  SecureStorage(this._secureStorage, this._prefs);
+  const SecureStorage(this._secure, this._prefs);
 
-  // Access Token
-  Future<void>    saveAccessToken(String token) async =>
-      _secureStorage.write(key: _accessTokenKey, value: token);
-  Future<String?> getAccessToken() async =>
-      _secureStorage.read(key: _accessTokenKey);
+  // ── Access token ────────────────────────────────────────────────────────────
 
-  // Refresh Token
-  Future<void>    saveRefreshToken(String token) async =>
-      _secureStorage.write(key: _refreshTokenKey, value: token);
-  Future<String?> getRefreshToken() async =>
-      _secureStorage.read(key: _refreshTokenKey);
+  Future<String?> getAccessToken()   => _secure.read(key: _kAccessToken);
+  Future<void> saveAccessToken(String t) => _secure.write(key: _kAccessToken, value: t);
 
-  // User Data
-  Future<void>    saveUserData(String userData) async =>
-      _secureStorage.write(key: _userDataKey, value: userData);
-  Future<String?> getUserData() async =>
-      _secureStorage.read(key: _userDataKey);
+  // ── Refresh token ───────────────────────────────────────────────────────────
 
-  // Biometric Preference
-  Future<void> setBiometricEnabled(bool enabled) async =>
-      _prefs.setBool(_biometricEnabledKey, enabled);
-  Future<bool> isBiometricEnabled() async =>
-      _prefs.getBool(_biometricEnabledKey) ?? false;
+  Future<String?> getRefreshToken()   => _secure.read(key: _kRefreshToken);
+  Future<void> saveRefreshToken(String t) => _secure.write(key: _kRefreshToken, value: t);
 
-  // Clear all
+  // ── User metadata ───────────────────────────────────────────────────────────
+
+  Future<String?> getUserId()            => _secure.read(key: _kUserId);
+  Future<void>    saveUserId(String id)  => _secure.write(key: _kUserId, value: id);
+
+  String? getUserRole()            => _prefs.getString(_kUserRole);
+  Future<void> saveUserRole(String role) async => _prefs.setString(_kUserRole, role);
+
+  // ── Biometrics ──────────────────────────────────────────────────────────────
+
+  bool isBiometricEnabled() => _prefs.getBool(_kBiometricEnabled) ?? false;
+  Future<void> setBiometricEnabled(bool v) async => _prefs.setBool(_kBiometricEnabled, v);
+
+  // ── Onboarding ──────────────────────────────────────────────────────────────
+
+  bool isOnboardingDone() => _prefs.getBool(_kOnboardingDone) ?? false;
+  Future<void> setOnboardingDone() async => _prefs.setBool(_kOnboardingDone, true);
+
+  // ── Session helpers ─────────────────────────────────────────────────────────
+
+  Future<bool> hasValidSession() async {
+    final token = await getAccessToken();
+    return token != null && token.isNotEmpty;
+  }
+
+  /// Call on logout or token refresh failure.
   Future<void> clearAll() async {
-    await _secureStorage.deleteAll();
-    await _prefs.clear();
+    await _secure.deleteAll();
+    await _prefs.remove(_kUserRole);
+    await _prefs.remove(_kBiometricEnabled);
+    // Keep onboarding flag so user doesn't see it again
   }
 }
