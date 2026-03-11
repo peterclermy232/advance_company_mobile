@@ -9,7 +9,7 @@ import '../../widgets/common/loading_indicator.dart';
 import '../../widgets/common/empty_state.dart';
 
 final documentsProvider = FutureProvider.autoDispose((ref) async {
-  final apiClient = await ref.watch(apiClientProvider.future);
+  final apiClient = await ref.watch(apiClientProvider);
   final response = await apiClient.get(ApiEndpoints.documents);
   final data = response.data['data'];
   
@@ -171,7 +171,7 @@ class DocumentListScreen extends ConsumerWidget {
   PlatformFile file,
 ) async {
   try {
-    final apiClient = await ref.read(apiClientProvider.future);
+    final apiClient = await ref.read(apiClientProvider);
     final formData = FormData.fromMap({
       'title': title,
       'category': category,

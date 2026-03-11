@@ -52,7 +52,7 @@ class DepositHistoryScreen extends ConsumerWidget {
         return RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(depositsProvider);
-            await ref.read(depositsProvider.future);
+            await ref.read(depositsProvider);
           },
           child: Column(
             children: [

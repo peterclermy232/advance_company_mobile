@@ -118,7 +118,7 @@ class _BeneficiaryVerificationCardState
     setState(() => _isProcessing = true);
     try {
       final repo =
-      await ref.read(beneficiaryRepositoryProvider.future);
+      await ref.read(beneficiaryRepositoryProvider);
       await repo.verifyBeneficiary(widget.beneficiary.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -190,8 +190,7 @@ class _BeneficiaryVerificationCardState
 
     setState(() => _isProcessing = true);
     try {
-      final repo =
-      await ref.read(beneficiaryRepositoryProvider.future);
+      final repo = ref.read(beneficiaryRepositoryProvider);
       // POST /beneficiary/{uuid}/reject/ with { reason: "..." }
       await repo.rejectBeneficiary(
         widget.beneficiary.id,

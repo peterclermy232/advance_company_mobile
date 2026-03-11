@@ -1,26 +1,24 @@
-
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core_providers.dart';
 import '../repositories/beneficiary_repository.dart';
 import '../models/beneficiary_model.dart';
 
-// ── Repository ────────────────────────────────────────────────────────────────
+// ── Repository ─────────────────────────────────────────────────────────────
 
-final beneficiaryRepositoryProvider =
-FutureProvider<BeneficiaryRepository>((ref) async {
-  final apiClient = await ref.watch(apiClientProvider.future);
+final beneficiaryRepositoryProvider = Provider<BeneficiaryRepository>((ref) {
+  final apiClient = ref.watch(apiClientProvider); // ← no .future
   return BeneficiaryRepository(apiClient);
 });
 
-// ── Beneficiaries list — AsyncNotifier (refreshable) ─────────────────────────
+// ── Beneficiaries list ─────────────────────────────────────────────────────
 
 class BeneficiariesNotifier extends AsyncNotifier<List<BeneficiaryModel>> {
   @override
   Future<List<BeneficiaryModel>> build() => _fetch();
 
   Future<List<BeneficiaryModel>> _fetch() async {
-    final repo = await ref.read(beneficiaryRepositoryProvider.future);
+    final repo = ref.read(beneficiaryRepositoryProvider); // ← no await/.future
     return repo.getBeneficiaries();
   }
 
@@ -30,19 +28,19 @@ class BeneficiariesNotifier extends AsyncNotifier<List<BeneficiaryModel>> {
   }
 
   Future<void> addBeneficiary(FormData formData) async {
-    final repo = await ref.read(beneficiaryRepositoryProvider.future);
+    final repo = ref.read(beneficiaryRepositoryProvider);
     await repo.createBeneficiary(formData);
     await refresh();
   }
 
   Future<void> updateBeneficiary(String uuid, FormData formData) async {
-    final repo = await ref.read(beneficiaryRepositoryProvider.future);
+    final repo = ref.read(beneficiaryRepositoryProvider);
     await repo.updateBeneficiary(uuid, formData);
     await refresh();
   }
 
   Future<void> deleteBeneficiary(String uuid) async {
-    final repo = await ref.read(beneficiaryRepositoryProvider.future);
+    final repo = ref.read(beneficiaryRepositoryProvider);
     await repo.deleteBeneficiary(uuid);
     await refresh();
   }
@@ -53,8 +51,7 @@ AsyncNotifierProvider<BeneficiariesNotifier, List<BeneficiaryModel>>(
   BeneficiariesNotifier.new,
 );
 
-// ── Pending beneficiaries (admin) ─────────────────────────────────────────────
-// Derived from the full list — no extra API call needed.
+// ── Pending beneficiaries (admin) ──────────────────────────────────────────
 
 final pendingBeneficiariesProvider =
 Provider<AsyncValue<List<BeneficiaryModel>>>((ref) {
@@ -65,10 +62,10 @@ Provider<AsyncValue<List<BeneficiaryModel>>>((ref) {
   );
 });
 
-// ── Single beneficiary detail ─────────────────────────────────────────────────
+// ── Single beneficiary detail ──────────────────────────────────────────────
 
 final beneficiaryDetailProvider =
 FutureProvider.family<BeneficiaryModel, String>((ref, uuid) async {
-  final repo = await ref.read(beneficiaryRepositoryProvider.future);
+  final repo = ref.read(beneficiaryRepositoryProvider);
   return repo.getBeneficiary(uuid);
 });

@@ -1,27 +1,22 @@
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/deposit_model.dart';
 import '../repositories/financial_repository.dart';
 import 'core_providers.dart';
 
-// ---------------------------------------------------------------------------
-// Repository
-// ---------------------------------------------------------------------------
+// ── Repository ─────────────────────────────────────────────────────────────
+
 final financialRepositoryProvider = Provider<FinancialRepository>((ref) {
-  final dio = ref.watch(dioProvider);
-  return FinancialRepository(dio: dio);
+  return FinancialRepository(apiClient: ref.watch(apiClientProvider));
 });
 
-// ---------------------------------------------------------------------------
-// Account
-// ---------------------------------------------------------------------------
-final myAccountProvider = FutureProvider<AccountModel>((ref) async {
+// ── Account ────────────────────────────────────────────────────────────────
+
+final myAccountProvider = FutureProvider<AccountModel>((ref) {
   return ref.watch(financialRepositoryProvider).getMyAccount();
 });
 
-// ---------------------------------------------------------------------------
-// Deposits
-// ---------------------------------------------------------------------------
+// ── Deposits ───────────────────────────────────────────────────────────────
+
 class DepositsState {
   final List<DepositModel> deposits;
   final bool isLoading;
@@ -111,9 +106,7 @@ class DepositsNotifier extends StateNotifier<DepositsState> {
         mpesaTransactionId: mpesaTransactionId,
         notes: notes,
       );
-      state = state.copyWith(
-        deposits: [deposit, ...state.deposits],
-      );
+      state = state.copyWith(deposits: [deposit, ...state.deposits]);
       return true;
     } catch (e) {
       state = state.copyWith(error: e.toString());
@@ -124,13 +117,11 @@ class DepositsNotifier extends StateNotifier<DepositsState> {
 
 final depositsProvider =
 StateNotifierProvider<DepositsNotifier, DepositsState>((ref) {
-  final repo = ref.watch(financialRepositoryProvider);
-  return DepositsNotifier(repo);
+  return DepositsNotifier(ref.watch(financialRepositoryProvider));
 });
 
-// ---------------------------------------------------------------------------
-// Monthly summary
-// ---------------------------------------------------------------------------
-final monthlySummaryProvider = FutureProvider<MonthlySummary>((ref) async {
+// ── Monthly summary ────────────────────────────────────────────────────────
+
+final monthlySummaryProvider = FutureProvider<MonthlySummary>((ref) {
   return ref.watch(financialRepositoryProvider).getMonthlySummary();
 });

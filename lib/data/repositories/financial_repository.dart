@@ -1,6 +1,6 @@
-import 'package:dio/dio.dart';
 import '../models/deposit_model.dart';
 import '../../core/constants/api_endpoints.dart';
+import '../../core/network/api_client.dart';
 
 class AccountModel {
   final int id;
@@ -63,34 +63,27 @@ class MonthlySummary {
 }
 
 class FinancialRepository {
-  final Dio _dio;
+  final ApiClient _apiClient;
 
-  FinancialRepository({required Dio dio}) : _dio = dio;
+  FinancialRepository({required ApiClient apiClient}) : _apiClient = apiClient;
 
-  // -------------------------------------------------------------------------
-  // Account
-  // -------------------------------------------------------------------------
   Future<AccountModel> getMyAccount() async {
-    final response = await _dio.get(ApiEndpoints.myAccount);
+    final response = await _apiClient.get(ApiEndpoints.myAccount);
     return AccountModel.fromJson(response.data as Map<String, dynamic>);
   }
 
-  // -------------------------------------------------------------------------
-  // Deposits list
-  // -------------------------------------------------------------------------
   Future<List<DepositModel>> getDeposits({
     String? status,
     int page = 1,
     int pageSize = 20,
   }) async {
-    final queryParams = <String, dynamic>{
-      'page': page,
-      'page_size': pageSize,
-      if (status != null) 'status': status,
-    };
-    final response = await _dio.get(
+    final response = await _apiClient.get(
       ApiEndpoints.deposits,
-      queryParameters: queryParams,
+      queryParameters: {
+        'page': page,
+        'page_size': pageSize,
+        if (status != null) 'status': status,
+      },
     );
     final data = response.data;
     final List<dynamic> results;
@@ -106,17 +99,11 @@ class FinancialRepository {
         .toList();
   }
 
-  // -------------------------------------------------------------------------
-  // Deposit detail — uses ApiEndpoints.depositDetail base path + id
-  // -------------------------------------------------------------------------
   Future<DepositModel> getDepositDetail(int id) async {
-    final response = await _dio.get('${ApiEndpoints.depositDetail}$id/');
+    final response = await _apiClient.get('${ApiEndpoints.depositDetail}$id/');
     return DepositModel.fromJson(response.data as Map<String, dynamic>);
   }
 
-  // -------------------------------------------------------------------------
-  // Create deposit
-  // -------------------------------------------------------------------------
   Future<DepositModel> createDeposit({
     required double amount,
     required String method,
@@ -124,7 +111,7 @@ class FinancialRepository {
     String? mpesaTransactionId,
     String? notes,
   }) async {
-    final response = await _dio.post(
+    final response = await _apiClient.post(
       ApiEndpoints.createDeposit,
       data: {
         'amount': amount,
@@ -138,39 +125,27 @@ class FinancialRepository {
     return DepositModel.fromJson(response.data as Map<String, dynamic>);
   }
 
-  // -------------------------------------------------------------------------
-  // Monthly summary — uses ApiEndpoints.monthlySummary (correct endpoint)
-  // -------------------------------------------------------------------------
   Future<MonthlySummary> getMonthlySummary() async {
-    final response = await _dio.get(ApiEndpoints.monthlySummary);
+    final response = await _apiClient.get(ApiEndpoints.monthlySummary);
     return MonthlySummary.fromJson(response.data as Map<String, dynamic>);
   }
 
-  // -------------------------------------------------------------------------
-  // Monthly limit — uses ApiEndpoints.monthlyLimit (previously missing)
-  // -------------------------------------------------------------------------
   Future<double> getMonthlyLimit() async {
-    final response = await _dio.get(ApiEndpoints.monthlyLimit);
+    final response = await _apiClient.get(ApiEndpoints.monthlyLimit);
     final data = response.data as Map<String, dynamic>;
     return (data['monthly_limit'] as num?)?.toDouble() ?? 0.0;
   }
 
-  // -------------------------------------------------------------------------
-  // Can deposit check
-  // -------------------------------------------------------------------------
   Future<Map<String, dynamic>> canDeposit(double amount) async {
-    final response = await _dio.get(
+    final response = await _apiClient.get(
       ApiEndpoints.canDeposit,
       queryParameters: {'amount': amount},
     );
     return response.data as Map<String, dynamic>;
   }
 
-  // -------------------------------------------------------------------------
-  // Pending approvals (admin)
-  // -------------------------------------------------------------------------
   Future<List<DepositModel>> getPendingApprovals() async {
-    final response = await _dio.get(ApiEndpoints.pendingApprovals);
+    final response = await _apiClient.get(ApiEndpoints.pendingApprovals);
     final data = response.data;
     final List<dynamic> results = data is List
         ? data
@@ -182,18 +157,15 @@ class FinancialRepository {
         .toList();
   }
 
-  // -------------------------------------------------------------------------
-  // Approve / reject deposit (admin)
-  // -------------------------------------------------------------------------
   Future<DepositModel> approveDeposit(String id) async {
-    final response = await _dio.post(ApiEndpoints.approveDeposit(id));
+    final response = await _apiClient.post(ApiEndpoints.approveDeposit(id));
     return DepositModel.fromJson(response.data as Map<String, dynamic>);
   }
 
   Future<DepositModel> rejectDeposit(String id, {String? reason}) async {
-    final response = await _dio.post(
-        ApiEndpoints.rejectDeposit(id),
-        data: if (reason != null) {'reason': reason} else null,
+    final response = await _apiClient.post(
+      ApiEndpoints.rejectDeposit(id),
+      data: reason != null ? {'reason': reason} : null,
     );
     return DepositModel.fromJson(response.data as Map<String, dynamic>);
   }

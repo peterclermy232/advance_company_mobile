@@ -7,7 +7,7 @@ import 'core_providers.dart';
 final dashboardSummaryProvider =
 FutureProvider<DashboardSummaryModel>((ref) async {
   // Same pattern as financialAccountProvider, depositsProvider, etc.
-  final apiClient = await ref.watch(apiClientProvider.future);
+  final apiClient = ref.watch(apiClientProvider);
 
   final response = await apiClient.get(ApiEndpoints.dashboardSummary);
 

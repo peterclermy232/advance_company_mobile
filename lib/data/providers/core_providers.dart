@@ -1,73 +1,38 @@
-
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/storage/secure_storage.dart';
+import '../../core/network/api_client.dart';
 
 // ---------------------------------------------------------------------------
 // SharedPreferences — overridden at app startup in main.dart
 // ---------------------------------------------------------------------------
 final sharedPreferencesProvider = Provider<SharedPreferences>(
-      (ref) => throw UnimplementedError('Override in ProviderScope'),
+      (ref) => throw UnimplementedError('Override sharedPreferencesProvider in ProviderScope'),
 );
 
 // ---------------------------------------------------------------------------
-// Dio — configured with base URL and interceptors
+// FlutterSecureStorage — low-level encrypted storage
 // ---------------------------------------------------------------------------
-final dioProvider = Provider<Dio>((ref) {
-  const baseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'https://api.advancecompany.co.ke/api/v1',
-  );
+final flutterSecureStorageProvider = Provider<FlutterSecureStorage>(
+      (ref) => const FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  ),
+);
 
-  final options = BaseOptions(
-    baseUrl: baseUrl,
-    connectTimeout: const Duration(seconds: 30),
-    receiveTimeout: const Duration(seconds: 30),
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
-  );
+// ---------------------------------------------------------------------------
+// SecureStorage — unified auth + prefs wrapper
+// ---------------------------------------------------------------------------
+final secureStorageProvider = Provider<SecureStorage>((ref) {
+  final secure = ref.watch(flutterSecureStorageProvider);
+  final prefs  = ref.watch(sharedPreferencesProvider);
+  return SecureStorage(secure, prefs);
+});
 
-  final dio = Dio(options);
-
-  // Attach stored token on each request
-  dio.interceptors.add(
-    InterceptorsWrapper(
-      onRequest: (options, handler) {
-        final prefs = ref.read(sharedPreferencesProvider);
-        final token = prefs.getString('access_token');
-        if (token != null && token.isNotEmpty) {
-          options.headers['Authorization'] = 'Bearer $token';
-        }
-        handler.next(options);
-      },
-      onError: (error, handler) async {
-        // Auto-refresh on 401
-        if (error.response?.statusCode == 401) {
-          try {
-            final prefs = ref.read(sharedPreferencesProvider);
-            final refresh = prefs.getString('refresh_token');
-            if (refresh != null) {
-              final refreshDio = Dio(BaseOptions(baseUrl: baseUrl));
-              final response = await refreshDio.post(
-                '/token/refresh/',
-                data: {'refresh': refresh},
-              );
-              final newAccess = response.data['access'] as String;
-              await prefs.setString('access_token', newAccess);
-              // Retry original request
-              final opts = error.requestOptions;
-              opts.headers['Authorization'] = 'Bearer $newAccess';
-              final retried = await dio.fetch(opts);
-              return handler.resolve(retried);
-            }
-          } catch (_) {}
-        }
-        handler.next(error);
-      },
-    ),
-  );
-
-  return dio;
+// ---------------------------------------------------------------------------
+// ApiClient — single HTTP client used everywhere in the app
+// ---------------------------------------------------------------------------
+final apiClientProvider = Provider<ApiClient>((ref) {
+  final storage = ref.watch(secureStorageProvider);
+  return ApiClient(storage);
 });

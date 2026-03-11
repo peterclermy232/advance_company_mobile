@@ -5,7 +5,7 @@ import '../models/notification_model.dart';
 
 // Repository Provider
 final notificationRepositoryProvider = FutureProvider<NotificationRepository>((ref) async {
-  final apiClient = await ref.watch(apiClientProvider.future);
+  final apiClient = ref.watch(apiClientProvider);
   return NotificationRepository(apiClient);
 });
 

@@ -1,47 +1,35 @@
-
-import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
 import '../../core/constants/api_endpoints.dart';
+import '../../core/network/api_client.dart';
+import '../../core/storage/secure_storage.dart';
 
 class AuthRepository {
-  final Dio _dio;
-  final SharedPreferences _prefs;
+  final ApiClient _apiClient;
+  final SecureStorage _storage;
 
-  static const _tokenKey = 'access_token';
-  static const _refreshTokenKey = 'refresh_token';
+  AuthRepository({
+    required ApiClient apiClient,
+    required SecureStorage storage,
+  })  : _apiClient = apiClient,
+        _storage = storage;
 
-  AuthRepository({required Dio dio, required SharedPreferences prefs})
-      : _dio = dio,
-        _prefs = prefs;
-
-  String? getStoredToken() => _prefs.getString(_tokenKey);
+  Future<String?> getStoredToken() => _storage.getAccessToken();
 
   Future<void> _saveTokens({
     required String access,
     String? refresh,
   }) async {
-    await _prefs.setString(_tokenKey, access);
-    if (refresh != null) {
-      await _prefs.setString(_refreshTokenKey, refresh);
-    }
-    _dio.options.headers['Authorization'] = 'Bearer $access';
+    await _storage.saveAccessToken(access);
+    if (refresh != null) await _storage.saveRefreshToken(refresh);
   }
 
-  Future<void> _clearTokens() async {
-    await _prefs.remove(_tokenKey);
-    await _prefs.remove(_refreshTokenKey);
-    _dio.options.headers.remove('Authorization');
-  }
+  // ── Login ──────────────────────────────────────────────────────────────────
 
-  // -------------------------------------------------------------------------
-  // Login
-  // -------------------------------------------------------------------------
   Future<UserModel> login({
     required String email,
     required String password,
   }) async {
-    final response = await _dio.post(
+    final response = await _apiClient.post(
       ApiEndpoints.login,
       data: {'email': email, 'password': password},
     );
@@ -50,16 +38,14 @@ class AuthRepository {
     final refresh = data['refresh'] as String?;
     await _saveTokens(access: access, refresh: refresh);
 
-    // If the login response already contains user info use it, else fetch
     if (data.containsKey('user')) {
       return UserModel.fromJson(data['user'] as Map<String, dynamic>);
     }
     return getProfile();
   }
 
-  // -------------------------------------------------------------------------
-  // Register
-  // -------------------------------------------------------------------------
+  // ── Register ───────────────────────────────────────────────────────────────
+
   Future<void> register({
     required String email,
     required String password,
@@ -67,7 +53,7 @@ class AuthRepository {
     required String lastName,
     String? phoneNumber,
   }) async {
-    await _dio.post(
+    await _apiClient.post(
       ApiEndpoints.register,
       data: {
         'email': email,
@@ -80,57 +66,44 @@ class AuthRepository {
     );
   }
 
-  // -------------------------------------------------------------------------
-  // Logout
-  // -------------------------------------------------------------------------
+  // ── Logout ─────────────────────────────────────────────────────────────────
+
   Future<void> logout() async {
     try {
-      final refresh = _prefs.getString(_refreshTokenKey);
+      final refresh = await _storage.getRefreshToken();
       if (refresh != null) {
-        await _dio.post(ApiEndpoints.logout, data: {'refresh': refresh});
+        await _apiClient.post(
+          ApiEndpoints.logout,
+          data: {'refresh': refresh},
+        );
       }
     } catch (_) {}
-    await _clearTokens();
+    await _storage.clearAll();
   }
 
-  // -------------------------------------------------------------------------
-  // Get Profile  — uses ApiEndpoints.currentUser (was wrongly referencing
-  //                a non-existent 'userProfile' key in old code)
-  // -------------------------------------------------------------------------
+  // ── Profile ────────────────────────────────────────────────────────────────
+
   Future<UserModel> getProfile() async {
-    final token = getStoredToken();
-    if (token != null) {
-      _dio.options.headers['Authorization'] = 'Bearer $token';
-    }
-    final response = await _dio.get(ApiEndpoints.currentUser);
+    final response = await _apiClient.get(ApiEndpoints.currentUser);
     return UserModel.fromJson(response.data as Map<String, dynamic>);
   }
 
-  // -------------------------------------------------------------------------
-  // Update Profile
-  // -------------------------------------------------------------------------
   Future<UserModel> updateProfile(Map<String, dynamic> data) async {
-    final token = getStoredToken();
-    if (token != null) {
-      _dio.options.headers['Authorization'] = 'Bearer $token';
-    }
-    // Fetch current user id first
     final profile = await getProfile();
-    final response = await _dio.patch(
+    final response = await _apiClient.patch(
       ApiEndpoints.updateProfile(profile.id.toString()),
       data: data,
     );
     return UserModel.fromJson(response.data as Map<String, dynamic>);
   }
 
-  // -------------------------------------------------------------------------
-  // Change Password
-  // -------------------------------------------------------------------------
+  // ── Password ───────────────────────────────────────────────────────────────
+
   Future<void> changePassword({
     required String oldPassword,
     required String newPassword,
   }) async {
-    await _dio.post(
+    await _apiClient.post(
       ApiEndpoints.changePassword,
       data: {
         'current_password': oldPassword,
@@ -140,34 +113,18 @@ class AuthRepository {
     );
   }
 
-  // -------------------------------------------------------------------------
-  // Verify Email — accepts both (email + code) and (token) call patterns
-  //   Old screen passed email + code, repository previously only accepted token.
-  //   Now we support both.
-  // -------------------------------------------------------------------------
-  Future<void> verifyEmail({String? email, String? code, String? token}) async {
-    final Map<String, dynamic> body = {};
-    if (token != null) {
-      body['token'] = token;
-    } else {
-      if (email != null) body['email'] = email;
-      if (code != null) body['code'] = code;
-    }
-    await _dio.post(ApiEndpoints.verifyEmail, data: body);
-  }
-
-  // -------------------------------------------------------------------------
-  // Forgot / Reset Password
-  // -------------------------------------------------------------------------
   Future<void> forgotPassword(String email) async {
-    await _dio.post(ApiEndpoints.forgotPassword, data: {'email': email});
+    await _apiClient.post(
+      ApiEndpoints.forgotPassword,
+      data: {'email': email},
+    );
   }
 
   Future<void> resetPassword({
     required String token,
     required String newPassword,
   }) async {
-    await _dio.post(
+    await _apiClient.post(
       ApiEndpoints.resetPassword,
       data: {
         'token': token,
@@ -177,24 +134,43 @@ class AuthRepository {
     );
   }
 
-  // -------------------------------------------------------------------------
-  // 2FA
-  // -------------------------------------------------------------------------
+  // ── Email verification ─────────────────────────────────────────────────────
+
+  Future<void> verifyEmail({
+    String? email,
+    String? code,
+    String? token,
+  }) async {
+    final Map<String, dynamic> body = {};
+    if (token != null) {
+      body['token'] = token;
+    } else {
+      if (email != null) body['email'] = email;
+      if (code != null) body['code'] = code;
+    }
+    await _apiClient.post(ApiEndpoints.verifyEmail, data: body);
+  }
+
+  // ── 2FA ────────────────────────────────────────────────────────────────────
+
   Future<Map<String, dynamic>> enable2FA() async {
-    final response = await _dio.post(ApiEndpoints.enable2FA);
+    final response = await _apiClient.post(ApiEndpoints.enable2FA);
     return response.data as Map<String, dynamic>;
   }
 
   Future<void> confirm2FA(String code) async {
-    await _dio.post(ApiEndpoints.confirm2FA, data: {'code': code});
+    await _apiClient.post(ApiEndpoints.confirm2FA, data: {'code': code});
   }
 
   Future<void> disable2FA(String password) async {
-    await _dio.post(ApiEndpoints.disable2FA, data: {'password': password});
+    await _apiClient.post(ApiEndpoints.disable2FA, data: {'password': password});
   }
 
   Future<UserModel> verify2FA(String code) async {
-    final response = await _dio.post(ApiEndpoints.verify2FA, data: {'code': code});
+    final response = await _apiClient.post(
+      ApiEndpoints.verify2FA,
+      data: {'code': code},
+    );
     final data = response.data as Map<String, dynamic>;
     final access = data['access'] as String? ?? '';
     final refresh = data['refresh'] as String?;
@@ -202,19 +178,18 @@ class AuthRepository {
     return getProfile();
   }
 
-  // -------------------------------------------------------------------------
-  // Refresh token
-  // -------------------------------------------------------------------------
+  // ── Token refresh ──────────────────────────────────────────────────────────
+
   Future<bool> refreshToken() async {
     try {
-      final refresh = _prefs.getString(_refreshTokenKey);
+      final refresh = await _storage.getRefreshToken();
       if (refresh == null) return false;
-      final response = await _dio.post(
+      final response = await _apiClient.post(
         ApiEndpoints.refreshToken,
         data: {'refresh': refresh},
       );
       final access = response.data['access'] as String;
-      await _saveTokens(access: access);
+      await _storage.saveAccessToken(access);
       return true;
     } catch (_) {
       return false;

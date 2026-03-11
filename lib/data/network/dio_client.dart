@@ -18,7 +18,7 @@ final dioClientProvider = Provider<Dio>((ref) {
     InterceptorsWrapper(
         onRequest: (options, handler) async {
           try {
-            final storage = await ref.read(secureStorageProvider.future);
+            final storage = ref.read(secureStorageProvider);
             final token = await storage.getAccessToken();
 
             if (token != null && token.isNotEmpty) {

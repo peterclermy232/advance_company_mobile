@@ -1,21 +1,19 @@
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user_model.dart';
 import '../repositories/auth_repository.dart';
 import 'core_providers.dart';
 
-// ---------------------------------------------------------------------------
-// Auth Repository
-// ---------------------------------------------------------------------------
+// ── Repository ─────────────────────────────────────────────────────────────
+
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  final dio = ref.watch(dioProvider);
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return AuthRepository(dio: dio, prefs: prefs);
+  return AuthRepository(
+    apiClient: ref.watch(apiClientProvider),
+    storage: ref.watch(secureStorageProvider),
+  );
 });
 
-// ---------------------------------------------------------------------------
-// Auth State Notifier
-// ---------------------------------------------------------------------------
+// ── State ──────────────────────────────────────────────────────────────────
+
 class AuthState {
   final UserModel? user;
   final bool isLoading;
@@ -44,6 +42,8 @@ class AuthState {
   }
 }
 
+// ── Notifier ───────────────────────────────────────────────────────────────
+
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _repository;
 
@@ -52,7 +52,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> _checkAuth() async {
-    final token = _repository.getStoredToken();
+    final token = await _repository.getStoredToken();
     if (token != null) {
       try {
         state = state.copyWith(isLoading: true);
@@ -144,26 +144,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  void clearError() {
-    state = state.copyWith(error: null);
-  }
+  void clearError() => state = state.copyWith(error: null);
 }
 
+// ── Providers ──────────────────────────────────────────────────────────────
+
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  final repo = ref.watch(authRepositoryProvider);
-  return AuthNotifier(repo);
+  return AuthNotifier(ref.watch(authRepositoryProvider));
 });
 
-// ---------------------------------------------------------------------------
-// currentUserProvider — convenience provider used across app screens
-// ---------------------------------------------------------------------------
 final currentUserProvider = Provider<UserModel?>((ref) {
   return ref.watch(authProvider).user;
 });
 
-// ---------------------------------------------------------------------------
-// isAuthenticatedProvider
-// ---------------------------------------------------------------------------
 final isAuthenticatedProvider = Provider<bool>((ref) {
   return ref.watch(authProvider).isAuthenticated;
 });

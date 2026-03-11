@@ -48,7 +48,7 @@ class _DepositFormScreenState extends ConsumerState<DepositFormScreen> {
     });
 
     try {
-      final repo = await ref.read(financialRepositoryProvider.future);
+      final repo = await ref.read(financialRepositoryProvider);
       await repo.createDeposit(
         amount:      double.parse(_amountCtl.text.replaceAll(',', '')),
         phoneNumber: _phoneCtl.text.trim(),

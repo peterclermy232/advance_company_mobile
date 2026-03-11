@@ -31,7 +31,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final authRepository = await ref.read(authRepositoryProvider.future);
+      final authRepository = await ref.read(authRepositoryProvider);
       await authRepository.forgotPassword(_emailController.text.trim());
 
       setState(() => _emailSent = true);

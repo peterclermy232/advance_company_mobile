@@ -5,7 +5,7 @@ import '../models/application_model.dart';
 import '../models/application_type_model.dart';
 import 'core_providers.dart';
 
-// ─── Choices ──────────────────────────────────────────────────────────────────
+// ─── Choices ───────────────────────────────────────────────────────────────
 
 class ApplicationChoicesNotifier
     extends AsyncNotifier<ApplicationChoicesModel> {
@@ -13,10 +13,11 @@ class ApplicationChoicesNotifier
   Future<ApplicationChoicesModel> build() => _fetch();
 
   Future<ApplicationChoicesModel> _fetch() async {
-    final apiClient = await ref.read(apiClientProvider.future);
+    final apiClient = ref.read(apiClientProvider);
     final response = await apiClient.get(ApiEndpoints.applicationChoices);
     return ApplicationChoicesModel.fromJson(
-        response.data as Map<String, dynamic>);
+      response.data as Map<String, dynamic>,
+    );
   }
 
   Future<void> refresh() async {
@@ -44,14 +45,14 @@ Provider<AsyncValue<List<StatusChoiceModel>>>((ref) {
       .whenData((c) => c.statusChoices);
 });
 
-// ─── Applications list ────────────────────────────────────────────────────────
+// ─── Applications list ─────────────────────────────────────────────────────
 
 class ApplicationsNotifier extends AsyncNotifier<List<ApplicationModel>> {
   @override
   Future<List<ApplicationModel>> build() => _fetch();
 
   Future<List<ApplicationModel>> _fetch() async {
-    final apiClient = await ref.read(apiClientProvider.future);
+    final apiClient = ref.read(apiClientProvider);
     final response = await apiClient.get(ApiEndpoints.applications);
     return _asList(response.data)
         .map((e) => ApplicationModel.fromJson(e as Map<String, dynamic>))
@@ -69,7 +70,7 @@ class ApplicationsNotifier extends AsyncNotifier<List<ApplicationModel>> {
     String? documentPath,
     String? documentName,
   }) async {
-    final apiClient = await ref.read(apiClientProvider.future);
+    final apiClient = ref.read(apiClientProvider);
 
     if (documentPath != null && documentName != null) {
       final formData = FormData.fromMap({
@@ -90,12 +91,10 @@ class ApplicationsNotifier extends AsyncNotifier<List<ApplicationModel>> {
     await refresh();
   }
 
-  // ── Admin actions ─────────────────────────────────────────────────────────
+  // ── Admin actions ──────────────────────────────────────────────────────────
 
-  /// [id] is the UUID string from ApplicationModel.id
   Future<void> approveApplication(String id, {String comments = ''}) async {
-    final apiClient = await ref.read(apiClientProvider.future);
-    // The endpoint helper uses int; we POST to the raw path instead
+    final apiClient = ref.read(apiClientProvider);
     await apiClient.post(
       '/applications/$id/approve/',
       data: {'comments': comments},
@@ -104,7 +103,7 @@ class ApplicationsNotifier extends AsyncNotifier<List<ApplicationModel>> {
   }
 
   Future<void> rejectApplication(String id, {String comments = ''}) async {
-    final apiClient = await ref.read(apiClientProvider.future);
+    final apiClient = ref.read(apiClientProvider);
     await apiClient.post(
       '/applications/$id/reject/',
       data: {'comments': comments},
@@ -113,7 +112,7 @@ class ApplicationsNotifier extends AsyncNotifier<List<ApplicationModel>> {
   }
 
   Future<void> markUnderReview(String id) async {
-    final apiClient = await ref.read(apiClientProvider.future);
+    final apiClient = ref.read(apiClientProvider);
     await apiClient.post('/applications/$id/review/');
     await refresh();
   }
@@ -124,16 +123,16 @@ AsyncNotifierProvider<ApplicationsNotifier, List<ApplicationModel>>(
   ApplicationsNotifier.new,
 );
 
-// ─── Single application detail (UUID string key) ──────────────────────────────
+// ─── Single application detail ─────────────────────────────────────────────
 
 final applicationDetailProvider =
 FutureProvider.family<ApplicationModel, String>((ref, id) async {
-  final apiClient = await ref.read(apiClientProvider.future);
+  final apiClient = ref.read(apiClientProvider);
   final response = await apiClient.get('/applications/$id/');
   return ApplicationModel.fromJson(response.data as Map<String, dynamic>);
 });
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Helpers ───────────────────────────────────────────────────────────────
 
 List<dynamic> _asList(dynamic data) {
   if (data is List) return data;

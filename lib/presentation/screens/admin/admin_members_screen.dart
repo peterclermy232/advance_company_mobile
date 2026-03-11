@@ -6,7 +6,7 @@ import '../../widgets/common/loading_indicator.dart';
 import '../../widgets/common/empty_state.dart';
 
 final allMembersProvider = FutureProvider.autoDispose((ref) async {
-  final apiClient = await ref.watch(apiClientProvider.future);
+  final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get(ApiEndpoints.adminAnalytics);
 
   // The full response shape is:
