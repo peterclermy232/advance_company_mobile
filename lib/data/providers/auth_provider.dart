@@ -1,98 +1,169 @@
-// lib/data/providers/auth_provider.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user_model.dart';
 import '../repositories/auth_repository.dart';
 import 'core_providers.dart';
 
-// ── Repository ───────────────────────────────────────────────────────────────
-
-final authRepositoryProvider = FutureProvider<AuthRepository>((ref) async {
-  final apiClient = await ref.watch(apiClientProvider.future);
-  final storage   = await ref.watch(secureStorageProvider.future);
-  return AuthRepository(apiClient, storage);
+// ---------------------------------------------------------------------------
+// Auth Repository
+// ---------------------------------------------------------------------------
+final authRepositoryProvider = Provider<AuthRepository>((ref) {
+  final dio = ref.watch(dioProvider);
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return AuthRepository(dio: dio, prefs: prefs);
 });
 
-// ── Auth state ───────────────────────────────────────────────────────────────
-
-enum AuthStatus { loading, authenticated, unauthenticated }
-
+// ---------------------------------------------------------------------------
+// Auth State Notifier
+// ---------------------------------------------------------------------------
 class AuthState {
-  final AuthStatus status;
   final UserModel? user;
+  final bool isLoading;
   final String? error;
+  final bool isAuthenticated;
 
   const AuthState({
-    this.status = AuthStatus.loading,
     this.user,
+    this.isLoading = false,
     this.error,
+    this.isAuthenticated = false,
   });
 
-  bool get isAuthenticated => status == AuthStatus.authenticated;
-  bool get isLoading        => status == AuthStatus.loading;
-  bool get hasError         => error != null;
-
-  AuthState copyWith({AuthStatus? status, UserModel? user, String? error}) {
+  AuthState copyWith({
+    UserModel? user,
+    bool? isLoading,
+    String? error,
+    bool? isAuthenticated,
+  }) {
     return AuthState(
-      status: status ?? this.status,
-      user:   user   ?? this.user,
-      error:  error,
+      user: user ?? this.user,
+      isLoading: isLoading ?? this.isLoading,
+      error: error,
+      isAuthenticated: isAuthenticated ?? this.isAuthenticated,
     );
   }
 }
 
-class AuthNotifier extends AsyncNotifier<AuthState> {
-  @override
-  Future<AuthState> build() async {
-    final storage = await ref.watch(secureStorageProvider.future);
-    final hasSession = await storage.hasValidSession();
+class AuthNotifier extends StateNotifier<AuthState> {
+  final AuthRepository _repository;
 
-    if (!hasSession) {
-      return const AuthState(status: AuthStatus.unauthenticated);
-    }
+  AuthNotifier(this._repository) : super(const AuthState()) {
+    _checkAuth();
+  }
 
-    try {
-      final repo = await ref.read(authRepositoryProvider.future);
-      final user = await repo.getProfile();
-      return AuthState(status: AuthStatus.authenticated, user: user);
-    } catch (_) {
-      await storage.clearAll();
-      return const AuthState(status: AuthStatus.unauthenticated);
+  Future<void> _checkAuth() async {
+    final token = _repository.getStoredToken();
+    if (token != null) {
+      try {
+        state = state.copyWith(isLoading: true);
+        final user = await _repository.getProfile();
+        state = AuthState(user: user, isAuthenticated: true);
+      } catch (_) {
+        state = const AuthState(isAuthenticated: false);
+      }
     }
   }
 
-  Future<void> login({
+  Future<bool> login(String email, String password) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final user = await _repository.login(email: email, password: password);
+      state = AuthState(user: user, isAuthenticated: true);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> register({
     required String email,
     required String password,
-    String? otpCode,
+    required String firstName,
+    required String lastName,
+    String? phoneNumber,
   }) async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      final repo = await ref.read(authRepositoryProvider.future);
-      final user = await repo.login(
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _repository.register(
         email: email,
         password: password,
-        otpCode: otpCode,
+        firstName: firstName,
+        lastName: lastName,
+        phoneNumber: phoneNumber,
       );
-      return AuthState(status: AuthStatus.authenticated, user: user);
-    });
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
   }
 
   Future<void> logout() async {
     try {
-      final repo = await ref.read(authRepositoryProvider.future);
-      await repo.logout();
+      await _repository.logout();
     } catch (_) {}
-    state = const AsyncData(AuthState(status: AuthStatus.unauthenticated));
+    state = const AuthState(isAuthenticated: false);
   }
 
   Future<void> refreshProfile() async {
     try {
-      final repo = await ref.read(authRepositoryProvider.future);
-      final user = await repo.getProfile();
-      state = AsyncData(AuthState(status: AuthStatus.authenticated, user: user));
+      final user = await _repository.getProfile();
+      state = state.copyWith(user: user);
     } catch (_) {}
+  }
+
+  Future<bool> updateProfile(Map<String, dynamic> data) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final user = await _repository.updateProfile(data);
+      state = AuthState(user: user, isAuthenticated: true);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _repository.changePassword(
+        oldPassword: oldPassword,
+        newPassword: newPassword,
+      );
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
+  }
+
+  void clearError() {
+    state = state.copyWith(error: null);
   }
 }
 
-final authProvider = AsyncNotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
+final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+  final repo = ref.watch(authRepositoryProvider);
+  return AuthNotifier(repo);
+});
+
+// ---------------------------------------------------------------------------
+// currentUserProvider — convenience provider used across app screens
+// ---------------------------------------------------------------------------
+final currentUserProvider = Provider<UserModel?>((ref) {
+  return ref.watch(authProvider).user;
+});
+
+// ---------------------------------------------------------------------------
+// isAuthenticatedProvider
+// ---------------------------------------------------------------------------
+final isAuthenticatedProvider = Provider<bool>((ref) {
+  return ref.watch(authProvider).isAuthenticated;
+});

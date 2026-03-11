@@ -1,3 +1,5 @@
+// lib/core/constants/api_endpoints.dart
+
 class ApiEndpoints {
   // Auth Endpoints
   static const String login = '/auth/login/';
@@ -9,7 +11,10 @@ class ApiEndpoints {
   static const String resetPassword = '/auth/reset-password-confirm/';
   static const String changePassword = '/auth/users/change_password/';
   static const String currentUser = '/auth/users/me/';
-  static const String updateProfile = '/auth/users/{id}/';
+  // Alias for compatibility
+  static const String userProfile = '/auth/users/me/';
+  static String updateProfile(String id) => '/auth/users/$id/';
+  static const String uploadProfilePhoto = '/auth/users/upload_photo/';
 
   // 2FA Endpoints
   static const String enable2FA = '/auth/users/enable_2fa/';
@@ -17,30 +22,33 @@ class ApiEndpoints {
   static const String disable2FA = '/auth/users/disable_2fa/';
   static const String verify2FA = '/auth/verify-2fa/';
 
-  // Financial Endpoints  (deposit IDs are integers)
+  // Financial Endpoints
   static const String myAccount = '/financial/accounts/my_account/';
   static const String deposits = '/financial/deposits/';
   static const String createDeposit = '/financial/deposits/';
   static const String canDeposit = '/financial/deposits/can_deposit/';
   static const String monthlySummary = '/financial/deposits/monthly_summary/';
   static const String pendingApprovals = '/financial/deposits/pending_approvals/';
+  static const String depositDetail = '/financial/deposits/';
+  static const String monthlyLimit = '/financial/deposits/monthly_limit/';
   static String approveDeposit(String id) => '/financial/deposits/$id/approve_deposit/';
   static String rejectDeposit(String id) => '/financial/deposits/$id/reject_deposit/';
 
-  // Beneficiary Endpoints  (beneficiary IDs are integers)
+  // Beneficiary Endpoints
   static const String beneficiaries = '/beneficiary/';
   static String beneficiaryDetail(String id) => '/beneficiary/$id/';
   static String verifyBeneficiary(String id) => '/beneficiary/$id/verify/';
+  static String rejectBeneficiary(String id) => '/beneficiary/$id/reject/';
   static String markDeceased(String id) => '/beneficiary/$id/mark_deceased/';
   static const String beneficiaryStatistics = '/beneficiary/statistics/';
 
-  // Document Endpoints  (document IDs are integers)
+  // Document Endpoints
   static const String documents = '/documents/';
   static String documentDetail(String id) => '/documents/$id/';
   static String verifyDocument(String id) => '/documents/$id/verify/';
   static String rejectDocument(String id) => '/documents/$id/reject/';
 
-  // Application Endpoints  (application IDs are UUID *strings*)
+  // Application Endpoints
   static const String applications = '/applications/';
   static const String applicationChoices = '/applications/choices/';
   static String applicationDetail(String id) => '/applications/$id/';
@@ -48,7 +56,7 @@ class ApiEndpoints {
   static String rejectApplication(String id) => '/applications/$id/reject/';
   static String reviewApplication(String id) => '/applications/$id/review/';
 
-  // Notification Endpoints  (notification IDs are integers)
+  // Notification Endpoints
   static const String notifications = '/notifications/';
   static const String unreadCount = '/notifications/unread_count/';
   static const String recentNotifications = '/notifications/recent/';

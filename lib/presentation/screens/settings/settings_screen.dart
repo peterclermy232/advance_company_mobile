@@ -1,464 +1,405 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../data/providers/auth_provider.dart';
-import '../../widgets/common/custom_button.dart';
-import '../../widgets/common/loading_indicator.dart';
+import '../../../core/constants/app_colors.dart';
 
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final userAsync = ref.watch(currentUserProvider);
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  bool _notificationsEnabled = true;
+  bool _emailNotifications = true;
+  bool _pushNotifications = true;
+
+  Future<void> _toggleBiometric(bool value) async {
+    final success = await ref.read(authProvider.notifier).updateProfile({
+      'is_biometric_enabled': value,
+    });
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(ref.read(authProvider).error ?? 'Update failed'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _toggle2FA(bool value) async {
+    if (value) {
+      // Navigate to 2FA setup screen
+      context.push('/settings/two-factor');
+    } else {
+      // Show confirmation + disable
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Disable 2FA'),
+          content: const Text(
+            'Are you sure you want to disable two-factor authentication? '
+                'This will make your account less secure.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: TextButton.styleFrom(foregroundColor: AppColors.error),
+              child: const Text('Disable'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed == true && mounted) {
+        context.push('/settings/two-factor-disable');
+      }
+    }
+  }
+
+  Future<void> _logout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sign Out'),
+        content: const Text('Are you sure you want to sign out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Sign Out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await ref.read(authProvider.notifier).logout();
+      context.go('/login');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Uses currentUserProvider defined in auth_provider.dart
+    final user = ref.watch(currentUserProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: userAsync.when(
-        data: (user) {
-          if (user == null) return const SizedBox.shrink();
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.primary,
+        elevation: 0,
+        title: const Text(
+          'Settings',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          onPressed: () => context.pop(),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // Profile header
+          if (user != null) ...[
+            _buildProfileCard(user),
+            const SizedBox(height: 20),
+          ],
 
-          return ListView(
-            children: [
-              // ── Profile Header ──────────────────────────────────────────
-              GestureDetector(
-                onTap: () => context.push('/profile/edit'),
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF2563EB), Color(0xFF4F46E5)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 36,
-                        backgroundColor: Colors.white30,
-                        backgroundImage: user.profilePhotoUrl != null
-                            ? NetworkImage(user.profilePhotoUrl!)
-                            : null,
-                        child: user.profilePhotoUrl == null
-                            ? Text(
-                          user.fullName.isNotEmpty
-                              ? user.fullName[0].toUpperCase()
-                              : 'U',
-                          style: const TextStyle(
-                            fontSize: 28,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        )
-                            : null,
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              user.fullName,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              user.email,
-                              style: const TextStyle(
-                                  color: Colors.white70, fontSize: 13),
-                            ),
-                            const SizedBox(height: 4),
-                            if (user.isAdmin)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.white24,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Text(
-                                  'ADMIN',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      const Icon(Icons.edit, color: Colors.white70),
-                    ],
-                  ),
-                ),
+          // Account Section
+          _sectionLabel('Account'),
+          _buildCard([
+            _tile(
+              icon: Icons.person_outline,
+              title: 'Edit Profile',
+              onTap: () => context.push('/profile/edit'),
+            ),
+            _divider(),
+            _tile(
+              icon: Icons.lock_outline,
+              title: 'Change Password',
+              onTap: () => context.push('/settings/change-password'),
+            ),
+            _divider(),
+            _tile(
+              icon: Icons.email_outlined,
+              title: 'Email Address',
+              subtitle: user?.email,
+            ),
+          ]),
+
+          const SizedBox(height: 16),
+
+          // Security Section
+          _sectionLabel('Security'),
+          _buildCard([
+            _switchTile(
+              icon: Icons.fingerprint,
+              title: 'Biometric Login',
+              subtitle: 'Use fingerprint or Face ID to sign in',
+              value: user?.biometricEnabled ?? false,
+              onChanged: _toggleBiometric,
+            ),
+            _divider(),
+            _switchTile(
+              icon: Icons.security_outlined,
+              title: 'Two-Factor Authentication',
+              subtitle: user?.twoFactorEnabled == true
+                  ? 'Enabled — your account is extra secure'
+                  : 'Add an extra layer of security',
+              value: user?.twoFactorEnabled ?? false,
+              onChanged: _toggle2FA,
+            ),
+          ]),
+
+          const SizedBox(height: 16),
+
+          // Notifications Section
+          _sectionLabel('Notifications'),
+          _buildCard([
+            _switchTile(
+              icon: Icons.notifications_outlined,
+              title: 'All Notifications',
+              value: _notificationsEnabled,
+              onChanged: (v) => setState(() => _notificationsEnabled = v),
+            ),
+            if (_notificationsEnabled) ...[
+              _divider(),
+              _switchTile(
+                icon: Icons.email_outlined,
+                title: 'Email Notifications',
+                value: _emailNotifications,
+                onChanged: (v) => setState(() => _emailNotifications = v),
               ),
-
-              const SizedBox(height: 16),
-
-              // ── Account Section ─────────────────────────────────────────
-              _buildSection(context, 'Account', [
-                _SettingsTile(
-                  icon: Icons.person,
-                  title: 'Edit Profile',
-                  subtitle: 'Update your personal information',
-                  onTap: () => context.push('/profile/edit'),
-                ),
-                _SettingsTile(
-                  icon: Icons.lock_outline,
-                  title: 'Change Password',
-                  subtitle: 'Update your login credentials',
-                  onTap: () => _showChangePasswordDialog(context, ref),
-                ),
-                _SettingsTile(
-                  icon: Icons.security,
-                  title: 'Two-Factor Authentication',
-                  subtitle: user.twoFactorEnabled ? 'Enabled' : 'Disabled',
-                  trailing: Switch(
-                    value: user.twoFactorEnabled,
-                    onChanged: (value) {
-                      // TODO: hook up 2FA toggle
-                    },
-                  ),
-                ),
-                _SettingsTile(
-                  icon: Icons.fingerprint,
-                  title: 'Biometric Login',
-                  subtitle: user.biometricEnabled ? 'Enabled' : 'Disabled',
-                  trailing: Switch(
-                    value: user.biometricEnabled,
-                    onChanged: (value) {
-                      // TODO: hook up biometric toggle
-                    },
-                  ),
-                ),
-              ]),
-
-              // ── Admin Section ─────────────────────────────────────────
-              if (user.isAdmin)
-                _buildSection(context, 'Admin', [
-                  _SettingsTile(
-                    icon: Icons.pending_actions,
-                    title: 'Deposit Approvals',
-                    onTap: () => context.push('/admin/deposit-approvals'),
-                  ),
-                  _SettingsTile(
-                    icon: Icons.assignment_outlined,
-                    title: 'Application Reviews',
-                    onTap: () => context.push('/admin/applications'),
-                  ),
-                  _SettingsTile(
-                    icon: Icons.verified_user_outlined,
-                    title: 'Beneficiary Verification',
-                    onTap: () =>
-                        context.push('/admin/beneficiary-verification'),
-                  ),
-                  _SettingsTile(
-                    icon: Icons.people_outline,
-                    title: 'Member Management',
-                    onTap: () => context.push('/admin/members'),
-                  ),
-                  _SettingsTile(
-                    icon: Icons.bar_chart,
-                    title: 'Analytics',
-                    onTap: () => context.push('/admin/analytics'),
-                  ),
-                ]),
-
-              // ── Preferences ───────────────────────────────────────────
-              _buildSection(context, 'Preferences', [
-                _SettingsTile(
-                  icon: Icons.notifications_outlined,
-                  title: 'Notifications',
-                  onTap: () => context.push('/notifications'),
-                ),
-                _SettingsTile(
-                  icon: Icons.language,
-                  title: 'Language',
-                  subtitle: 'English',
-                  onTap: () {},
-                ),
-              ]),
-
-              // ── About ─────────────────────────────────────────────────
-              _buildSection(context, 'About', [
-                _SettingsTile(
-                  icon: Icons.info_outline,
-                  title: 'App Version',
-                  subtitle: '1.0.0',
-                  onTap: () {},
-                ),
-                _SettingsTile(
-                  icon: Icons.privacy_tip_outlined,
-                  title: 'Privacy Policy',
-                  onTap: () {},
-                ),
-                _SettingsTile(
-                  icon: Icons.description_outlined,
-                  title: 'Terms of Service',
-                  onTap: () {},
-                ),
-                _SettingsTile(
-                  icon: Icons.support_agent,
-                  title: 'Contact Support',
-                  subtitle: 'support@advancecompany.com',
-                  onTap: () {},
-                ),
-              ]),
-
-              const SizedBox(height: 8),
-
-              // ── Logout ────────────────────────────────────────────────
-              Padding(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: CustomButton(
-                  onPressed: () async {
-                    final confirmed = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Logout'),
-                        content:
-                        const Text('Are you sure you want to logout?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, false),
-                            child: const Text('Cancel'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () => Navigator.pop(context, true),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                            ),
-                            child: const Text('Logout'),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (confirmed == true && context.mounted) {
-                      await ref
-                          .read(currentUserProvider.notifier)
-                          .logout();
-                      context.go('/login');
-                    }
-                  },
-                  backgroundColor: Colors.red,
-                  child: const Text('Logout'),
-                ),
+              _divider(),
+              _switchTile(
+                icon: Icons.phone_android,
+                title: 'Push Notifications',
+                value: _pushNotifications,
+                onChanged: (v) => setState(() => _pushNotifications = v),
               ),
-              const SizedBox(height: 32),
             ],
-          );
-        },
-        loading: () => const LoadingIndicator(),
-        error: (e, _) => Center(child: Text('Error: $e')),
+          ]),
+
+          const SizedBox(height: 16),
+
+          // App Section
+          _sectionLabel('App'),
+          _buildCard([
+            _tile(
+              icon: Icons.help_outline,
+              title: 'Help & Support',
+              onTap: () => context.push('/support'),
+            ),
+            _divider(),
+            _tile(
+              icon: Icons.privacy_tip_outlined,
+              title: 'Privacy Policy',
+              onTap: () => context.push('/privacy'),
+            ),
+            _divider(),
+            _tile(
+              icon: Icons.description_outlined,
+              title: 'Terms of Service',
+              onTap: () => context.push('/terms'),
+            ),
+            _divider(),
+            _tile(
+              icon: Icons.info_outline,
+              title: 'App Version',
+              subtitle: '1.0.0',
+            ),
+          ]),
+
+          const SizedBox(height: 16),
+
+          // Danger zone
+          _buildCard([
+            _tile(
+              icon: Icons.logout,
+              title: 'Sign Out',
+              iconColor: AppColors.error,
+              titleColor: AppColors.error,
+              onTap: _logout,
+            ),
+          ]),
+
+          const SizedBox(height: 40),
+        ],
       ),
     );
   }
 
-  Widget _buildSection(
-      BuildContext context,
-      String title,
-      List<_SettingsTile> tiles,
-      ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text(
-            title.toUpperCase(),
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Colors.grey,
-              letterSpacing: 1.2,
-              fontWeight: FontWeight.bold,
-            ),
+  Widget _buildProfileCard(user) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: AppColors.cardShadow,
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 30,
+            backgroundColor: AppColors.primary,
+            backgroundImage: user.profilePhotoUrl != null
+                ? NetworkImage(user.profilePhotoUrl!)
+                : null,
+            child: user.profilePhotoUrl == null
+                ? Text(
+              user.firstName.isNotEmpty
+                  ? user.firstName[0].toUpperCase()
+                  : '?',
+              style: const TextStyle(
+                  fontSize: 24,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold),
+            )
+                : null,
           ),
-        ),
-        Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            children: tiles.asMap().entries.map((entry) {
-              final idx = entry.key;
-              final tile = entry.value;
-              return Column(
-                children: [
-                  if (idx != 0) const Divider(height: 1, indent: 56),
-                  ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(tile.icon,
-                          color: Colors.blue.shade700, size: 20),
-                    ),
-                    title: Text(tile.title,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w500)),
-                    subtitle: tile.subtitle != null
-                        ? Text(tile.subtitle!,
-                        style: const TextStyle(fontSize: 12))
-                        : null,
-                    trailing: tile.trailing ??
-                        (tile.onTap != null
-                            ? const Icon(Icons.chevron_right,
-                            color: Colors.grey)
-                            : null),
-                    onTap: tile.onTap,
-                  ),
-                ],
-              );
-            }).toList(),
-          ),
-        ),
-        const SizedBox(height: 16),
-      ],
-    );
-  }
-
-  Future<void> _showChangePasswordDialog(
-      BuildContext context,
-      WidgetRef ref,
-      ) async {
-    final oldPasswordCtrl = TextEditingController();
-    final newPasswordCtrl = TextEditingController();
-    final confirmPasswordCtrl = TextEditingController();
-    bool obscureOld = true;
-    bool obscureNew = true;
-
-    await showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Change Password'),
-          content: SingleChildScrollView(
+          const SizedBox(width: 16),
+          Expanded(
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextField(
-                  controller: oldPasswordCtrl,
-                  obscureText: obscureOld,
-                  decoration: InputDecoration(
-                    labelText: 'Current Password',
-                    border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
-                      icon: Icon(obscureOld
-                          ? Icons.visibility
-                          : Icons.visibility_off),
-                      onPressed: () =>
-                          setState(() => obscureOld = !obscureOld),
-                    ),
+                Text(
+                  user.fullName,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: newPasswordCtrl,
-                  obscureText: obscureNew,
-                  decoration: InputDecoration(
-                    labelText: 'New Password (min 12 chars)',
-                    border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
-                      icon: Icon(obscureNew
-                          ? Icons.visibility
-                          : Icons.visibility_off),
-                      onPressed: () =>
-                          setState(() => obscureNew = !obscureNew),
-                    ),
+                const SizedBox(height: 2),
+                Text(
+                  user.email,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: confirmPasswordCtrl,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Confirm New Password',
-                    border: OutlineInputBorder(),
+                const SizedBox(height: 4),
+                Container(
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    user.role.toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (newPasswordCtrl.text.length < 12) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Password must be at least 12 characters')),
-                  );
-                  return;
-                }
-                if (newPasswordCtrl.text != confirmPasswordCtrl.text) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Passwords do not match')),
-                  );
-                  return;
-                }
-                try {
-                  final repo =
-                  await ref.read(authRepositoryProvider.future);
-                  await repo.changePassword({
-                    'old_password': oldPasswordCtrl.text,
-                    'new_password': newPasswordCtrl.text,
-                    'new_password_confirm': confirmPasswordCtrl.text,
-                  });
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Password changed successfully!'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(e
-                            .toString()
-                            .replaceAll('Exception: ', '')),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              },
-              child: const Text('Change'),
-            ),
-          ],
-        ),
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
+            onPressed: () => context.push('/profile/edit'),
+          ),
+        ],
       ),
     );
   }
-}
 
-class _SettingsTile {
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final Widget? trailing;
-  final VoidCallback? onTap;
+  Widget _sectionLabel(String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 8, left: 4),
+    child: Text(
+      text.toUpperCase(),
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textSecondary,
+        letterSpacing: 1.2,
+      ),
+    ),
+  );
 
-  _SettingsTile({
-    required this.icon,
-    required this.title,
-    this.subtitle,
-    this.trailing,
-    this.onTap,
-  });
+  Widget _buildCard(List<Widget> children) => Container(
+    decoration: BoxDecoration(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(12),
+      boxShadow: AppColors.cardShadow,
+    ),
+    child: Column(children: children),
+  );
+
+  Widget _divider() =>
+      const Divider(height: 1, indent: 56, color: AppColors.divider);
+
+  Widget _tile({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    VoidCallback? onTap,
+    Color? iconColor,
+    Color? titleColor,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: iconColor ?? AppColors.primary, size: 22),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 15,
+          color: titleColor ?? AppColors.textPrimary,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      subtitle: subtitle != null
+          ? Text(subtitle,
+          style: const TextStyle(
+              color: AppColors.textSecondary, fontSize: 12))
+          : null,
+      trailing: onTap != null
+          ? const Icon(Icons.chevron_right,
+          color: AppColors.textSecondary, size: 20)
+          : null,
+      onTap: onTap,
+    );
+  }
+
+  Widget _switchTile({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return SwitchListTile(
+      secondary: Icon(icon, color: AppColors.primary, size: 22),
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 15,
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      subtitle: subtitle != null
+          ? Text(subtitle,
+          style: const TextStyle(
+              color: AppColors.textSecondary, fontSize: 12))
+          : null,
+      value: value,
+      onChanged: onChanged,
+      activeColor: AppColors.primary,
+    );
+  }
 }

@@ -1,116 +1,136 @@
-// lib/data/providers/financial_provider.dart
-//
-// FIXED:
-//   • Removed duplicate FinancialRepository class (was also in financial_repository.dart)
-//   • depositsProvider and financialAccountProvider upgraded to AsyncNotifier for refresh()
-//   • FutureProvider.autoDispose replaced → state survives tab switches, can be refreshed
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/constants/api_endpoints.dart';
 import '../models/deposit_model.dart';
-import '../models/financial_account_model.dart';
 import '../repositories/financial_repository.dart';
 import 'core_providers.dart';
 
-// ─── Financial Repository provider ───────────────────────────────────────────
-
-final financialRepositoryProvider =
-FutureProvider<FinancialRepository>((ref) async {
-  final apiClient = await ref.watch(apiClientProvider.future);
-  return FinancialRepository(apiClient);
+// ---------------------------------------------------------------------------
+// Repository
+// ---------------------------------------------------------------------------
+final financialRepositoryProvider = Provider<FinancialRepository>((ref) {
+  final dio = ref.watch(dioProvider);
+  return FinancialRepository(dio: dio);
 });
 
-// ─── Financial Account — AsyncNotifier (refreshable) ─────────────────────────
+// ---------------------------------------------------------------------------
+// Account
+// ---------------------------------------------------------------------------
+final myAccountProvider = FutureProvider<AccountModel>((ref) async {
+  return ref.watch(financialRepositoryProvider).getMyAccount();
+});
 
-class FinancialAccountNotifier
-    extends AsyncNotifier<FinancialAccountModel> {
-  @override
-  Future<FinancialAccountModel> build() => _fetch();
+// ---------------------------------------------------------------------------
+// Deposits
+// ---------------------------------------------------------------------------
+class DepositsState {
+  final List<DepositModel> deposits;
+  final bool isLoading;
+  final String? error;
+  final bool hasMore;
+  final int page;
 
-  Future<FinancialAccountModel> _fetch() async {
-    final apiClient = await ref.read(apiClientProvider.future);
-    final response = await apiClient.get(ApiEndpoints.myAccount);
-    final raw = response.data;
-    final data = (raw is Map && raw['data'] != null) ? raw['data'] : raw;
-    return FinancialAccountModel.fromJson(
-        Map<String, dynamic>.from(data as Map));
-  }
+  const DepositsState({
+    this.deposits = const [],
+    this.isLoading = false,
+    this.error,
+    this.hasMore = true,
+    this.page = 1,
+  });
 
-  Future<void> refresh() async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(_fetch);
+  DepositsState copyWith({
+    List<DepositModel>? deposits,
+    bool? isLoading,
+    String? error,
+    bool? hasMore,
+    int? page,
+  }) {
+    return DepositsState(
+      deposits: deposits ?? this.deposits,
+      isLoading: isLoading ?? this.isLoading,
+      error: error,
+      hasMore: hasMore ?? this.hasMore,
+      page: page ?? this.page,
+    );
   }
 }
 
-final financialAccountProvider =
-AsyncNotifierProvider<FinancialAccountNotifier, FinancialAccountModel>(
-  FinancialAccountNotifier.new,
-);
+class DepositsNotifier extends StateNotifier<DepositsState> {
+  final FinancialRepository _repository;
 
-// ─── Deposits list — AsyncNotifier (refreshable) ──────────────────────────────
-
-class DepositsNotifier extends AsyncNotifier<List<DepositModel>> {
-  @override
-  Future<List<DepositModel>> build() => _fetch();
-
-  Future<List<DepositModel>> _fetch() async {
-    final apiClient = await ref.read(apiClientProvider.future);
-    final response = await apiClient.get(ApiEndpoints.deposits);
-
-    final raw = response.data;
-    final data = (raw is Map && raw['data'] != null) ? raw['data'] : raw;
-
-    if (data is List) {
-      return data.map((e) => DepositModel.fromJson(e)).toList();
-    } else if (data is Map && data.containsKey('results')) {
-      return (data['results'] as List)
-          .map((e) => DepositModel.fromJson(e))
-          .toList();
-    }
-    return [];
+  DepositsNotifier(this._repository) : super(const DepositsState()) {
+    loadDeposits();
   }
 
-  Future<void> refresh() async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(_fetch);
+  Future<void> loadDeposits({bool refresh = false}) async {
+    if (refresh) {
+      state = const DepositsState(isLoading: true);
+    } else {
+      state = state.copyWith(isLoading: true, error: null);
+    }
+    try {
+      final deposits = await _repository.getDeposits(page: 1);
+      state = DepositsState(
+        deposits: deposits,
+        isLoading: false,
+        hasMore: deposits.length >= 20,
+        page: 1,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  Future<void> loadMore() async {
+    if (!state.hasMore || state.isLoading) return;
+    final nextPage = state.page + 1;
+    try {
+      final more = await _repository.getDeposits(page: nextPage);
+      state = state.copyWith(
+        deposits: [...state.deposits, ...more],
+        isLoading: false,
+        hasMore: more.length >= 20,
+        page: nextPage,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  Future<bool> createDeposit({
+    required double amount,
+    required String method,
+    String? phoneNumber,
+    String? mpesaTransactionId,
+    String? notes,
+  }) async {
+    try {
+      final deposit = await _repository.createDeposit(
+        amount: amount,
+        method: method,
+        phoneNumber: phoneNumber,
+        mpesaTransactionId: mpesaTransactionId,
+        notes: notes,
+      );
+      state = state.copyWith(
+        deposits: [deposit, ...state.deposits],
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      return false;
+    }
   }
 }
 
 final depositsProvider =
-AsyncNotifierProvider<DepositsNotifier, List<DepositModel>>(
-  DepositsNotifier.new,
-);
+StateNotifierProvider<DepositsNotifier, DepositsState>((ref) {
+  final repo = ref.watch(financialRepositoryProvider);
+  return DepositsNotifier(repo);
+});
 
-// ─── Pending deposits (admin) — AsyncNotifier ─────────────────────────────────
-
-class PendingDepositsNotifier extends AsyncNotifier<List<DepositModel>> {
-  @override
-  Future<List<DepositModel>> build() => _fetch();
-
-  Future<List<DepositModel>> _fetch() async {
-    final apiClient = await ref.read(apiClientProvider.future);
-    final response = await apiClient.get(ApiEndpoints.pendingApprovals);
-
-    final raw = response.data;
-    final data = (raw is Map && raw['data'] != null) ? raw['data'] : raw;
-
-    if (data is List) {
-      return data.map((e) => DepositModel.fromJson(e)).toList();
-    } else if (data is Map && data.containsKey('results')) {
-      return (data['results'] as List)
-          .map((e) => DepositModel.fromJson(e))
-          .toList();
-    }
-    return [];
-  }
-
-  Future<void> refresh() async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(_fetch);
-  }
-}
-
-final pendingDepositsProvider =
-AsyncNotifierProvider<PendingDepositsNotifier, List<DepositModel>>(
-  PendingDepositsNotifier.new,
-);
+// ---------------------------------------------------------------------------
+// Monthly summary
+// ---------------------------------------------------------------------------
+final monthlySummaryProvider = FutureProvider<MonthlySummary>((ref) async {
+  return ref.watch(financialRepositoryProvider).getMonthlySummary();
+});

@@ -1,13 +1,10 @@
+// lib/presentation/screens/profile/profile_edit_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import '../../../data/providers/auth_provider.dart';
-import '../../../data/models/user_model.dart';
-import '../../widgets/common/custom_button.dart';
-import '../../widgets/common/custom_text_field.dart';
-import '../../widgets/common/loading_indicator.dart';
+import '../../../core/constants/app_colors.dart';
 
 class ProfileEditScreen extends ConsumerStatefulWidget {
   const ProfileEditScreen({super.key});
@@ -18,400 +15,363 @@ class ProfileEditScreen extends ConsumerStatefulWidget {
 
 class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _firstNameController = TextEditingController();
-  final _lastNameController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _professionController = TextEditingController();
-  final _ageController = TextEditingController();
+  late final TextEditingController _firstNameCtrl;
+  late final TextEditingController _lastNameCtrl;
+  late final TextEditingController _phoneCtrl;
+  late final TextEditingController _professionCtrl;
 
   String? _selectedGender;
   String? _selectedMaritalStatus;
-  File? _profileImage;
   bool _isLoading = false;
-  bool _isUploadingPhoto = false;
 
-  final List<String> _genders = ['MALE', 'FEMALE', 'OTHER'];
-  final List<String> _maritalStatuses = ['SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED'];
+  static const _genders = ['Male', 'Female', 'Other', 'Prefer not to say'];
+  static const _maritalStatuses = [
+    'Single',
+    'Married',
+    'Divorced',
+    'Widowed',
+  ];
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
-  }
-
-  void _loadUserData() {
-    final user = ref.read(currentUserProvider).value;
-    if (user != null) {
-      _firstNameController.text = user.firstName;
-      _lastNameController.text = user.lastName;
-      _phoneController.text = user.phoneNumber ?? '';
-      _professionController.text = user.profession ?? '';
-      _ageController.text = user.age?.toString() ?? '';
-      _selectedGender = user.gender;
-      _selectedMaritalStatus = user.maritalStatus;
-    }
+    // Initialise from currentUserProvider — this is now available in auth_provider.dart
+    final user = ref.read(currentUserProvider);
+    _firstNameCtrl = TextEditingController(text: user?.firstName ?? '');
+    _lastNameCtrl = TextEditingController(text: user?.lastName ?? '');
+    _phoneCtrl = TextEditingController(text: user?.phoneNumber ?? '');
+    _professionCtrl = TextEditingController(text: user?.profession ?? '');
+    _selectedGender = user?.gender;
+    _selectedMaritalStatus = user?.maritalStatus;
   }
 
   @override
   void dispose() {
-    _firstNameController.dispose();
-    _lastNameController.dispose();
-    _phoneController.dispose();
-    _professionController.dispose();
-    _ageController.dispose();
+    _firstNameCtrl.dispose();
+    _lastNameCtrl.dispose();
+    _phoneCtrl.dispose();
+    _professionCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _pickProfilePhoto() async {
-    final picker = ImagePicker();
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Take Photo'),
-              onTap: () => Navigator.pop(context, ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Choose from Gallery'),
-              onTap: () => Navigator.pop(context, ImageSource.gallery),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (source == null) return;
-
-    final XFile? image = await picker.pickImage(
-      source: source,
-      imageQuality: 80,
-      maxWidth: 800,
-    );
-
-    if (image != null) {
-      setState(() => _profileImage = File(image.path));
-      await _uploadProfilePhoto(image.path);
-    }
-  }
-
-  Future<void> _uploadProfilePhoto(String filePath) async {
-    setState(() => _isUploadingPhoto = true);
-    try {
-      final authRepository = await ref.read(authRepositoryProvider.future);
-      await authRepository.uploadProfilePhoto(filePath);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile photo updated!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        ref.invalidate(currentUserProvider);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Photo upload failed: ${e.toString().replaceAll('Exception: ', '')}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isUploadingPhoto = false);
-    }
-  }
-
-  Future<void> _saveProfile() async {
+  Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isLoading = true);
 
-    try {
-      final user = ref.read(currentUserProvider).value;
-      if (user == null) return;
+    final success = await ref.read(authProvider.notifier).updateProfile({
+      'first_name': _firstNameCtrl.text.trim(),
+      'last_name': _lastNameCtrl.text.trim(),
+      'phone_number': _phoneCtrl.text.trim(),
+      'profession': _professionCtrl.text.trim(),
+      if (_selectedGender != null) 'gender': _selectedGender,
+      if (_selectedMaritalStatus != null)
+        'marital_status': _selectedMaritalStatus,
+    });
 
-      final data = <String, dynamic>{
-        'first_name': _firstNameController.text.trim(),
-        'last_name': _lastNameController.text.trim(),
-        'phone_number': _phoneController.text.trim(),
-        'profession': _professionController.text.trim(),
-      };
+    setState(() => _isLoading = false);
 
-      if (_ageController.text.isNotEmpty) {
-        data['age'] = int.tryParse(_ageController.text);
-      }
-      if (_selectedGender != null) {
-        data['gender'] = _selectedGender;
-      }
-      if (_selectedMaritalStatus != null) {
-        data['marital_status'] = _selectedMaritalStatus;
-      }
-
-      await ref.read(currentUserProvider.notifier).updateProfile(user.id, data);
-
-      if (mounted) {
+    if (mounted) {
+      if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Profile updated successfully!'),
-            backgroundColor: Colors.green,
+            content: Text('Profile updated successfully'),
+            backgroundColor: AppColors.success,
           ),
         );
         context.pop();
-      }
-    } catch (e) {
-      if (mounted) {
+      } else {
+        final error = ref.read(authProvider).error ?? 'Update failed';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.red,
+            content: Text(error),
+            backgroundColor: AppColors.error,
           ),
         );
       }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final userAsync = ref.watch(currentUserProvider);
+    final user = ref.watch(currentUserProvider);
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Edit Profile'),
+        backgroundColor: AppColors.primary,
+        elevation: 0,
+        title: const Text(
+          'Edit Profile',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          onPressed: () => context.pop(),
+        ),
         actions: [
           TextButton(
-            onPressed: _isLoading ? null : _saveProfile,
-            child: const Text('Save'),
+            onPressed: _isLoading ? null : _save,
+            child: const Text(
+              'Save',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
           ),
         ],
       ),
-      body: userAsync.when(
-        data: (user) {
-          if (user == null) return const Center(child: Text('No user data'));
-          return _buildForm(user);
-        },
-        loading: () => const LoadingIndicator(),
-        error: (e, _) => Center(child: Text('Error: $e')),
-      ),
-    );
-  }
-
-  Widget _buildForm(UserModel user) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Profile Photo
-            Center(
-              child: Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 60,
-                    backgroundColor: Colors.blue.shade100,
-                    backgroundImage: _profileImage != null
-                        ? FileImage(_profileImage!)
-                        : (user.profilePhotoUrl != null
-                        ? NetworkImage(user.profilePhotoUrl!) as ImageProvider
-                        : null),
-                    child: (_profileImage == null && user.profilePhotoUrl == null)
-                        ? Text(
-                      user.fullName[0].toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 48,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
-                      ),
-                    )
-                        : null,
-                  ),
-                  if (_isUploadingPhoto)
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.black38,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Center(
-                          child: CircularProgressIndicator(color: Colors.white),
-                        ),
-                      ),
-                    ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: GestureDetector(
-                      onTap: _isUploadingPhoto ? null : _pickProfilePhoto,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: Colors.blue,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Personal Information
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Personal Information',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: CustomTextField(
-                            controller: _firstNameController,
-                            label: 'First Name',
-                            hintText: 'Enter first name',
-                            validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+      body: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              // Avatar header
+              Container(
+                color: AppColors.primary,
+                padding: const EdgeInsets.only(bottom: 32),
+                child: Center(
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundColor: AppColors.primaryLight,
+                        backgroundImage: user?.profilePhotoUrl != null
+                            ? NetworkImage(user!.profilePhotoUrl!)
+                            : null,
+                        child: user?.profilePhotoUrl == null
+                            ? Text(
+                          (user?.firstName.isNotEmpty == true
+                              ? user!.firstName[0].toUpperCase()
+                              : '?'),
+                          style: const TextStyle(
+                            fontSize: 36,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: CustomTextField(
-                            controller: _lastNameController,
-                            label: 'Last Name',
-                            hintText: 'Enter last name',
-                            validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+                        )
+                            : null,
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: AppColors.accent,
+                            shape: BoxShape.circle,
                           ),
+                          child: const Icon(Icons.camera_alt,
+                              color: Colors.white, size: 16),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    CustomTextField(
-                      controller: _ageController,
-                      label: 'Age',
-                      hintText: 'Enter your age',
-                      keyboardType: TextInputType.number,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildDropdownField(
-                      'Gender',
-                      _selectedGender,
-                      _genders,
-                          (v) => setState(() => _selectedGender = v),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildDropdownField(
-                      'Marital Status',
-                      _selectedMaritalStatus,
-                      _maritalStatuses,
-                          (v) => setState(() => _selectedMaritalStatus = v),
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-
-            // Contact Information
-            Card(
-              child: Padding(
+              const SizedBox(height: 8),
+              Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Contact Information',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                    _sectionHeader('Personal Information'),
+                    _buildCard([
+                      _textField(
+                        controller: _firstNameCtrl,
+                        label: 'First Name',
+                        icon: Icons.person_outline,
+                        validator: (v) =>
+                        v!.isEmpty ? 'First name is required' : null,
                       ),
-                    ),
+                      _divider(),
+                      _textField(
+                        controller: _lastNameCtrl,
+                        label: 'Last Name',
+                        icon: Icons.person_outline,
+                        validator: (v) =>
+                        v!.isEmpty ? 'Last name is required' : null,
+                      ),
+                      _divider(),
+                      _textField(
+                        controller: _phoneCtrl,
+                        label: 'Phone Number',
+                        icon: Icons.phone_outlined,
+                        keyboardType: TextInputType.phone,
+                      ),
+                      _divider(),
+                      _textField(
+                        controller: _professionCtrl,
+                        label: 'Profession / Occupation',
+                        icon: Icons.work_outline,
+                      ),
+                    ]),
                     const SizedBox(height: 16),
-
+                    _sectionHeader('Additional Details'),
+                    _buildCard([
+                      _dropdownField(
+                        label: 'Gender',
+                        icon: Icons.wc_outlined,
+                        value: _selectedGender,
+                        items: _genders,
+                        onChanged: (v) => setState(() => _selectedGender = v),
+                      ),
+                      _divider(),
+                      _dropdownField(
+                        label: 'Marital Status',
+                        icon: Icons.favorite_outline,
+                        value: _selectedMaritalStatus,
+                        items: _maritalStatuses,
+                        onChanged: (v) =>
+                            setState(() => _selectedMaritalStatus = v),
+                      ),
+                    ]),
+                    const SizedBox(height: 16),
                     // Email (read-only)
-                    CustomTextField(
-                      controller: TextEditingController(text: user.email),
-                      label: 'Email',
-                      enabled: false,
+                    _sectionHeader('Account Information'),
+                    _buildCard([
+                      _readOnlyField(
+                        label: 'Email Address',
+                        value: user?.email ?? '',
+                        icon: Icons.email_outlined,
+                      ),
+                      _divider(),
+                      _readOnlyField(
+                        label: 'Member ID',
+                        value: user != null ? '#${user.id}' : '',
+                        icon: Icons.badge_outlined,
+                      ),
+                    ]),
+                    const SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _save,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2),
+                        )
+                            : const Text(
+                          'Save Changes',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    CustomTextField(
-                      controller: _phoneController,
-                      label: 'Phone Number',
-                      hintText: '+254712345678',
-                      keyboardType: TextInputType.phone,
-                    ),
-                    const SizedBox(height: 16),
-                    CustomTextField(
-                      controller: _professionController,
-                      label: 'Profession',
-                      hintText: 'Enter your profession',
-                    ),
+                    const SizedBox(height: 40),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
-
-            CustomButton(
-              onPressed: _isLoading ? null : _saveProfile,
-              isLoading: _isLoading,
-              child: const Text('Save Changes'),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildDropdownField(
-      String label,
-      String? value,
-      List<String> items,
-      Function(String?) onChanged,
-      ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+  Widget _sectionHeader(String title) => Padding(
+    padding: const EdgeInsets.only(bottom: 8, left: 4),
+    child: Text(
+      title,
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textSecondary,
+        letterSpacing: 0.5,
+      ),
+    ),
+  );
+
+  Widget _buildCard(List<Widget> children) => Container(
+    decoration: BoxDecoration(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(12),
+      boxShadow: AppColors.cardShadow,
+    ),
+    child: Column(children: children),
+  );
+
+  Widget _divider() => const Divider(height: 1, color: AppColors.divider);
+
+  Widget _textField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      validator: validator,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+        prefixIcon: Icon(icon, color: AppColors.textSecondary, size: 20),
+        border: InputBorder.none,
+        contentPadding:
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
+    );
+  }
+
+  Widget _dropdownField({
+    required String label,
+    required IconData icon,
+    required String? value,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return DropdownButtonFormField<String>(
+      value: value,
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+        prefixIcon: Icon(icon, color: AppColors.textSecondary, size: 20),
+        border: InputBorder.none,
+        contentPadding:
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      ),
+      items: items
+          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+          .toList(),
+    );
+  }
+
+  Widget _readOnlyField({
+    required String label,
+    required String value,
+    required IconData icon,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: AppColors.textSecondary, size: 20),
+      title: Text(
+        label,
+        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+      ),
+      subtitle: Text(
+        value,
+        style: const TextStyle(
+          fontSize: 15,
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w500,
         ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: value,
-          hint: Text('Select $label'),
-          decoration: InputDecoration(
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            filled: true,
-            fillColor: Colors.grey[50],
-          ),
-          items: items
-              .map((item) => DropdownMenuItem(value: item, child: Text(item)))
-              .toList(),
-          onChanged: onChanged,
-        ),
-      ],
+      ),
     );
   }
 }
