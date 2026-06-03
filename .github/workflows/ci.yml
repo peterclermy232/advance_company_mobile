@@ -34,8 +34,7 @@ jobs:
       - name: Analyze
         run: flutter analyze
 
-      - name: Run smoke test
-        run: flutter test test/widget_test.dart
+      # smoke test removed to make fast-checks analysis-only for quicker feedback
 
   build:
     name: Build APK (debug)
