@@ -244,7 +244,7 @@ class _BeneficiaryFormScreenState
                             fontSize: 14, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
-                      value: _selectedSalaryRange,
+                      initialValue: _selectedSalaryRange,
                       hint: const Text('Select salary range'),
                       decoration: InputDecoration(
                         border: OutlineInputBorder(
@@ -348,7 +348,7 @@ class _BeneficiaryFormScreenState
                 fontSize: 14, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: value,
+          initialValue: value,
           decoration: InputDecoration(
             border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12)),

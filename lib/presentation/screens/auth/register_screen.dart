@@ -24,8 +24,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   void dispose() {
-    for (final c in [_emailCtl, _passCtl, _firstCtl, _lastCtl, _phoneCtl])
+    for (final c in [_emailCtl, _passCtl, _firstCtl, _lastCtl, _phoneCtl]) {
       c.dispose();
+    }
     super.dispose();
   }
 
@@ -94,8 +95,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     TextInputAction.next, type: TextInputType.emailAddress,
                     validator: (v) {
                   if (v == null || v.isEmpty) return 'Email is required';
-                  if (!RegExp(r'\S+@\S+\.\S+').hasMatch(v))
+                  if (!RegExp(r'\S+@\S+\.\S+').hasMatch(v)) {
                     return 'Enter a valid email';
+                  }
                   return null;
                 }),
                 const SizedBox(height: 14),

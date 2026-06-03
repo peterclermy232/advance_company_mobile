@@ -337,7 +337,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     required ValueChanged<String?> onChanged,
   }) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       onChanged: onChanged,
       decoration: InputDecoration(
         labelText: label,

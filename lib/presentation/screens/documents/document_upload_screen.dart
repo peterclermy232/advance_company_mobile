@@ -105,7 +105,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
     });
 
     try {
-      final apiClient = await ref.read(apiClientProvider);
+      final apiClient = ref.read(apiClientProvider);
       
       final formData = FormData.fromMap({
         'title': _titleController.text.trim(),

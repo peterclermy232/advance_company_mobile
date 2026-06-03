@@ -12,7 +12,7 @@ class MainShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
-    final isAdmin   = authState?.user?.isAdmin ?? false;
+    final isAdmin   = authState.user?.isAdmin ?? false;
     final location  = GoRouterState.of(context).matchedLocation;
 
     final destinations = [

@@ -193,9 +193,9 @@ class _NetworkDiagnosticScreenState extends State<NetworkDiagnosticScreen> {
           ),
 
           // Fix guide
-          ExpansionTile(
-            leading: const Icon(Icons.lightbulb_outline, color: Colors.amber),
-            title: const Text('Common Fixes',
+          const ExpansionTile(
+            leading: Icon(Icons.lightbulb_outline, color: Colors.amber),
+            title: Text('Common Fixes',
                 style: TextStyle(fontWeight: FontWeight.bold)),
             children: [
               _FixTile(
