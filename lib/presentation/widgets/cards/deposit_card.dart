@@ -76,7 +76,7 @@ class DepositCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       currencyFormat
-                          .format(double.tryParse(deposit.amount) ?? 0),
+                          .format(double.tryParse(deposit.amount as String) ?? 0),
                       style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,

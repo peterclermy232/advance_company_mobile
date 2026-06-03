@@ -25,12 +25,12 @@ class ApiConfig {
   // ════════════════════════════════════════════════════════════════════════════
 
   /// Production server (set this before release)
-  static const String prodBaseUrl = 'https://YOUR_PRODUCTION_DOMAIN/api';
+  static const String prodBaseUrl = 'https://advance-company-backend-v1-0-3.onrender.com/api';
 
   /// Development server — change to match YOUR setup (see table above)
-  static const String devBaseUrl = 'http://127.0.0.1:8000/api';
+  static const String devBaseUrl = 'https://advance-company-backend-v1-0-3.onrender.com/api';
   //                                          ↑
-  //   Android Emulator default. Change to your LAN IP for a physical device.
+  //   Use the hosted Render API endpoint for development/testing.
 
   /// Flip to true when building a production release
   static const bool _isProduction = false;

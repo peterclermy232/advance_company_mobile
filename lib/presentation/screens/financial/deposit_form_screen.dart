@@ -1,12 +1,3 @@
-// lib/presentation/screens/financial/deposit_form_screen.dart
-//
-// FIX: Previously caused a double AppBar when embedded inside a TabBarView,
-// because the screen unconditionally included its own AppBar.
-//
-// Solution: accept an `embedded` flag.
-// • embedded: false (default) — used as a standalone route. Has its own AppBar.
-// • embedded: true            — used inside TabBarView. No AppBar.
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,8 +5,6 @@ import '../../../data/providers/financial_provider.dart';
 import '../../../data/providers/auth_provider.dart';
 
 class DepositFormScreen extends ConsumerStatefulWidget {
-  /// Set [embedded] = true when placing inside a TabBarView or similar
-  /// to prevent a duplicate AppBar.
   final bool embedded;
 
   const DepositFormScreen({super.key, this.embedded = false});
@@ -48,21 +37,26 @@ class _DepositFormScreenState extends ConsumerState<DepositFormScreen> {
     });
 
     try {
-      final repo = await ref.read(financialRepositoryProvider);
-      await repo.createDeposit(
+      final success = await ref.read(depositsProvider.notifier).createDeposit(
         amount:      double.parse(_amountCtl.text.replaceAll(',', '')),
+        method:      'mpesa',
         phoneNumber: _phoneCtl.text.trim(),
       );
 
-      // Refresh related providers
-      ref.read(depositsProvider.notifier).refresh();
+      if (!success) {
+        final error = ref.read(depositsProvider).error;
+        setState(() => _errorMessage = error ?? 'Failed to create deposit');
+        return;
+      }
+
+      // Refresh account
       ref.read(financialAccountProvider.notifier).refresh();
 
       if (mounted) {
         _showSuccess();
       }
     } catch (e) {
-      setState(() => _errorMessage = e.toString());
+      setState(() => _errorMessage = e.toString().replaceAll('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -83,8 +77,8 @@ class _DepositFormScreenState extends ConsumerState<DepositFormScreen> {
         actions: [
           FilledButton(
             onPressed: () {
-              Navigator.pop(context); // close dialog
-              if (!widget.embedded) Navigator.pop(context); // go back
+              Navigator.pop(context);
+              if (!widget.embedded) Navigator.pop(context);
               _amountCtl.clear();
               _phoneCtl.clear();
             },
@@ -97,12 +91,11 @@ class _DepositFormScreenState extends ConsumerState<DepositFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme          = Theme.of(context);
-    final accountAsync   = ref.watch(financialAccountProvider);
-    final userAsync      = ref.watch(authProvider);
-    final phoneNumber    = userAsync.valueOrNull?.user?.phoneNumber ?? '';
+    final theme        = Theme.of(context);
+    final accountAsync = ref.watch(financialAccountProvider);
+    final user         = ref.watch(currentUserProvider);
+    final phoneNumber  = user?.phoneNumber ?? '';
 
-    // Pre-fill phone if available and field is empty
     if (phoneNumber.isNotEmpty && _phoneCtl.text.isEmpty) {
       _phoneCtl.text = phoneNumber;
     }
@@ -203,7 +196,8 @@ class _DepositFormScreenState extends ConsumerState<DepositFormScreen> {
               onPressed: _isLoading ? null : _submit,
               icon: _isLoading
                   ? const SizedBox(
-                width: 16, height: 16,
+                width: 16,
+                height: 16,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
                   : const Icon(Icons.send),
@@ -217,7 +211,6 @@ class _DepositFormScreenState extends ConsumerState<DepositFormScreen> {
       ),
     );
 
-    // ✅ FIX: Only wrap in Scaffold+AppBar when NOT embedded in a TabBarView
     if (widget.embedded) return body;
 
     return Scaffold(
@@ -231,16 +224,16 @@ class _DepositFormScreenState extends ConsumerState<DepositFormScreen> {
 }
 
 class _LimitCard extends StatelessWidget {
-  final dynamic account; // FinancialAccountModel
+  final dynamic account;
 
   const _LimitCard({required this.account});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final percent = (account.limitUsagePercent as double);
+    final theme     = Theme.of(context);
+    final percent   = (account.limitUsagePercent as double);
     final remaining = account.remainingMonthlyLimit as double;
-    final limit = account.monthlyDepositLimit as double;
+    final limit     = account.monthlyDepositLimit as double;
 
     return Card(
       child: Padding(

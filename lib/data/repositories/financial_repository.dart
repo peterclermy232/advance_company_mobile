@@ -1,35 +1,7 @@
 import '../models/deposit_model.dart';
+import '../models/financial_account_model.dart';
 import '../../core/constants/api_endpoints.dart';
 import '../../core/network/api_client.dart';
-
-class AccountModel {
-  final int id;
-  final String accountNumber;
-  final double balance;
-  final double totalDeposited;
-  final double monthlyTarget;
-  final bool isActive;
-
-  const AccountModel({
-    required this.id,
-    required this.accountNumber,
-    required this.balance,
-    required this.totalDeposited,
-    required this.monthlyTarget,
-    required this.isActive,
-  });
-
-  factory AccountModel.fromJson(Map<String, dynamic> json) {
-    return AccountModel(
-      id: json['id'] as int,
-      accountNumber: json['account_number'] as String? ?? '',
-      balance: (json['balance'] as num?)?.toDouble() ?? 0.0,
-      totalDeposited: (json['total_deposited'] as num?)?.toDouble() ?? 0.0,
-      monthlyTarget: (json['monthly_target'] as num?)?.toDouble() ?? 0.0,
-      isActive: json['is_active'] as bool? ?? true,
-    );
-  }
-}
 
 class MonthlySummary {
   final double totalDeposited;
@@ -67,10 +39,14 @@ class FinancialRepository {
 
   FinancialRepository({required ApiClient apiClient}) : _apiClient = apiClient;
 
-  Future<AccountModel> getMyAccount() async {
+  // ── Account ──────────────────────────────────────────────────────────────
+
+  Future<FinancialAccountModel> getMyAccount() async {
     final response = await _apiClient.get(ApiEndpoints.myAccount);
-    return AccountModel.fromJson(response.data as Map<String, dynamic>);
+    return FinancialAccountModel.fromJson(response.data as Map<String, dynamic>);
   }
+
+  // ── Deposits ─────────────────────────────────────────────────────────────
 
   Future<List<DepositModel>> getDeposits({
     String? status,
@@ -125,6 +101,8 @@ class FinancialRepository {
     return DepositModel.fromJson(response.data as Map<String, dynamic>);
   }
 
+  // ── Monthly summary ───────────────────────────────────────────────────────
+
   Future<MonthlySummary> getMonthlySummary() async {
     final response = await _apiClient.get(ApiEndpoints.monthlySummary);
     return MonthlySummary.fromJson(response.data as Map<String, dynamic>);
@@ -143,6 +121,8 @@ class FinancialRepository {
     );
     return response.data as Map<String, dynamic>;
   }
+
+  // ── Admin ─────────────────────────────────────────────────────────────────
 
   Future<List<DepositModel>> getPendingApprovals() async {
     final response = await _apiClient.get(ApiEndpoints.pendingApprovals);

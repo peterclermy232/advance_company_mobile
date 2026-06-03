@@ -8,19 +8,23 @@ import '../../widgets/common/loading_indicator.dart';
 import '../../widgets/cards/stat_card.dart';
 
 // Provider for analytics summary
-final analyticsSummaryProvider = FutureProvider.autoDispose((ref) async {
-  final apiClient = await ref.watch(apiClientProvider.future);
+final analyticsSummaryProvider =
+FutureProvider.autoDispose((ref) async {
+  // apiClientProvider is a plain Provider<ApiClient>
+  final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get(ApiEndpoints.analyticsSummary);
-  return response.data['data'];
+  return response.data['data'] ?? response.data;
 });
 
 // Provider for monthly trends
-final monthlyTrendsProvider = FutureProvider.autoDispose((ref) async {
-  final apiClient = await ref.watch(apiClientProvider.future);
+final monthlyTrendsProvider =
+FutureProvider.autoDispose((ref) async {
+  final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get(ApiEndpoints.monthlyTrends);
-  return response.data['data'];
+  final data = response.data['data'] ?? response.data;
+  if (data is List) return data;
+  return <dynamic>[];
 });
-
 
 class AdminAnalyticsScreen extends ConsumerWidget {
   const AdminAnalyticsScreen({super.key});
@@ -28,7 +32,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final summaryAsync = ref.watch(analyticsSummaryProvider);
-    final trendsAsync = ref.watch(monthlyTrendsProvider);
+    final trendsAsync  = ref.watch(monthlyTrendsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -61,30 +65,29 @@ class AdminAnalyticsScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Summary Stats
               summaryAsync.when(
-                data: (summary) => _buildSummaryStats(context, summary),
+                data: (summary) =>
+                    _buildSummaryStats(context, summary as Map<String, dynamic>),
                 loading: () => const LoadingIndicator(),
-                error: (error, _) => _buildErrorCard('Failed to load summary', error),
+                error: (error, _) =>
+                    _buildErrorCard('Failed to load summary', error),
               ),
               const SizedBox(height: 24),
-
-              // Monthly Trends Chart
               Text(
                 'Monthly Trends',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 16),
               trendsAsync.when(
-                data: (trends) => _buildTrendsChart(context, trends),
+                data: (trends) =>
+                    _buildTrendsChart(context, trends),
                 loading: () => const LoadingIndicator(),
-                error: (error, _) => _buildErrorCard('Failed to load trends', error),
+                error: (error, _) =>
+                    _buildErrorCard('Failed to load trends', error),
               ),
               const SizedBox(height: 24),
-
-              // Additional Analytics
               _buildMemberActivityCard(context),
               const SizedBox(height: 16),
               _buildTopContributorsCard(context),
@@ -95,9 +98,9 @@ class AdminAnalyticsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryStats(BuildContext context, Map<String, dynamic> summary) {
+  Widget _buildSummaryStats(
+      BuildContext context, Map<String, dynamic> summary) {
     final currencyFormat = NumberFormat.currency(symbol: 'KES ');
-
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -121,7 +124,9 @@ class AdminAnalyticsScreen extends ConsumerWidget {
         StatCard(
           label: 'Total Deposits',
           value: currencyFormat.format(
-            double.tryParse(summary['total_deposits']?.toString() ?? '0') ?? 0,
+            double.tryParse(
+                summary['total_deposits']?.toString() ?? '0') ??
+                0,
           ),
           icon: Icons.account_balance_wallet,
           color: Colors.orange,
@@ -163,15 +168,15 @@ class AdminAnalyticsScreen extends ConsumerWidget {
       );
     }
 
-    // Prepare data for chart
     final depositSpots = <FlSpot>[];
-    final memberSpots = <FlSpot>[];
+    final memberSpots  = <FlSpot>[];
 
     for (var i = 0; i < trends.length; i++) {
       final trend = trends[i];
       depositSpots.add(FlSpot(
         i.toDouble(),
-        double.tryParse(trend['total_deposits']?.toString() ?? '0') ?? 0,
+        double.tryParse(trend['total_deposits']?.toString() ?? '0') ??
+            0,
       ));
       memberSpots.add(FlSpot(
         i.toDouble(),
@@ -188,22 +193,20 @@ class AdminAnalyticsScreen extends ConsumerWidget {
               height: 250,
               child: LineChart(
                 LineChartData(
-                  gridData: FlGridData(show: true),
+                  gridData: const FlGridData(show: true),
                   titlesData: FlTitlesData(
-                    leftTitles: AxisTitles(
+                    leftTitles: const AxisTitles(
                       sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 40,
-                      ),
+                          showTitles: true, reservedSize: 40),
                     ),
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
                         getTitlesWidget: (value, meta) {
-                          if (value.toInt() >= 0 && value.toInt() < trends.length) {
-                            final trend = trends[value.toInt()];
+                          final idx = value.toInt();
+                          if (idx >= 0 && idx < trends.length) {
                             return Text(
-                              trend['month'] ?? '',
+                              trends[idx]['month'] ?? '',
                               style: const TextStyle(fontSize: 10),
                             );
                           }
@@ -211,12 +214,10 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                         },
                       ),
                     ),
-                    topTitles: AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    rightTitles: AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
+                    topTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false)),
                   ),
                   borderData: FlBorderData(show: true),
                   lineBarsData: [
@@ -225,14 +226,14 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                       isCurved: true,
                       color: Colors.blue,
                       barWidth: 3,
-                      dotData: FlDotData(show: true),
+                      dotData: const FlDotData(show: true),
                     ),
                     LineChartBarData(
                       spots: memberSpots,
                       isCurved: true,
                       color: Colors.green,
                       barWidth: 3,
-                      dotData: FlDotData(show: true),
+                      dotData: const FlDotData(show: true),
                     ),
                   ],
                 ),
@@ -257,12 +258,8 @@ class AdminAnalyticsScreen extends ConsumerWidget {
     return Row(
       children: [
         Container(
-          width: 16,
-          height: 16,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          width: 16, height: 16,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 8),
         Text(label, style: const TextStyle(fontSize: 12)),
@@ -277,49 +274,28 @@ class AdminAnalyticsScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Member Activity',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
+            Text('Member Activity',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
-            _buildActivityItem(
-              'New Registrations (This Month)',
-              '24',
-              Icons.person_add,
-              Colors.blue,
-              '+12%',
-            ),
+            _buildActivityItem('New Registrations (This Month)', '24',
+                Icons.person_add, Colors.blue, '+12%'),
             const Divider(),
-            _buildActivityItem(
-              'Active Users (Last 30 Days)',
-              '156',
-              Icons.people,
-              Colors.green,
-              '+8%',
-            ),
+            _buildActivityItem('Active Users (Last 30 Days)', '156',
+                Icons.people, Colors.green, '+8%'),
             const Divider(),
-            _buildActivityItem(
-              'Deposits This Month',
-              '89',
-              Icons.account_balance_wallet,
-              Colors.orange,
-              '+15%',
-            ),
+            _buildActivityItem('Deposits This Month', '89',
+                Icons.account_balance_wallet, Colors.orange, '+15%'),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildActivityItem(
-    String label,
-    String value,
-    IconData icon,
-    Color color,
-    String trend,
-  ) {
+  Widget _buildActivityItem(String label, String value, IconData icon,
+      Color color, String trend) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Container(
@@ -335,27 +311,21 @@ class AdminAnalyticsScreen extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          Text(
-            trend,
-            style: TextStyle(
-              fontSize: 12,
-              color: trend.startsWith('+') ? Colors.green : Colors.red,
-            ),
-          ),
+          Text(value,
+              style: const TextStyle(
+                  fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(trend,
+              style: TextStyle(
+                  fontSize: 12,
+                  color: trend.startsWith('+')
+                      ? Colors.green
+                      : Colors.red)),
         ],
       ),
     );
   }
 
   Widget _buildTopContributorsCard(BuildContext context) {
-    // Mock data - replace with actual API data
     final topContributors = [
       {'name': 'John Doe', 'amount': 50000.0},
       {'name': 'Jane Smith', 'amount': 45000.0},
@@ -363,7 +333,6 @@ class AdminAnalyticsScreen extends ConsumerWidget {
       {'name': 'Alice Williams', 'amount': 35000.0},
       {'name': 'Charlie Brown', 'amount': 30000.0},
     ];
-
     final currencyFormat = NumberFormat.currency(symbol: 'KES ');
 
     return Card(
@@ -372,38 +341,32 @@ class AdminAnalyticsScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Top Contributors',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
+            Text('Top Contributors',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             ...topContributors.asMap().entries.map((entry) {
-              final index = entry.key;
+              final index       = entry.key;
               final contributor = entry.value;
               return ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: CircleAvatar(
                   backgroundColor: _getRankColor(index),
-                  child: Text(
-                    '${index + 1}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: Text('${index + 1}',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold)),
                 ),
                 title: Text(contributor['name'] as String),
                 trailing: Text(
                   currencyFormat.format(contributor['amount']),
                   style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
+                      fontWeight: FontWeight.bold, fontSize: 16),
                 ),
               );
-            }).toList(),
+            }),
           ],
         ),
       ),
@@ -431,48 +394,43 @@ class AdminAnalyticsScreen extends ConsumerWidget {
           children: [
             const Icon(Icons.error_outline, size: 48, color: Colors.red),
             const SizedBox(height: 16),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            Text(title,
+                style: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text(
-              error.toString(),
-              style: const TextStyle(color: Colors.grey),
-              textAlign: TextAlign.center,
-            ),
+            Text(error.toString(),
+                style: const TextStyle(color: Colors.grey),
+                textAlign: TextAlign.center),
           ],
         ),
       ),
     );
   }
 
-  // And update the _exportAnalytics method:
-Future<void> _exportAnalytics(BuildContext context, WidgetRef ref) async {
-  try {
-    final apiClient = await ref.read(apiClientProvider.future);
-    await apiClient.get(ApiEndpoints.exportAnalytics);
+  Future<void> _exportAnalytics(
+      BuildContext context, WidgetRef ref) async {
+    try {
+      // apiClientProvider is a plain Provider<ApiClient>
+      final apiClient = ref.read(apiClientProvider);
+      await apiClient.get(ApiEndpoints.exportAnalytics);
 
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Analytics exported successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
-  } catch (e) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Export failed: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Analytics exported successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Export failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
-}
 }

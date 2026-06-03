@@ -1,7 +1,7 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/providers/financial_provider.dart';
+import '../../../data/providers/core_providers.dart';
 import '../../../data/models/deposit_model.dart';
 
 class AdminDepositApprovalsScreen extends ConsumerWidget {
@@ -11,7 +11,6 @@ class AdminDepositApprovalsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final depositsAsync = ref.watch(pendingDepositsProvider);
 
-    // ✅ FIX: Scaffold was missing — screen wouldn't render as a standalone route
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pending Approvals'),
@@ -19,7 +18,8 @@ class AdminDepositApprovalsScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh',
-            onPressed: () => ref.read(pendingDepositsProvider.notifier).refresh(),
+            onPressed: () =>
+                ref.read(pendingDepositsProvider.notifier).refresh(),
           ),
         ],
       ),
@@ -27,19 +27,22 @@ class AdminDepositApprovalsScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => _ErrorView(
           message: e.toString(),
-          onRetry: () => ref.read(pendingDepositsProvider.notifier).refresh(),
+          onRetry: () =>
+              ref.read(pendingDepositsProvider.notifier).refresh(),
         ),
         data: (deposits) {
           if (deposits.isEmpty) {
             return const _EmptyView();
           }
           return RefreshIndicator(
-            onRefresh: () => ref.read(pendingDepositsProvider.notifier).refresh(),
+            onRefresh: () =>
+                ref.read(pendingDepositsProvider.notifier).refresh(),
             child: ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: deposits.length,
               separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, i) => _DepositCard(deposit: deposits[i]),
+              itemBuilder: (context, i) =>
+                  _DepositCard(deposit: deposits[i]),
             ),
           );
         },
@@ -67,9 +70,8 @@ class _DepositCard extends ConsumerWidget {
               children: [
                 Text(
                   'KES ${deposit.amount.toStringAsFixed(2)}',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 _StatusChip(status: deposit.status),
               ],
@@ -90,7 +92,8 @@ class _DepositCard extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => _reject(context, ref, deposit.id),
+                      onPressed: () =>
+                          _reject(context, ref, deposit.id),
                       icon: const Icon(Icons.close, color: Colors.red),
                       label: const Text('Reject',
                           style: TextStyle(color: Colors.red)),
@@ -102,7 +105,8 @@ class _DepositCard extends ConsumerWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: FilledButton.icon(
-                      onPressed: () => _approve(context, ref, deposit.id),
+                      onPressed: () =>
+                          _approve(context, ref, deposit.id),
                       icon: const Icon(Icons.check),
                       label: const Text('Approve'),
                     ),
@@ -115,7 +119,8 @@ class _DepositCard extends ConsumerWidget {
     );
   }
 
-  Future<void> _approve(BuildContext context, WidgetRef ref, int id) async {
+  Future<void> _approve(
+      BuildContext context, WidgetRef ref, int id) async {
     final confirm = await _confirmDialog(
       context,
       title: 'Approve Deposit',
@@ -125,13 +130,9 @@ class _DepositCard extends ConsumerWidget {
     if (!confirm) return;
 
     try {
-      // Call approve endpoint
-      final apiClient = await ref.read(
-        // Use apiClientProvider to call admin endpoint directly
-        // since AdminRepository is optional
-        apiClientProvider.future,
-      );
-      await apiClient.post('/admin/deposits/$id/approve/');
+      // apiClientProvider is a plain Provider<ApiClient> — no .future
+      final apiClient = ref.read(apiClientProvider);
+      await apiClient.post('/financial/deposits/$id/approve_deposit/');
       ref.read(pendingDepositsProvider.notifier).refresh();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -150,7 +151,8 @@ class _DepositCard extends ConsumerWidget {
     }
   }
 
-  Future<void> _reject(BuildContext context, WidgetRef ref, int id) async {
+  Future<void> _reject(
+      BuildContext context, WidgetRef ref, int id) async {
     final confirm = await _confirmDialog(
       context,
       title: 'Reject Deposit',
@@ -161,8 +163,8 @@ class _DepositCard extends ConsumerWidget {
     if (!confirm) return;
 
     try {
-      final apiClient = await ref.read(apiClientProvider.future);
-      await apiClient.post('/admin/deposits/$id/reject/');
+      final apiClient = ref.read(apiClientProvider);
+      await apiClient.post('/financial/deposits/$id/reject_deposit/');
       ref.read(pendingDepositsProvider.notifier).refresh();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -198,7 +200,8 @@ class _DepositCard extends ConsumerWidget {
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: isDanger
-                ? FilledButton.styleFrom(backgroundColor: Colors.red)
+                ? FilledButton.styleFrom(
+                backgroundColor: Colors.red)
                 : null,
             child: Text(confirmLabel),
           ),
@@ -209,7 +212,9 @@ class _DepositCard extends ConsumerWidget {
   }
 
   String _formatDate(DateTime d) =>
-      '${d.day}/${d.month}/${d.year} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+      '${d.day}/${d.month}/${d.year} '
+          '${d.hour.toString().padLeft(2, '0')}:'
+          '${d.minute.toString().padLeft(2, '0')}';
 }
 
 class _StatusChip extends StatelessWidget {
@@ -225,7 +230,8 @@ class _StatusChip extends StatelessWidget {
       DepositStatus.processing => (Colors.blue, 'Processing'),
     };
     return Chip(
-      label: Text(label, style: TextStyle(color: color, fontSize: 11)),
+      label: Text(label,
+          style: TextStyle(color: color, fontSize: 11)),
       side: BorderSide(color: color),
       backgroundColor: color.withOpacity(0.1),
       padding: EdgeInsets.zero,
@@ -242,11 +248,13 @@ class _EmptyView extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.check_circle_outline, size: 64, color: Colors.green),
+          Icon(Icons.check_circle_outline,
+              size: 64, color: Colors.green),
           SizedBox(height: 16),
           Text(
             'All caught up!',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            style:
+            TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           SizedBox(height: 8),
           Text('No pending deposit approvals.'),
@@ -269,7 +277,8 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const Icon(Icons.error_outline,
+                size: 48, color: Colors.red),
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),

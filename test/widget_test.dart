@@ -1,7 +1,7 @@
+import 'package:advance_company/app.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:advance_company_mobile/app.dart';
 
 void main() {
   testWidgets('App smoke test', (WidgetTester tester) async {

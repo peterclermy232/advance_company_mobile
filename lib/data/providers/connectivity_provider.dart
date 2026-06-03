@@ -2,24 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
-// ── Provider ──────────────────────────────────────────────────────────────────
+// ── Provider ───────────────────────────────────────────────────────────────
 
-final connectivityProvider =
-StreamProvider<List<ConnectivityResult>>((ref) {
+final connectivityProvider = StreamProvider<List<ConnectivityResult>>((ref) {
   return Connectivity().onConnectivityChanged;
 });
 
 final isOnlineProvider = Provider<bool>((ref) {
   final connectivity = ref.watch(connectivityProvider);
   return connectivity.when(
-    data: (results) => results.isNotEmpty &&
-        !results.contains(ConnectivityResult.none),
-    loading: () => true, // assume online while checking
+    data: (results) {
+      final result =
+          results.isNotEmpty ? results.first : ConnectivityResult.none;
+      return result != ConnectivityResult.none;
+    },
+    loading: () => true,
     error: (_, __) => true,
   );
 });
 
-// ── Offline Banner Widget ─────────────────────────────────────────────────────
+// ── Offline Banner ─────────────────────────────────────────────────────────
 
 class OfflineBanner extends ConsumerWidget {
   const OfflineBanner({super.key});
@@ -27,7 +29,6 @@ class OfflineBanner extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isOnline = ref.watch(isOnlineProvider);
-
     if (isOnline) return const SizedBox.shrink();
 
     return Container(
@@ -52,7 +53,7 @@ class OfflineBanner extends ConsumerWidget {
   }
 }
 
-// ── Network-aware Scaffold helper ─────────────────────────────────────────────
+// ── Network-aware Scaffold helper ──────────────────────────────────────────
 
 class NetworkAwareScaffold extends ConsumerWidget {
   final Widget child;

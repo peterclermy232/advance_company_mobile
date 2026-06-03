@@ -1,9 +1,3 @@
-// lib/presentation/navigation/app_router.dart
-//
-// Uses go_router with auth-based redirects.
-// • Unauthenticated users → /login
-// • Authenticated users trying to access /login → /dashboard
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -26,10 +20,11 @@ final routerProvider = Provider<GoRouter>((ref) {
     debugLogDiagnostics: false,
     initialLocation: '/dashboard',
     redirect: (context, state) {
+      // AuthState is NOT an AsyncValue — access fields directly
       final isLoading = authState.isLoading;
       if (isLoading) return null;
 
-      final isAuthenticated = authState.valueOrNull?.isAuthenticated ?? false;
+      final isAuthenticated = authState.isAuthenticated;
       final isAuthRoute = state.matchedLocation.startsWith('/login') ||
           state.matchedLocation.startsWith('/register') ||
           state.matchedLocation.startsWith('/forgot-password');
@@ -62,7 +57,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       // ── Standalone routes (no bottom nav) ─────────────────────────────────
-      GoRoute(path: '/deposit/new', builder: (_, __) => const DepositFormScreen()),
+      GoRoute(path: '/deposit/new',    builder: (_, __) => const DepositFormScreen()),
       GoRoute(path: '/admin/deposits', builder: (_, __) => const AdminDepositApprovalsScreen()),
     ],
     errorBuilder: (context, state) => Scaffold(

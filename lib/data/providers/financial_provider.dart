@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/deposit_model.dart';
+import '../models/financial_account_model.dart';
 import '../repositories/financial_repository.dart';
 import 'core_providers.dart';
 
@@ -11,9 +12,24 @@ final financialRepositoryProvider = Provider<FinancialRepository>((ref) {
 
 // ── Account ────────────────────────────────────────────────────────────────
 
-final myAccountProvider = FutureProvider<AccountModel>((ref) {
-  return ref.watch(financialRepositoryProvider).getMyAccount();
-});
+class FinancialAccountNotifier extends AsyncNotifier<FinancialAccountModel> {
+  @override
+  Future<FinancialAccountModel> build() => _fetch();
+
+  Future<FinancialAccountModel> _fetch() {
+    return ref.read(financialRepositoryProvider).getMyAccount();
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(_fetch);
+  }
+}
+
+final financialAccountProvider =
+AsyncNotifierProvider<FinancialAccountNotifier, FinancialAccountModel>(
+  FinancialAccountNotifier.new,
+);
 
 // ── Deposits ───────────────────────────────────────────────────────────────
 
@@ -75,6 +91,8 @@ class DepositsNotifier extends StateNotifier<DepositsState> {
     }
   }
 
+  Future<void> refresh() => loadDeposits(refresh: true);
+
   Future<void> loadMore() async {
     if (!state.hasMore || state.isLoading) return;
     final nextPage = state.page + 1;
@@ -125,3 +143,24 @@ StateNotifierProvider<DepositsNotifier, DepositsState>((ref) {
 final monthlySummaryProvider = FutureProvider<MonthlySummary>((ref) {
   return ref.watch(financialRepositoryProvider).getMonthlySummary();
 });
+
+// ── Pending deposits (admin) ───────────────────────────────────────────────
+
+class PendingDepositsNotifier extends AsyncNotifier<List<DepositModel>> {
+  @override
+  Future<List<DepositModel>> build() => _fetch();
+
+  Future<List<DepositModel>> _fetch() {
+    return ref.read(financialRepositoryProvider).getPendingApprovals();
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(_fetch);
+  }
+}
+
+final pendingDepositsProvider =
+AsyncNotifierProvider<PendingDepositsNotifier, List<DepositModel>>(
+  PendingDepositsNotifier.new,
+);

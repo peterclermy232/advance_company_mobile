@@ -5,7 +5,7 @@ import '../../../data/providers/financial_provider.dart';
 import '../../../data/models/deposit_model.dart';
 import '../../widgets/common/loading_indicator.dart';
 
-// Filter state: 'pending' | 'completed' | 'failed'
+// Filter state
 final depositTabFilterProvider = StateProvider<String>((ref) => 'pending');
 
 class DepositHistoryScreen extends ConsumerWidget {
@@ -13,60 +13,59 @@ class DepositHistoryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final depositsAsync = ref.watch(depositsProvider);
+    final depositsState = ref.watch(depositsProvider);
     final currentFilter = ref.watch(depositTabFilterProvider);
 
-    return depositsAsync.when(
-      loading: () => const LoadingIndicator(),
-      error: (e, _) => Center(
+    if (depositsState.isLoading && depositsState.deposits.isEmpty) {
+      return const LoadingIndicator();
+    }
+
+    if (depositsState.error != null && depositsState.deposits.isEmpty) {
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Icon(Icons.error_outline, size: 64, color: Colors.red),
             const SizedBox(height: 16),
-            Text('Error: $e'),
+            Text('Error: ${depositsState.error}'),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () => ref.invalidate(depositsProvider),
+              onPressed: () =>
+                  ref.read(depositsProvider.notifier).refresh(),
               child: const Text('Retry'),
             ),
           ],
         ),
-      ),
-      data: (deposits) {
-        // Use model helpers — isPending handles 'pending'+'processing',
-        // isApproved handles 'completed', isRejected handles 'failed'+'rejected'
-        final pending = deposits.where((d) => d.isPending).toList();
-        final approved = deposits.where((d) => d.isApproved).toList();
-        final rejected = deposits.where((d) => d.isRejected).toList();
+      );
+    }
 
-        final List<DepositModel> filtered;
-        if (currentFilter == 'pending') {
-          filtered = pending;
-        } else if (currentFilter == 'completed') {
-          filtered = approved;
-        } else {
-          filtered = rejected;
-        }
+    final deposits = depositsState.deposits;
+    final pending  = deposits.where((d) => d.isPending).toList();
+    final approved = deposits.where((d) => d.isApproved).toList();
+    final rejected = deposits.where((d) => d.isRejected).toList();
 
-        return RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(depositsProvider);
-            await ref.read(depositsProvider);
-          },
-          child: Column(
-            children: [
-              _buildTabBar(context, ref, currentFilter,
-                  pending.length, approved.length, rejected.length),
-              Expanded(
-                child: filtered.isEmpty
-                    ? _buildEmpty(currentFilter)
-                    : _buildList(filtered, currentFilter),
-              ),
-            ],
+    final List<DepositModel> filtered;
+    if (currentFilter == 'pending') {
+      filtered = pending;
+    } else if (currentFilter == 'completed') {
+      filtered = approved;
+    } else {
+      filtered = rejected;
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => ref.read(depositsProvider.notifier).refresh(),
+      child: Column(
+        children: [
+          _buildTabBar(context, ref, currentFilter,
+              pending.length, approved.length, rejected.length),
+          Expanded(
+            child: filtered.isEmpty
+                ? _buildEmpty(currentFilter)
+                : _buildList(filtered, currentFilter),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
@@ -120,7 +119,8 @@ class DepositHistoryScreen extends ConsumerWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               color: isActive ? Colors.white : Colors.grey.shade600,
-              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+              fontWeight:
+              isActive ? FontWeight.bold : FontWeight.normal,
               fontSize: 12,
             ),
           ),
@@ -146,8 +146,9 @@ class DepositHistoryScreen extends ConsumerWidget {
               style: const TextStyle(
                   fontWeight: FontWeight.w500, color: Colors.grey)),
           const SizedBox(height: 6),
-          Text('Deposits will appear here once they are submitted',
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade400)),
+          Text('Deposits will appear here once submitted',
+              style:
+              TextStyle(fontSize: 13, color: Colors.grey.shade400)),
         ],
       ),
     );
@@ -172,11 +173,13 @@ class _DepositTableRow extends StatelessWidget {
   final DepositModel deposit;
   final bool showReason;
 
-  const _DepositTableRow({required this.deposit, this.showReason = false});
+  const _DepositTableRow(
+      {required this.deposit, this.showReason = false});
 
-  String _initials(String name) {
-    if (name.trim().isEmpty) return '?';
-    final parts = name.trim().split(' ');
+  String _initials(String? name) {
+    final n = name?.trim() ?? '';
+    if (n.isEmpty) return '?';
+    final parts = n.split(' ');
     if (parts.length == 1) return parts[0][0].toUpperCase();
     return (parts[0][0] + parts.last[0]).toUpperCase();
   }
@@ -188,7 +191,6 @@ class _DepositTableRow extends StatelessWidget {
     final dateFormat = DateFormat('MMM d, y');
     final timeFormat = DateFormat('h:mm a');
 
-    // Use model helpers for color + label — no raw string comparisons
     final Color statusColor;
     if (deposit.isApproved) {
       statusColor = Colors.green;
@@ -200,8 +202,8 @@ class _DepositTableRow extends StatelessWidget {
       statusColor = Colors.grey;
     }
 
-    final amount =
-    currencyFormat.format(double.tryParse(deposit.amount) ?? 0);
+    // deposit.amount is already a double — no tryParse needed
+    final amountStr = currencyFormat.format(deposit.amount);
 
     return Container(
       decoration: BoxDecoration(
@@ -219,7 +221,7 @@ class _DepositTableRow extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Header row: avatar + name/date + status ─────────────────
+            // Header
             Row(
               children: [
                 CircleAvatar(
@@ -237,19 +239,21 @@ class _DepositTableRow extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(deposit.userName,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 15)),
+                      Text(
+                        deposit.userName ?? 'Unknown',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 15),
+                      ),
                       Text(
                         '${dateFormat.format(deposit.createdAt)}  '
                             '${timeFormat.format(deposit.createdAt)}',
                         style: TextStyle(
-                            fontSize: 12, color: Colors.grey.shade500),
+                            fontSize: 12,
+                            color: Colors.grey.shade500),
                       ),
                     ],
                   ),
                 ),
-                // Status pill — uses model's statusLabel
                 Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 5),
@@ -269,7 +273,7 @@ class _DepositTableRow extends StatelessWidget {
             ),
             const Divider(height: 20),
 
-            // ── Amount + method row ──────────────────────────────────────
+            // Amount + method
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -278,14 +282,15 @@ class _DepositTableRow extends StatelessWidget {
                   children: [
                     Text('Amount',
                         style: TextStyle(
-                            fontSize: 11, color: Colors.grey.shade500)),
+                            fontSize: 11,
+                            color: Colors.grey.shade500)),
                     const SizedBox(height: 2),
-                    Text(amount,
+                    Text(amountStr,
                         style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16)),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16)),
                   ],
                 ),
-                // Method badge — uses model's paymentMethodLabel
                 Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 5),
@@ -305,7 +310,7 @@ class _DepositTableRow extends StatelessWidget {
             ),
             const SizedBox(height: 10),
 
-            // ── Reference ───────────────────────────────────────────────
+            // Reference
             Row(
               children: [
                 Icon(Icons.tag, size: 14, color: Colors.grey.shade400),
@@ -323,7 +328,7 @@ class _DepositTableRow extends StatelessWidget {
               ],
             ),
 
-            // ── M-Pesa phone ─────────────────────────────────────────────
+            // M-Pesa phone
             if (deposit.mpesaPhone != null &&
                 deposit.mpesaPhone!.isNotEmpty) ...[
               const SizedBox(height: 6),
@@ -332,16 +337,14 @@ class _DepositTableRow extends StatelessWidget {
                   Icon(Icons.phone_android,
                       size: 14, color: Colors.grey.shade400),
                   const SizedBox(width: 4),
-                  Text(
-                    deposit.mpesaPhone!,
-                    style: TextStyle(
-                        fontSize: 12, color: Colors.grey.shade600),
-                  ),
+                  Text(deposit.mpesaPhone!,
+                      style: TextStyle(
+                          fontSize: 12, color: Colors.grey.shade600)),
                 ],
               ),
             ],
 
-            // ── Rejection reason ─────────────────────────────────────────
+            // Rejection reason
             if (showReason &&
                 deposit.rejectionReason != null &&
                 deposit.rejectionReason!.isNotEmpty) ...[
