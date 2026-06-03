@@ -25,10 +25,7 @@ class NotificationService {
       iOS: initializationSettingsIOS,
     );
 
-    await _flutterLocalNotificationsPlugin.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse: _handleNotificationResponse,
-    );
+    await _flutterLocalNotificationsPlugin.initialize(initializationSettings);
   }
 
   Future<void> showNotification({
@@ -60,6 +57,7 @@ class NotificationService {
       title,
       body,
       platformChannelSpecifics,
+      payload: payload,
     );
   }
 

@@ -265,8 +265,9 @@ class ThemeConfig {
           return Colors.white;
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected))
+          if (states.contains(WidgetState.selected)) {
             return AppColors.primary.withValues(alpha: 0.4);
+          }
           return AppColors.border;
         }),
       ),

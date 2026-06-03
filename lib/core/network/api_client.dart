@@ -219,13 +219,18 @@ class ApiClient {
         final statusCode = error.response?.statusCode;
         final data = error.response?.data;
 
-        if (statusCode == 401)
+        if (statusCode == 401) {
           return Exception('Session expired. Please log in again.');
-        if (statusCode == 403) return Exception('Access denied.');
-        if (statusCode == 404)
+        }
+        if (statusCode == 403) {
+          return Exception('Access denied.');
+        }
+        if (statusCode == 404) {
           return Exception('Endpoint not found (404). Check API URLs.');
-        if (statusCode == 500)
+        }
+        if (statusCode == 500) {
           return Exception('Server error (500). Check server logs.');
+        }
 
         if (data is Map) {
           final message = data['message'] ??
@@ -241,9 +246,13 @@ class ApiClient {
           data.forEach((key, value) {
             if (value is List) {
               errors.add(value.join(', '));
-            } else if (value is String) errors.add(value);
+            } else if (value is String) {
+              errors.add(value);
+            }
           });
-          if (errors.isNotEmpty) return Exception(errors.join('\n'));
+          if (errors.isNotEmpty) {
+            return Exception(errors.join('\n'));
+          }
         }
         return Exception('An error occurred (HTTP $statusCode).');
 
@@ -253,8 +262,9 @@ class ApiClient {
         return Exception('Security certificate error.');
       case DioExceptionType.unknown:
         final msg = error.message ?? '';
-        if (msg.contains('SocketException'))
+        if (msg.contains('SocketException')) {
           return Exception('No internet connection.');
+        }
         return Exception('An unexpected error occurred.');
     }
   }
