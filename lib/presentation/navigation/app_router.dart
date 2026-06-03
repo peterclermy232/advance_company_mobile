@@ -18,7 +18,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     debugLogDiagnostics: false,
-    initialLocation: '/dashboard',
+    initialLocation: '/login',
     redirect: (context, state) {
       // AuthState is NOT an AsyncValue — access fields directly
       final isLoading = authState.isLoading;

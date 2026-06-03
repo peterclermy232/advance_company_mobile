@@ -2,9 +2,21 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import '../storage/secure_storage.dart';
+import '../constants/api_endpoints.dart';
 import '../../config/api_config.dart';
 
 class ApiClient {
+  static const _publicEndpoints = [
+    ApiEndpoints.login,
+    ApiEndpoints.register,
+    ApiEndpoints.verifyEmail,
+    ApiEndpoints.resendVerification,
+    ApiEndpoints.verify2FA,
+    ApiEndpoints.forgotPassword,
+    ApiEndpoints.resetPasswordConfirm,
+    ApiEndpoints.refreshToken,
+  ];
+
   late final Dio _dio;
   final SecureStorage _storage;
 
@@ -19,7 +31,7 @@ class ApiClient {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        validateStatus: (status) => status != null && status < 500,
+        validateStatus: (status) => status != null && status < 400,
       ),
     );
 
@@ -27,14 +39,21 @@ class ApiClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final token = await _storage.getAccessToken();
-          if (token != null && token.isNotEmpty) {
-            options.headers['Authorization'] = 'Bearer $token';
+          final isPublic =
+              _publicEndpoints.any((endpoint) => options.path.contains(endpoint));
+          if (!isPublic) {
+            final token = await _storage.getAccessToken();
+            if (token != null && token.isNotEmpty) {
+              options.headers['Authorization'] = 'Bearer $token';
+            }
           }
           handler.next(options);
         },
         onError: (error, handler) async {
-          if (error.response?.statusCode == 401) {
+          final isPublic = _publicEndpoints.any(
+            (endpoint) => error.requestOptions.path.contains(endpoint),
+          );
+          if (error.response?.statusCode == 401 && !isPublic) {
             try {
               final refresh = await _storage.getRefreshToken();
               if (refresh != null) {
@@ -219,19 +238,6 @@ class ApiClient {
         final statusCode = error.response?.statusCode;
         final data = error.response?.data;
 
-        if (statusCode == 401) {
-          return Exception('Session expired. Please log in again.');
-        }
-        if (statusCode == 403) {
-          return Exception('Access denied.');
-        }
-        if (statusCode == 404) {
-          return Exception('Endpoint not found (404). Check API URLs.');
-        }
-        if (statusCode == 500) {
-          return Exception('Server error (500). Check server logs.');
-        }
-
         if (data is Map) {
           final message = data['message'] ??
               data['error'] ??
@@ -254,6 +260,20 @@ class ApiClient {
             return Exception(errors.join('\n'));
           }
         }
+
+        if (statusCode == 401) {
+          return Exception('Session expired. Please log in again.');
+        }
+        if (statusCode == 403) {
+          return Exception('Access denied.');
+        }
+        if (statusCode == 404) {
+          return Exception('Endpoint not found (404). Check API URLs.');
+        }
+        if (statusCode == 500) {
+          return Exception('Server error (500). Check server logs.');
+        }
+
         return Exception('An error occurred (HTTP $statusCode).');
 
       case DioExceptionType.cancel:
