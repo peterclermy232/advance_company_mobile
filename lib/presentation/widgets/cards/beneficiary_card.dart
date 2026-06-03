@@ -74,8 +74,8 @@ class BeneficiaryCard extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           '${beneficiary.relationDisplay ?? beneficiary.relation} '
-                              '• ${beneficiary.age} yrs'
-                              '${beneficiary.genderDisplay != null ? ' • ${beneficiary.genderDisplay}' : ''}',
+                          '• ${beneficiary.age} yrs'
+                          '${beneficiary.genderDisplay != null ? ' • ${beneficiary.genderDisplay}' : ''}',
                           style: TextStyle(
                             color: Colors.grey.shade600,
                             fontSize: 13,
@@ -87,8 +87,7 @@ class BeneficiaryCard extends StatelessWidget {
                           Row(
                             children: [
                               Icon(Icons.pie_chart_outline,
-                                  size: 13,
-                                  color: Colors.blue.shade600),
+                                  size: 13, color: Colors.blue.shade600),
                               const SizedBox(width: 4),
                               Text(
                                 '${beneficiary.percentageAllocation.toStringAsFixed(0)}% allocation',
@@ -106,10 +105,10 @@ class BeneficiaryCard extends StatelessWidget {
                   ),
                   // Verification status chip
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
+                      color: statusColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(

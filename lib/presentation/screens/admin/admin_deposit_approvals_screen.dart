@@ -27,8 +27,7 @@ class AdminDepositApprovalsScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => _ErrorView(
           message: e.toString(),
-          onRetry: () =>
-              ref.read(pendingDepositsProvider.notifier).refresh(),
+          onRetry: () => ref.read(pendingDepositsProvider.notifier).refresh(),
         ),
         data: (deposits) {
           if (deposits.isEmpty) {
@@ -41,8 +40,7 @@ class AdminDepositApprovalsScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               itemCount: deposits.length,
               separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, i) =>
-                  _DepositCard(deposit: deposits[i]),
+              itemBuilder: (context, i) => _DepositCard(deposit: deposits[i]),
             ),
           );
         },
@@ -92,8 +90,7 @@ class _DepositCard extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () =>
-                          _reject(context, ref, deposit.id),
+                      onPressed: () => _reject(context, ref, deposit.id),
                       icon: const Icon(Icons.close, color: Colors.red),
                       label: const Text('Reject',
                           style: TextStyle(color: Colors.red)),
@@ -105,8 +102,7 @@ class _DepositCard extends ConsumerWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: FilledButton.icon(
-                      onPressed: () =>
-                          _approve(context, ref, deposit.id),
+                      onPressed: () => _approve(context, ref, deposit.id),
                       icon: const Icon(Icons.check),
                       label: const Text('Approve'),
                     ),
@@ -119,8 +115,7 @@ class _DepositCard extends ConsumerWidget {
     );
   }
 
-  Future<void> _approve(
-      BuildContext context, WidgetRef ref, int id) async {
+  Future<void> _approve(BuildContext context, WidgetRef ref, int id) async {
     final confirm = await _confirmDialog(
       context,
       title: 'Approve Deposit',
@@ -151,8 +146,7 @@ class _DepositCard extends ConsumerWidget {
     }
   }
 
-  Future<void> _reject(
-      BuildContext context, WidgetRef ref, int id) async {
+  Future<void> _reject(BuildContext context, WidgetRef ref, int id) async {
     final confirm = await _confirmDialog(
       context,
       title: 'Reject Deposit',
@@ -181,40 +175,38 @@ class _DepositCard extends ConsumerWidget {
   }
 
   Future<bool> _confirmDialog(
-      BuildContext context, {
-        required String title,
-        required String content,
-        required String confirmLabel,
-        bool isDanger = false,
-      }) async {
+    BuildContext context, {
+    required String title,
+    required String content,
+    required String confirmLabel,
+    bool isDanger = false,
+  }) async {
     return await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(title),
-        content: Text(content),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+          context: context,
+          builder: (_) => AlertDialog(
+            title: Text(title),
+            content: Text(content),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: isDanger
+                    ? FilledButton.styleFrom(backgroundColor: Colors.red)
+                    : null,
+                child: Text(confirmLabel),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: isDanger
-                ? FilledButton.styleFrom(
-                backgroundColor: Colors.red)
-                : null,
-            child: Text(confirmLabel),
-          ),
-        ],
-      ),
-    ) ??
+        ) ??
         false;
   }
 
-  String _formatDate(DateTime d) =>
-      '${d.day}/${d.month}/${d.year} '
-          '${d.hour.toString().padLeft(2, '0')}:'
-          '${d.minute.toString().padLeft(2, '0')}';
+  String _formatDate(DateTime d) => '${d.day}/${d.month}/${d.year} '
+      '${d.hour.toString().padLeft(2, '0')}:'
+      '${d.minute.toString().padLeft(2, '0')}';
 }
 
 class _StatusChip extends StatelessWidget {
@@ -224,16 +216,15 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (color, label) = switch (status) {
-      DepositStatus.pending    => (Colors.orange, 'Pending'),
-      DepositStatus.approved   => (Colors.green, 'Approved'),
-      DepositStatus.rejected   => (Colors.red, 'Rejected'),
+      DepositStatus.pending => (Colors.orange, 'Pending'),
+      DepositStatus.approved => (Colors.green, 'Approved'),
+      DepositStatus.rejected => (Colors.red, 'Rejected'),
       DepositStatus.processing => (Colors.blue, 'Processing'),
     };
     return Chip(
-      label: Text(label,
-          style: TextStyle(color: color, fontSize: 11)),
+      label: Text(label, style: TextStyle(color: color, fontSize: 11)),
       side: BorderSide(color: color),
-      backgroundColor: color.withOpacity(0.1),
+      backgroundColor: color.withValues(alpha: 0.1),
       padding: EdgeInsets.zero,
     );
   }
@@ -248,13 +239,11 @@ class _EmptyView extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.check_circle_outline,
-              size: 64, color: Colors.green),
+          Icon(Icons.check_circle_outline, size: 64, color: Colors.green),
           SizedBox(height: 16),
           Text(
             'All caught up!',
-            style:
-            TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           SizedBox(height: 8),
           Text('No pending deposit approvals.'),
@@ -277,8 +266,7 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline,
-                size: 48, color: Colors.red),
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),

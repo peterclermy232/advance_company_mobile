@@ -79,7 +79,8 @@ class _ErrorScreen extends StatelessWidget {
               Text(
                 'An unexpected error occurred. Please try again.',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onErrorContainer.withOpacity(0.8),
+                  color:
+                      theme.colorScheme.onErrorContainer.withValues(alpha: 0.8),
                 ),
                 textAlign: TextAlign.center,
               ),

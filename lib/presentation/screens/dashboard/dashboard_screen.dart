@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,8 +9,8 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user          = ref.watch(currentUserProvider);
-    final accountAsync  = ref.watch(financialAccountProvider);
+    final user = ref.watch(currentUserProvider);
+    final accountAsync = ref.watch(financialAccountProvider);
     final depositsState = ref.watch(depositsProvider);
 
     return Scaffold(
@@ -76,42 +75,42 @@ class DashboardScreen extends ConsumerWidget {
               else if (depositsState.error != null)
                 Text('Error: ${depositsState.error}')
               else if (depositsState.deposits.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(child: Text('No deposits yet.')),
-                  )
-                else
-                  Column(
-                    children: depositsState.deposits.take(5).map((d) {
-                      return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: d.isApproved
-                              ? Colors.green.shade100
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(child: Text('No deposits yet.')),
+                )
+              else
+                Column(
+                  children: depositsState.deposits.take(5).map((d) {
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: d.isApproved
+                            ? Colors.green.shade100
+                            : d.isRejected
+                                ? Colors.red.shade100
+                                : Colors.orange.shade100,
+                        child: Icon(
+                          d.isApproved
+                              ? Icons.check
                               : d.isRejected
-                              ? Colors.red.shade100
-                              : Colors.orange.shade100,
-                          child: Icon(
-                            d.isApproved
-                                ? Icons.check
-                                : d.isRejected
-                                ? Icons.close
-                                : Icons.hourglass_empty,
-                            color: d.isApproved
-                                ? Colors.green
-                                : d.isRejected
-                                ? Colors.red
-                                : Colors.orange,
-                          ),
+                                  ? Icons.close
+                                  : Icons.hourglass_empty,
+                          color: d.isApproved
+                              ? Colors.green
+                              : d.isRejected
+                                  ? Colors.red
+                                  : Colors.orange,
                         ),
-                        title: Text('KES ${d.amount.toStringAsFixed(0)}'),
-                        subtitle: Text(d.statusLabel),
-                        trailing: Text(
-                          '${d.createdAt.day}/${d.createdAt.month}',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      );
-                    }).toList(),
-                  ),
+                      ),
+                      title: Text('KES ${d.amount.toStringAsFixed(0)}'),
+                      subtitle: Text(d.statusLabel),
+                      trailing: Text(
+                        '${d.createdAt.day}/${d.createdAt.month}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    );
+                  }).toList(),
+                ),
 
               const SizedBox(height: 80),
             ],
@@ -163,7 +162,7 @@ class _BalanceCard extends StatelessWidget {
             LinearProgressIndicator(
               value: monthlyLimit > 0
                   ? ((monthlyLimit - monthlyRemaining) / monthlyLimit)
-                  .clamp(0.0, 1.0)
+                      .clamp(0.0, 1.0)
                   : 0,
               minHeight: 6,
               borderRadius: BorderRadius.circular(3),
@@ -205,7 +204,7 @@ class _ActionCard extends StatelessWidget {
           child: Row(
             children: [
               CircleAvatar(
-                backgroundColor: color.withOpacity(0.15),
+                backgroundColor: color.withValues(alpha: 0.15),
                 child: Icon(icon, color: color),
               ),
               const SizedBox(width: 12),
@@ -242,11 +241,11 @@ class _LoadingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const Card(
-    child: SizedBox(
-      height: 160,
-      child: Center(child: CircularProgressIndicator()),
-    ),
-  );
+        child: SizedBox(
+          height: 160,
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
 }
 
 class _ErrorCard extends StatelessWidget {
@@ -257,19 +256,19 @@ class _ErrorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          const Icon(Icons.error_outline, color: Colors.red),
-          const SizedBox(height: 8),
-          Text(message),
-          TextButton(
-            onPressed: onRetry,
-            child: const Text('Retry'),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red),
+              const SizedBox(height: 8),
+              Text(message),
+              TextButton(
+                onPressed: onRetry,
+                child: const Text('Retry'),
+              ),
+            ],
           ),
-        ],
-      ),
-    ),
-  );
+        ),
+      );
 }

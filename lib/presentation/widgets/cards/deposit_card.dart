@@ -45,7 +45,7 @@ class DepositCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -58,7 +58,7 @@ class DepositCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
-              color: statusBg.withOpacity(0.45),
+              color: statusBg.withValues(alpha: 0.45),
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(16)),
             ),
@@ -93,7 +93,7 @@ class DepositCard extends StatelessWidget {
                     color: statusBg,
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                        color: statusColor.withOpacity(0.4), width: 1.5),
+                        color: statusColor.withValues(alpha: 0.4), width: 1.5),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -287,7 +287,7 @@ class _InfoTile extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
+              color: iconColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(7),
             ),
             child: Icon(icon, size: 15, color: iconColor),

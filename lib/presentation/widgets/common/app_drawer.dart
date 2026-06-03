@@ -1,10 +1,8 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../config/theme_config.dart';
 import '../../../data/providers/auth_provider.dart';
-
 
 class AppDrawer extends ConsumerWidget {
   const AppDrawer({super.key});
@@ -35,22 +33,22 @@ class AppDrawer extends ConsumerWidget {
                   : null,
               child: user?.profilePhotoUrl == null
                   ? Text(
-                user?.firstName.isNotEmpty == true
-                    ? user!.firstName[0].toUpperCase()
-                    : '?',
-                style: const TextStyle(
-                  fontSize: 28,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              )
+                      user?.firstName.isNotEmpty == true
+                          ? user!.firstName[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(
+                        fontSize: 28,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )
                   : null,
             ),
             otherAccountsPictures: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -109,8 +107,7 @@ class AppDrawer extends ConsumerWidget {
                 if (user?.isAdmin == true) ...[
                   const Divider(),
                   const Padding(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Text(
                       'ADMIN',
                       style: TextStyle(
@@ -154,8 +151,7 @@ class AppDrawer extends ConsumerWidget {
           // Logout button
           const Divider(height: 1),
           ListTile(
-            leading:
-            const Icon(Icons.logout, color: AppColors.error, size: 22),
+            leading: const Icon(Icons.logout, color: AppColors.error, size: 22),
             title: const Text(
               'Sign Out',
               style: TextStyle(
@@ -176,11 +172,11 @@ class AppDrawer extends ConsumerWidget {
   }
 
   Widget _navItem(
-      BuildContext context, {
-        required IconData icon,
-        required String title,
-        required String route,
-      }) {
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String route,
+  }) {
     final currentRoute = GoRouterState.of(context).matchedLocation;
     final isActive = currentRoute == route;
 
@@ -198,7 +194,7 @@ class AppDrawer extends ConsumerWidget {
           fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
         ),
       ),
-      tileColor: isActive ? AppColors.primary.withOpacity(0.08) : null,
+      tileColor: isActive ? AppColors.primary.withValues(alpha: 0.08) : null,
       onTap: () {
         Navigator.pop(context);
         context.go(route);

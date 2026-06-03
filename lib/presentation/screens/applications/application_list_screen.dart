@@ -85,14 +85,14 @@ class _ApplicationCard extends ConsumerWidget {
     // otherwise fall back to a local default.
     final statusChoicesAsync = ref.watch(statusChoicesProvider);
     final Color statusColor = statusChoicesAsync.whenOrNull(
-      data: (choices) {
-        final match = choices.cast<StatusChoiceModel?>().firstWhere(
-              (c) => c?.value == application.status,
-          orElse: () => null,
-        );
-        return match != null ? Color(match.colorValue) : null;
-      },
-    ) ??
+          data: (choices) {
+            final match = choices.cast<StatusChoiceModel?>().firstWhere(
+                  (c) => c?.value == application.status,
+                  orElse: () => null,
+                );
+            return match != null ? Color(match.colorValue) : null;
+          },
+        ) ??
         _defaultColor(application.status);
 
     return Card(
@@ -151,8 +151,7 @@ class _ApplicationCard extends ConsumerWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.comment,
-                        color: Colors.blue.shade700, size: 18),
+                    Icon(Icons.comment, color: Colors.blue.shade700, size: 18),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -199,9 +198,9 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.4)),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
       child: Text(
         label,

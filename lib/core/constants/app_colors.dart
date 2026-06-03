@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   // Primary brand
-  static const Color primary = Color(0xFF1B5E20);       // deep green
+  static const Color primary = Color(0xFF1B5E20); // deep green
   static const Color primaryLight = Color(0xFF4CAF50);
   static const Color primaryDark = Color(0xFF003300);
   static const Color accent = Color(0xFF00C853);
@@ -37,7 +37,7 @@ class AppColors {
   // Shadows
   static List<BoxShadow> cardShadow = [
     BoxShadow(
-      color: Colors.black.withOpacity(0.06),
+      color: Colors.black.withValues(alpha: 0.06),
       blurRadius: 10,
       offset: const Offset(0, 4),
     ),
@@ -45,7 +45,7 @@ class AppColors {
 
   static List<BoxShadow> elevatedShadow = [
     BoxShadow(
-      color: primary.withOpacity(0.2),
+      color: primary.withValues(alpha: 0.2),
       blurRadius: 20,
       offset: const Offset(0, 8),
     ),

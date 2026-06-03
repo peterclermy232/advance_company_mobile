@@ -19,8 +19,7 @@ class AdminApplicationsScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () =>
-                ref.read(applicationsProvider.notifier).refresh(),
+            onPressed: () => ref.read(applicationsProvider.notifier).refresh(),
           ),
         ],
       ),
@@ -47,15 +46,14 @@ class AdminApplicationsScreen extends ConsumerWidget {
           data: (apps) {
             // Sort: pending first, then under_review, then rest
             final sorted = [...apps]..sort((a, b) {
-              const order = {
-                'pending': 0,
-                'under_review': 1,
-                'approved': 2,
-                'rejected': 3,
-              };
-              return (order[a.status] ?? 9)
-                  .compareTo(order[b.status] ?? 9);
-            });
+                const order = {
+                  'pending': 0,
+                  'under_review': 1,
+                  'approved': 2,
+                  'rejected': 3,
+                };
+                return (order[a.status] ?? 9).compareTo(order[b.status] ?? 9);
+              });
 
             if (sorted.isEmpty) {
               return const EmptyState(
@@ -90,8 +88,7 @@ class _AdminApplicationCard extends ConsumerStatefulWidget {
       _AdminApplicationCardState();
 }
 
-class _AdminApplicationCardState
-    extends ConsumerState<_AdminApplicationCard> {
+class _AdminApplicationCardState extends ConsumerState<_AdminApplicationCard> {
   bool _isProcessing = false;
 
   Color get _statusColor {
@@ -144,7 +141,7 @@ class _AdminApplicationCardState
           children: [
             Text(
               'Approve ${widget.application.applicationTypeLabel} '
-                  'from ${widget.application.userName ?? "member"}?',
+              'from ${widget.application.userName ?? "member"}?',
             ),
             const SizedBox(height: 16),
             TextField(
@@ -174,7 +171,7 @@ class _AdminApplicationCardState
     await _doAction(() => ref
         .read(applicationsProvider.notifier)
         .approveApplication(widget.application.id,
-        comments: commentsCtrl.text));
+            comments: commentsCtrl.text));
   }
 
   Future<void> _reject() async {
@@ -222,8 +219,7 @@ class _AdminApplicationCardState
     if (confirmed != true) return;
     await _doAction(() => ref
         .read(applicationsProvider.notifier)
-        .rejectApplication(widget.application.id,
-        comments: commentsCtrl.text));
+        .rejectApplication(widget.application.id, comments: commentsCtrl.text));
   }
 
   Future<void> _markReview() async {
@@ -247,7 +243,7 @@ class _AdminApplicationCardState
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: _statusColor.withOpacity(0.15),
+                  backgroundColor: _statusColor.withValues(alpha: 0.15),
                   child: Text(
                     (app.userName ?? '?')[0].toUpperCase(),
                     style: TextStyle(
@@ -279,13 +275,13 @@ class _AdminApplicationCardState
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _statusColor.withOpacity(0.12),
+                    color: _statusColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
                     border:
-                    Border.all(color: _statusColor.withOpacity(0.4)),
+                        Border.all(color: _statusColor.withValues(alpha: 0.4)),
                   ),
                   child: Text(
                     app.status.replaceAll('_', ' ').toUpperCase(),
@@ -326,21 +322,18 @@ class _AdminApplicationCardState
             ],
 
             // Admin comments
-            if (app.adminComments != null &&
-                app.adminComments!.isNotEmpty) ...[
+            if (app.adminComments != null && app.adminComments!.isNotEmpty) ...[
               const SizedBox(height: 10),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade50,
                   borderRadius: BorderRadius.circular(8),
-                  border:
-                  Border.all(color: Colors.grey.shade300),
+                  border: Border.all(color: Colors.grey.shade300),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.comment,
-                        size: 16, color: Colors.grey),
+                    const Icon(Icons.comment, size: 16, color: Colors.grey),
                     const SizedBox(width: 8),
                     Expanded(child: Text(app.adminComments!)),
                   ],
@@ -379,8 +372,7 @@ class _AdminApplicationCardState
                             label: const Text('Reject'),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.red,
-                              side:
-                              const BorderSide(color: Colors.red),
+                              side: const BorderSide(color: Colors.red),
                             ),
                           ),
                         ),

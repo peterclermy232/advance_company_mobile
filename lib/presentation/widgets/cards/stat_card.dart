@@ -18,7 +18,7 @@ class StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = color.withOpacity(0.08);
+    final bgColor = color.withValues(alpha: 0.08);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -28,7 +28,7 @@ class StatCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -52,7 +52,8 @@ class StatCard extends StatelessWidget {
               // Trend badge — matches web's green trend chip
               if (trend != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF0FDF4),
                     borderRadius: BorderRadius.circular(20),

@@ -18,7 +18,7 @@ class VerifyEmailScreen extends ConsumerStatefulWidget {
 
 class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
   final List<TextEditingController> _controllers =
-  List.generate(6, (_) => TextEditingController());
+      List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
 
   bool _isLoading = false;
@@ -52,9 +52,9 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
     try {
       // Uses the updated verifyEmail that accepts email + code
       await ref.read(authRepositoryProvider).verifyEmail(
-        email: widget.email,
-        code: code,
-      );
+            email: widget.email,
+            code: code,
+          );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Email verified successfully!')),
@@ -125,7 +125,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.error.withOpacity(0.1),
+                    color: AppColors.error.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -136,7 +136,8 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                       Expanded(
                         child: Text(
                           _error!,
-                          style: const TextStyle(color: AppColors.error, fontSize: 13),
+                          style: const TextStyle(
+                              color: AppColors.error, fontSize: 13),
                         ),
                       ),
                     ],
@@ -157,30 +158,35 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                   ),
                   child: _isLoading
                       ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2),
-                  )
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2),
+                        )
                       : const Text(
-                    'Verify Email',
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white),
-                  ),
+                          'Verify Email',
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white),
+                        ),
                 ),
               ),
               const SizedBox(height: 20),
               Center(
                 child: TextButton(
-                  onPressed: _isLoading ? null : () {
-                    // Resend email
-                    ref.read(authRepositoryProvider).forgotPassword(widget.email);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Verification email resent')),
-                    );
-                  },
+                  onPressed: _isLoading
+                      ? null
+                      : () {
+                          // Resend email
+                          ref
+                              .read(authRepositoryProvider)
+                              .forgotPassword(widget.email);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Verification email resent')),
+                          );
+                        },
                   child: const Text(
                     "Didn't receive it? Resend",
                     style: TextStyle(color: AppColors.primary),

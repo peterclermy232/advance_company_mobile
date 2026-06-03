@@ -30,8 +30,7 @@ class DepositHistoryScreen extends ConsumerWidget {
             Text('Error: ${depositsState.error}'),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () =>
-                  ref.read(depositsProvider.notifier).refresh(),
+              onPressed: () => ref.read(depositsProvider.notifier).refresh(),
               child: const Text('Retry'),
             ),
           ],
@@ -40,7 +39,7 @@ class DepositHistoryScreen extends ConsumerWidget {
     }
 
     final deposits = depositsState.deposits;
-    final pending  = deposits.where((d) => d.isPending).toList();
+    final pending = deposits.where((d) => d.isPending).toList();
     final approved = deposits.where((d) => d.isApproved).toList();
     final rejected = deposits.where((d) => d.isRejected).toList();
 
@@ -57,8 +56,8 @@ class DepositHistoryScreen extends ConsumerWidget {
       onRefresh: () => ref.read(depositsProvider.notifier).refresh(),
       child: Column(
         children: [
-          _buildTabBar(context, ref, currentFilter,
-              pending.length, approved.length, rejected.length),
+          _buildTabBar(context, ref, currentFilter, pending.length,
+              approved.length, rejected.length),
           Expanded(
             child: filtered.isEmpty
                 ? _buildEmpty(currentFilter)
@@ -86,14 +85,14 @@ class DepositHistoryScreen extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          _buildTabButton(context, ref, 'pending',
-              'Pending ($pendingCount)', current,
+          _buildTabButton(
+              context, ref, 'pending', 'Pending ($pendingCount)', current,
               activeColor: Colors.blue.shade600),
-          _buildTabButton(context, ref, 'completed',
-              'Approved ($approvedCount)', current,
+          _buildTabButton(
+              context, ref, 'completed', 'Approved ($approvedCount)', current,
               activeColor: Colors.green.shade600),
-          _buildTabButton(context, ref, 'failed',
-              'Rejected ($rejectedCount)', current,
+          _buildTabButton(
+              context, ref, 'failed', 'Rejected ($rejectedCount)', current,
               activeColor: Colors.red.shade600),
         ],
       ),
@@ -101,12 +100,12 @@ class DepositHistoryScreen extends ConsumerWidget {
   }
 
   Widget _buildTabButton(BuildContext context, WidgetRef ref, String value,
-      String label, String current, {required Color activeColor}) {
+      String label, String current,
+      {required Color activeColor}) {
     final isActive = current == value;
     return Expanded(
       child: GestureDetector(
-        onTap: () =>
-        ref.read(depositTabFilterProvider.notifier).state = value,
+        onTap: () => ref.read(depositTabFilterProvider.notifier).state = value,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 10),
@@ -119,8 +118,7 @@ class DepositHistoryScreen extends ConsumerWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               color: isActive ? Colors.white : Colors.grey.shade600,
-              fontWeight:
-              isActive ? FontWeight.bold : FontWeight.normal,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
               fontSize: 12,
             ),
           ),
@@ -147,8 +145,7 @@ class DepositHistoryScreen extends ConsumerWidget {
                   fontWeight: FontWeight.w500, color: Colors.grey)),
           const SizedBox(height: 6),
           Text('Deposits will appear here once submitted',
-              style:
-              TextStyle(fontSize: 13, color: Colors.grey.shade400)),
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade400)),
         ],
       ),
     );
@@ -173,8 +170,7 @@ class _DepositTableRow extends StatelessWidget {
   final DepositModel deposit;
   final bool showReason;
 
-  const _DepositTableRow(
-      {required this.deposit, this.showReason = false});
+  const _DepositTableRow({required this.deposit, this.showReason = false});
 
   String _initials(String? name) {
     final n = name?.trim() ?? '';
@@ -187,7 +183,7 @@ class _DepositTableRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currencyFormat =
-    NumberFormat.currency(symbol: 'KES ', decimalDigits: 2);
+        NumberFormat.currency(symbol: 'KES ', decimalDigits: 2);
     final dateFormat = DateFormat('MMM d, y');
     final timeFormat = DateFormat('h:mm a');
 
@@ -211,7 +207,7 @@ class _DepositTableRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 8,
               offset: const Offset(0, 2))
         ],
@@ -246,19 +242,18 @@ class _DepositTableRow extends StatelessWidget {
                       ),
                       Text(
                         '${dateFormat.format(deposit.createdAt)}  '
-                            '${timeFormat.format(deposit.createdAt)}',
+                        '${timeFormat.format(deposit.createdAt)}',
                         style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade500),
+                            fontSize: 12, color: Colors.grey.shade500),
                       ),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 5),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
+                    color: statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -282,18 +277,16 @@ class _DepositTableRow extends StatelessWidget {
                   children: [
                     Text('Amount',
                         style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey.shade500)),
+                            fontSize: 11, color: Colors.grey.shade500)),
                     const SizedBox(height: 2),
                     Text(amountStr,
                         style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16)),
+                            fontWeight: FontWeight.bold, fontSize: 16)),
                   ],
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 5),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: Colors.blue.shade50,
                     borderRadius: BorderRadius.circular(20),
@@ -338,8 +331,8 @@ class _DepositTableRow extends StatelessWidget {
                       size: 14, color: Colors.grey.shade400),
                   const SizedBox(width: 4),
                   Text(deposit.mpesaPhone!,
-                      style: TextStyle(
-                          fontSize: 12, color: Colors.grey.shade600)),
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                 ],
               ),
             ],
@@ -366,8 +359,8 @@ class _DepositTableRow extends StatelessWidget {
                     Expanded(
                       child: Text(
                         deposit.rejectionReason!,
-                        style: TextStyle(
-                            color: Colors.red.shade700, fontSize: 13),
+                        style:
+                            TextStyle(color: Colors.red.shade700, fontSize: 13),
                       ),
                     ),
                   ],

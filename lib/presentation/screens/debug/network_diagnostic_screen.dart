@@ -24,10 +24,10 @@ class _NetworkDiagnosticScreenState extends State<NetworkDiagnosticScreen> {
 
   // ── Edit these to match your setup ───────────────────────────────────────
   final List<String> _urlsToTest = [
-    'http://10.0.2.2:8000/api/',          // Android Emulator → host machine
-    'http://127.0.0.1:8000/api/',         // iOS Simulator → host machine
-    'http://192.168.1.100:8000/api/',     // Replace with YOUR LAN IP
-    'https://www.google.com',             // Internet check
+    'http://10.0.2.2:8000/api/', // Android Emulator → host machine
+    'http://127.0.0.1:8000/api/', // iOS Simulator → host machine
+    'http://192.168.1.100:8000/api/', // Replace with YOUR LAN IP
+    'https://www.google.com', // Internet check
   ];
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -39,7 +39,8 @@ class _NetworkDiagnosticScreenState extends State<NetworkDiagnosticScreen> {
 
     // 1. Device info
     _addInfo('Platform', Platform.operatingSystem);
-    _addInfo('Is Physical Device?', _isPhysicalDevice() ? 'YES ⚠️' : 'NO (emulator/simulator)');
+    _addInfo('Is Physical Device?',
+        _isPhysicalDevice() ? 'YES ⚠️' : 'NO (emulator/simulator)');
 
     // 2. Test each URL
     final dio = Dio(BaseOptions(
@@ -80,10 +81,12 @@ class _NetworkDiagnosticScreenState extends State<NetworkDiagnosticScreen> {
       String detail;
       switch (e.type) {
         case DioExceptionType.connectionTimeout:
-          detail = 'CONNECTION TIMEOUT after ${elapsed}ms\n→ Server not reachable at this address';
+          detail =
+              'CONNECTION TIMEOUT after ${elapsed}ms\n→ Server not reachable at this address';
           break;
         case DioExceptionType.receiveTimeout:
-          detail = 'RECEIVE TIMEOUT after ${elapsed}ms\n→ Server reached but not responding';
+          detail =
+              'RECEIVE TIMEOUT after ${elapsed}ms\n→ Server reached but not responding';
           break;
         case DioExceptionType.connectionError:
           detail = 'CONNECTION ERROR\n→ ${e.message}';
@@ -115,34 +118,34 @@ class _NetworkDiagnosticScreenState extends State<NetworkDiagnosticScreen> {
 
   void _addInfo(String label, String value) {
     setState(() => _results.add(_DiagResult(
-      label: label,
-      detail: value,
-      type: _ResultType.info,
-    )));
+          label: label,
+          detail: value,
+          type: _ResultType.info,
+        )));
   }
 
   void _addSuccess(String label, String detail) {
     setState(() => _results.add(_DiagResult(
-      label: label,
-      detail: detail,
-      type: _ResultType.success,
-    )));
+          label: label,
+          detail: detail,
+          type: _ResultType.success,
+        )));
   }
 
   void _addWarning(String label, String detail) {
     setState(() => _results.add(_DiagResult(
-      label: label,
-      detail: detail,
-      type: _ResultType.warning,
-    )));
+          label: label,
+          detail: detail,
+          type: _ResultType.warning,
+        )));
   }
 
   void _addError(String label, String detail) {
     setState(() => _results.add(_DiagResult(
-      label: label,
-      detail: detail,
-      type: _ResultType.error,
-    )));
+          label: label,
+          detail: detail,
+          type: _ResultType.error,
+        )));
   }
 
   String get _summary {
@@ -240,31 +243,31 @@ class _NetworkDiagnosticScreenState extends State<NetworkDiagnosticScreen> {
           Expanded(
             child: _results.isEmpty && !_running
                 ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.network_check,
-                      size: 64, color: Colors.grey.shade300),
-                  const SizedBox(height: 16),
-                  const Text('Tap Run Diagnostics to start',
-                      style: TextStyle(color: Colors.grey)),
-                ],
-              ),
-            )
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.network_check,
+                            size: 64, color: Colors.grey.shade300),
+                        const SizedBox(height: 16),
+                        const Text('Tap Run Diagnostics to start',
+                            style: TextStyle(color: Colors.grey)),
+                      ],
+                    ),
+                  )
                 : ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: _results.length + (_running ? 1 : 0),
-              itemBuilder: (ctx, i) {
-                if (i == _results.length) {
-                  return const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                final r = _results[i];
-                return _ResultCard(result: r);
-              },
-            ),
+                    padding: const EdgeInsets.all(12),
+                    itemCount: _results.length + (_running ? 1 : 0),
+                    itemBuilder: (ctx, i) {
+                      if (i == _results.length) {
+                        return const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+                      final r = _results[i];
+                      return _ResultCard(result: r);
+                    },
+                  ),
           ),
 
           // Run button
@@ -277,11 +280,11 @@ class _NetworkDiagnosticScreenState extends State<NetworkDiagnosticScreen> {
                   onPressed: _running ? null : _runDiagnostics,
                   icon: _running
                       ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
-                  )
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
                       : const Icon(Icons.play_arrow),
                   label: Text(_running ? 'Running...' : 'Run Diagnostics'),
                   style: ElevatedButton.styleFrom(
@@ -317,10 +320,22 @@ class _ResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (icon, color, bg) = switch (result.type) {
-      _ResultType.success => (Icons.check_circle, Colors.green, Colors.green.shade50),
-      _ResultType.warning => (Icons.warning_amber, Colors.orange, Colors.orange.shade50),
-      _ResultType.error   => (Icons.cancel, Colors.red, Colors.red.shade50),
-      _ResultType.info    => (Icons.info_outline, Colors.blue, Colors.blue.shade50),
+      _ResultType.success => (
+          Icons.check_circle,
+          Colors.green,
+          Colors.green.shade50
+        ),
+      _ResultType.warning => (
+          Icons.warning_amber,
+          Colors.orange,
+          Colors.orange.shade50
+        ),
+      _ResultType.error => (Icons.cancel, Colors.red, Colors.red.shade50),
+      _ResultType.info => (
+          Icons.info_outline,
+          Colors.blue,
+          Colors.blue.shade50
+        ),
     };
 
     return Container(
@@ -329,7 +344,7 @@ class _ResultCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -347,7 +362,8 @@ class _ResultCard extends StatelessWidget {
                         fontSize: 13)),
                 const SizedBox(height: 2),
                 Text(result.detail,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF374151))),
+                    style: const TextStyle(
+                        fontSize: 12, color: Color(0xFF374151))),
               ],
             ),
           ),
@@ -376,8 +392,8 @@ class _FixTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title,
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 13)),
+              style:
+                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
           const SizedBox(height: 4),
           Text(fix,
               style: const TextStyle(

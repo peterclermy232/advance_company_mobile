@@ -8,8 +8,7 @@ import '../../widgets/common/loading_indicator.dart';
 import '../../widgets/cards/stat_card.dart';
 
 // Provider for analytics summary
-final analyticsSummaryProvider =
-FutureProvider.autoDispose((ref) async {
+final analyticsSummaryProvider = FutureProvider.autoDispose((ref) async {
   // apiClientProvider is a plain Provider<ApiClient>
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get(ApiEndpoints.analyticsSummary);
@@ -17,8 +16,7 @@ FutureProvider.autoDispose((ref) async {
 });
 
 // Provider for monthly trends
-final monthlyTrendsProvider =
-FutureProvider.autoDispose((ref) async {
+final monthlyTrendsProvider = FutureProvider.autoDispose((ref) async {
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get(ApiEndpoints.monthlyTrends);
   final data = response.data['data'] ?? response.data;
@@ -32,7 +30,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final summaryAsync = ref.watch(analyticsSummaryProvider);
-    final trendsAsync  = ref.watch(monthlyTrendsProvider);
+    final trendsAsync = ref.watch(monthlyTrendsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -66,8 +64,8 @@ class AdminAnalyticsScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               summaryAsync.when(
-                data: (summary) =>
-                    _buildSummaryStats(context, summary as Map<String, dynamic>),
+                data: (summary) => _buildSummaryStats(
+                    context, summary as Map<String, dynamic>),
                 loading: () => const LoadingIndicator(),
                 error: (error, _) =>
                     _buildErrorCard('Failed to load summary', error),
@@ -76,13 +74,12 @@ class AdminAnalyticsScreen extends ConsumerWidget {
               Text(
                 'Monthly Trends',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               const SizedBox(height: 16),
               trendsAsync.when(
-                data: (trends) =>
-                    _buildTrendsChart(context, trends),
+                data: (trends) => _buildTrendsChart(context, trends),
                 loading: () => const LoadingIndicator(),
                 error: (error, _) =>
                     _buildErrorCard('Failed to load trends', error),
@@ -124,9 +121,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
         StatCard(
           label: 'Total Deposits',
           value: currencyFormat.format(
-            double.tryParse(
-                summary['total_deposits']?.toString() ?? '0') ??
-                0,
+            double.tryParse(summary['total_deposits']?.toString() ?? '0') ?? 0,
           ),
           icon: Icons.account_balance_wallet,
           color: Colors.orange,
@@ -169,14 +164,13 @@ class AdminAnalyticsScreen extends ConsumerWidget {
     }
 
     final depositSpots = <FlSpot>[];
-    final memberSpots  = <FlSpot>[];
+    final memberSpots = <FlSpot>[];
 
     for (var i = 0; i < trends.length; i++) {
       final trend = trends[i];
       depositSpots.add(FlSpot(
         i.toDouble(),
-        double.tryParse(trend['total_deposits']?.toString() ?? '0') ??
-            0,
+        double.tryParse(trend['total_deposits']?.toString() ?? '0') ?? 0,
       ));
       memberSpots.add(FlSpot(
         i.toDouble(),
@@ -196,8 +190,8 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                   gridData: const FlGridData(show: true),
                   titlesData: FlTitlesData(
                     leftTitles: const AxisTitles(
-                      sideTitles: SideTitles(
-                          showTitles: true, reservedSize: 40),
+                      sideTitles:
+                          SideTitles(showTitles: true, reservedSize: 40),
                     ),
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
@@ -258,7 +252,8 @@ class AdminAnalyticsScreen extends ConsumerWidget {
     return Row(
       children: [
         Container(
-          width: 16, height: 16,
+          width: 16,
+          height: 16,
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 8),
@@ -294,14 +289,14 @@ class AdminAnalyticsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildActivityItem(String label, String value, IconData icon,
-      Color color, String trend) {
+  Widget _buildActivityItem(
+      String label, String value, IconData icon, Color color, String trend) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, color: color),
@@ -312,14 +307,12 @@ class AdminAnalyticsScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Text(value,
-              style: const TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.bold)),
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           Text(trend,
               style: TextStyle(
                   fontSize: 12,
-                  color: trend.startsWith('+')
-                      ? Colors.green
-                      : Colors.red)),
+                  color: trend.startsWith('+') ? Colors.green : Colors.red)),
         ],
       ),
     );
@@ -348,7 +341,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                     ?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             ...topContributors.asMap().entries.map((entry) {
-              final index       = entry.key;
+              final index = entry.key;
               final contributor = entry.value;
               return ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -356,8 +349,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                   backgroundColor: _getRankColor(index),
                   child: Text('${index + 1}',
                       style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold)),
+                          color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
                 title: Text(contributor['name'] as String),
                 trailing: Text(
@@ -395,8 +387,8 @@ class AdminAnalyticsScreen extends ConsumerWidget {
             const Icon(Icons.error_outline, size: 48, color: Colors.red),
             const SizedBox(height: 16),
             Text(title,
-                style: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.bold)),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text(error.toString(),
                 style: const TextStyle(color: Colors.grey),
@@ -407,8 +399,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _exportAnalytics(
-      BuildContext context, WidgetRef ref) async {
+  Future<void> _exportAnalytics(BuildContext context, WidgetRef ref) async {
     try {
       // apiClientProvider is a plain Provider<ApiClient>
       final apiClient = ref.read(apiClientProvider);
