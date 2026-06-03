@@ -6,7 +6,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../config/api_config.dart';
-import '../providers/auth_provider.dart';
 import '../providers/core_providers.dart'; // adjust import if needed
 
 // ── Provider ──────────────────────────────────────────────────────────────────

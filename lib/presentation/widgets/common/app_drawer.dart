@@ -108,8 +108,8 @@ class AppDrawer extends ConsumerWidget {
                 ),
                 if (user?.isAdmin == true) ...[
                   const Divider(),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
+                  const Padding(
+                    padding: EdgeInsets.symmetric(
                         horizontal: 16, vertical: 8),
                     child: Text(
                       'ADMIN',

@@ -204,7 +204,7 @@ class _ApplicationFormScreenState
                           return Column(
                             children: [
                               DropdownButtonFormField<String>(
-                                value: _selectedType,
+                                initialValue: _selectedType,
                                 decoration: InputDecoration(
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),

@@ -236,8 +236,9 @@ class ApiClient {
           }
           final errors = <String>[];
           data.forEach((key, value) {
-            if (value is List)        errors.add(value.join(', '));
-            else if (value is String) errors.add(value);
+            if (value is List) {
+              errors.add(value.join(', '));
+            } else if (value is String) errors.add(value);
           });
           if (errors.isNotEmpty) return Exception(errors.join('\n'));
         }

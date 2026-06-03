@@ -55,7 +55,7 @@ class DashboardScreen extends ConsumerWidget {
 
               // Quick actions
               if (user?.isAdmin == true) ...[
-                _SectionTitle('Admin'),
+                const _SectionTitle('Admin'),
                 Row(children: [
                   Expanded(
                     child: _ActionCard(
@@ -69,7 +69,7 @@ class DashboardScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
               ],
 
-              _SectionTitle('Recent Deposits'),
+              const _SectionTitle('Recent Deposits'),
 
               if (depositsState.isLoading)
                 const Center(child: CircularProgressIndicator())
