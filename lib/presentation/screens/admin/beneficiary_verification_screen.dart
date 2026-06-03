@@ -18,14 +18,12 @@ class BeneficiaryVerificationScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () =>
-                ref.read(beneficiariesProvider.notifier).refresh(),
+            onPressed: () => ref.read(beneficiariesProvider.notifier).refresh(),
           ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () =>
-            ref.read(beneficiariesProvider.notifier).refresh(),
+        onRefresh: () => ref.read(beneficiariesProvider.notifier).refresh(),
         child: pendingAsync.when(
           data: (beneficiaries) {
             if (beneficiaries.isEmpty) {
@@ -39,12 +37,11 @@ class BeneficiaryVerificationScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               itemCount: beneficiaries.length,
               separatorBuilder: (_, __) => const SizedBox(height: 16),
-              itemBuilder: (context, index) =>
-                  _BeneficiaryVerificationCard(
-                    beneficiary: beneficiaries[index],
-                    onActionComplete: () =>
-                        ref.read(beneficiariesProvider.notifier).refresh(),
-                  ),
+              itemBuilder: (context, index) => _BeneficiaryVerificationCard(
+                beneficiary: beneficiaries[index],
+                onActionComplete: () =>
+                    ref.read(beneficiariesProvider.notifier).refresh(),
+              ),
             );
           },
           loading: () => const LoadingIndicator(),
@@ -52,8 +49,7 @@ class BeneficiaryVerificationScreen extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline,
-                    size: 64, color: Colors.red),
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
                 const SizedBox(height: 16),
                 Text('Error: $e'),
                 const SizedBox(height: 16),
@@ -89,7 +85,7 @@ class _BeneficiaryVerificationCard extends ConsumerStatefulWidget {
 
 class _BeneficiaryVerificationCardState
     extends ConsumerState<_BeneficiaryVerificationCard> {
-  bool _isExpanded  = false;
+  bool _isExpanded = false;
   bool _isProcessing = false;
   final _reasonController = TextEditingController();
 
@@ -104,17 +100,15 @@ class _BeneficiaryVerificationCardState
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Verify Beneficiary'),
-        content: Text(
-            'Verify ${widget.beneficiary.name} for member '
-                '${widget.beneficiary.userName ?? "unknown"}?'),
+        content: Text('Verify ${widget.beneficiary.name} for member '
+            '${widget.beneficiary.userName ?? "unknown"}?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style:
-            ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
             child: const Text('Verify'),
           ),
         ],
@@ -140,8 +134,7 @@ class _BeneficiaryVerificationCardState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-                e.toString().replaceAll('Exception: ', '')),
+            content: Text(e.toString().replaceAll('Exception: ', '')),
             backgroundColor: Colors.red,
           ),
         );
@@ -179,15 +172,13 @@ class _BeneficiaryVerificationCardState
             onPressed: () {
               if (_reasonController.text.isEmpty) {
                 ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(
-                      content: Text('Reason is required')),
+                  const SnackBar(content: Text('Reason is required')),
                 );
                 return;
               }
               Navigator.pop(ctx, true);
             },
-            style:
-            ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Reject'),
           ),
         ],
@@ -216,8 +207,7 @@ class _BeneficiaryVerificationCardState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-                e.toString().replaceAll('Exception: ', '')),
+            content: Text(e.toString().replaceAll('Exception: ', '')),
             backgroundColor: Colors.red,
           ),
         );
@@ -247,40 +237,36 @@ class _BeneficiaryVerificationCardState
               ),
             ),
             title: Text(b.name,
-                style: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.bold)),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 4),
                 Text(
                   '${b.relationDisplay ?? b.relation} • '
-                      '${b.age} yrs • '
-                      '${b.genderDisplay ?? b.gender}',
+                  '${b.age} yrs • '
+                  '${b.genderDisplay ?? b.gender}',
                 ),
                 if (b.userName != null) ...[
                   const SizedBox(height: 4),
                   Text(
                     'Member: ${b.userName}',
-                    style: TextStyle(
-                        fontSize: 12, color: Colors.grey.shade600),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
                 ],
                 if (b.percentageAllocation > 0) ...[
                   const SizedBox(height: 4),
                   Text(
                     'Allocation: ${b.percentageAllocation.toStringAsFixed(0)}%',
-                    style: TextStyle(
-                        fontSize: 12, color: Colors.blue.shade600),
+                    style: TextStyle(fontSize: 12, color: Colors.blue.shade600),
                   ),
                 ],
               ],
             ),
             trailing: IconButton(
-              icon: Icon(
-                  _isExpanded ? Icons.expand_less : Icons.expand_more),
-              onPressed: () =>
-                  setState(() => _isExpanded = !_isExpanded),
+              icon: Icon(_isExpanded ? Icons.expand_less : Icons.expand_more),
+              onPressed: () => setState(() => _isExpanded = !_isExpanded),
             ),
           ),
           if (_isExpanded) ...[
@@ -295,15 +281,14 @@ class _BeneficiaryVerificationCardState
                   _detailRow('Salary Range', b.salaryRange ?? 'N/A'),
                   const SizedBox(height: 16),
                   const Text('Documents',
-                      style: TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.bold)),
+                      style:
+                          TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   if (b.identityDocument != null)
                     _docChip('Identity Document', Icons.badge),
                   if (b.birthCertificate != null)
                     _docChip('Birth Certificate', Icons.description),
-                  if (b.identityDocument == null &&
-                      b.birthCertificate == null)
+                  if (b.identityDocument == null && b.birthCertificate == null)
                     const Text('No documents uploaded',
                         style: TextStyle(color: Colors.grey)),
                   const SizedBox(height: 24),
@@ -319,8 +304,7 @@ class _BeneficiaryVerificationCardState
                             label: const Text('Reject'),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.red,
-                              side: const BorderSide(
-                                  color: Colors.red),
+                              side: const BorderSide(color: Colors.red),
                             ),
                           ),
                         ),
@@ -355,8 +339,7 @@ class _BeneficiaryVerificationCardState
           SizedBox(
               width: 120,
               child: Text(label,
-                  style: const TextStyle(
-                      color: Colors.grey, fontSize: 13))),
+                  style: const TextStyle(color: Colors.grey, fontSize: 13))),
           Expanded(
               child: Text(value,
                   style: const TextStyle(

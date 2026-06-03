@@ -20,20 +20,20 @@ class DepositCard extends StatelessWidget {
 
     if (deposit.isApproved) {
       statusColor = const Color(0xFF16A34A);
-      statusBg    = const Color(0xFFDCFCE7);
-      statusIcon  = Icons.check_circle_rounded;
+      statusBg = const Color(0xFFDCFCE7);
+      statusIcon = Icons.check_circle_rounded;
     } else if (deposit.isPending) {
       statusColor = const Color(0xFFD97706);
-      statusBg    = const Color(0xFFFEF3C7);
-      statusIcon  = Icons.schedule_rounded;
+      statusBg = const Color(0xFFFEF3C7);
+      statusIcon = Icons.schedule_rounded;
     } else if (deposit.isRejected) {
       statusColor = const Color(0xFFDC2626);
-      statusBg    = const Color(0xFFFEE2E2);
-      statusIcon  = Icons.cancel_rounded;
+      statusBg = const Color(0xFFFEE2E2);
+      statusIcon = Icons.cancel_rounded;
     } else {
       statusColor = Colors.grey.shade600;
-      statusBg    = Colors.grey.shade100;
-      statusIcon  = Icons.help_outline_rounded;
+      statusBg = Colors.grey.shade100;
+      statusIcon = Icons.help_outline_rounded;
     }
 
     // deposit.amount is already a double — format directly
@@ -60,7 +60,7 @@ class DepositCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: statusBg.withOpacity(0.45),
               borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(16)),
+                  const BorderRadius.vertical(top: Radius.circular(16)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -87,8 +87,8 @@ class DepositCard extends StatelessWidget {
                 ),
                 // Status pill
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 7),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                   decoration: BoxDecoration(
                     color: statusBg,
                     borderRadius: BorderRadius.circular(24),
@@ -140,7 +140,7 @@ class DepositCard extends StatelessWidget {
                         iconColor: Colors.purple.shade600,
                         label: 'Date',
                         value:
-                        '${dateFormat.format(deposit.createdAt)}\n${timeFormat.format(deposit.createdAt)}',
+                            '${dateFormat.format(deposit.createdAt)}\n${timeFormat.format(deposit.createdAt)}',
                       ),
                     ),
                   ],
@@ -182,8 +182,7 @@ class DepositCard extends StatelessWidget {
                 ],
 
                 // Notes
-                if (deposit.notes != null &&
-                    deposit.notes!.isNotEmpty) ...[
+                if (deposit.notes != null && deposit.notes!.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   _InfoRow(
                     icon: Icons.notes_rounded,
@@ -299,8 +298,8 @@ class _InfoTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label,
-                    style: TextStyle(
-                        fontSize: 10, color: Colors.grey.shade500)),
+                    style:
+                        TextStyle(fontSize: 10, color: Colors.grey.shade500)),
                 const SizedBox(height: 2),
                 Text(value,
                     style: const TextStyle(

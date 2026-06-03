@@ -4,8 +4,7 @@ import '../repositories/notification_repository.dart';
 import '../models/notification_model.dart';
 
 // NotificationRepository is NOT async — apiClientProvider is a plain Provider
-final notificationRepositoryProvider =
-    Provider<NotificationRepository>((ref) {
+final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
   final apiClient = ref.watch(apiClientProvider);
   return NotificationRepository(apiClient);
 });

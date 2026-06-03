@@ -21,8 +21,6 @@ final documentsProvider = FutureProvider.autoDispose((ref) async {
   return [];
 });
 
-
-
 class DocumentListScreen extends ConsumerWidget {
   const DocumentListScreen({super.key});
 
@@ -217,19 +215,19 @@ class _DocumentCard extends StatelessWidget {
     switch (status) {
       case 'VERIFIED':
         statusColor = Colors.green;
-        statusIcon  = Icons.check_circle;
+        statusIcon = Icons.check_circle;
         break;
       case 'PENDING':
         statusColor = Colors.orange;
-        statusIcon  = Icons.schedule;
+        statusIcon = Icons.schedule;
         break;
       case 'REJECTED':
         statusColor = Colors.red;
-        statusIcon  = Icons.cancel;
+        statusIcon = Icons.cancel;
         break;
       default:
         statusColor = Colors.grey;
-        statusIcon  = Icons.help;
+        statusIcon = Icons.help;
     }
     return Card(
       child: ListTile(
@@ -246,8 +244,7 @@ class _DocumentCard extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text(
-          (document['category'] as String? ?? '')
-              .replaceAll('_', ' '),
+          (document['category'] as String? ?? '').replaceAll('_', ' '),
         ),
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

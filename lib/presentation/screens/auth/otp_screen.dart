@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,7 +15,7 @@ class OtpScreen extends ConsumerStatefulWidget {
 
 class _OtpScreenState extends ConsumerState<OtpScreen> {
   final List<TextEditingController> _controllers =
-  List.generate(6, (_) => TextEditingController());
+      List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
 
   bool _isLoading = false;
@@ -37,7 +36,10 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       setState(() => _error = 'Please enter the 6-digit code');
       return;
     }
-    setState(() { _isLoading = true; _error = null; });
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
     try {
       // authRepositoryProvider is a plain Provider — no await needed
       final repo = ref.read(authRepositoryProvider);
@@ -115,8 +117,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                       Expanded(
                         child: Text(
                           _error!,
-                          style:
-                          TextStyle(color: theme.colorScheme.error, fontSize: 13),
+                          style: TextStyle(
+                              color: theme.colorScheme.error, fontSize: 13),
                         ),
                       ),
                     ],
@@ -131,15 +133,16 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                   onPressed: _isLoading ? null : _verify,
                   child: _isLoading
                       ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2),
-                  )
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2),
+                        )
                       : const Text(
-                    'Verify',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
+                          'Verify',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
                 ),
               ),
               const SizedBox(height: 20),

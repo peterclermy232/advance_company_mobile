@@ -84,8 +84,7 @@ class NotificationsScreen extends ConsumerWidget {
                   isThreeLine: true,
                   onTap: () async {
                     if (!notification.isRead) {
-                      final repo =
-                          ref.read(notificationRepositoryProvider);
+                      final repo = ref.read(notificationRepositoryProvider);
                       await repo.markAsRead(notification.id);
                       ref.invalidate(notificationsProvider);
                       ref.invalidate(unreadCountProvider);

@@ -13,11 +13,11 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _formKey   = GlobalKey<FormState>();
-  final _emailCtl  = TextEditingController();
-  final _passCtl   = TextEditingController();
-  bool _obscure    = true;
-  bool _isLoading  = false;
+  final _formKey = GlobalKey<FormState>();
+  final _emailCtl = TextEditingController();
+  final _passCtl = TextEditingController();
+  bool _obscure = true;
+  bool _isLoading = false;
   String? _error;
 
   @override
@@ -29,13 +29,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() { _isLoading = true; _error = null; });
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
 
     try {
       final success = await ref.read(authProvider.notifier).login(
-        email:    _emailCtl.text.trim(),
-        password: _passCtl.text,
-      );
+            email: _emailCtl.text.trim(),
+            password: _passCtl.text,
+          );
       if (!success && mounted) {
         final err = ref.read(authProvider).error ?? 'Login failed';
         setState(() => _error = err);
@@ -105,7 +108,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   validator: (v) {
                     if (v == null || v.isEmpty) return 'Email is required';
-                    if (!RegExp(r'\S+@\S+\.\S+').hasMatch(v)) return 'Enter a valid email';
+                    if (!RegExp(r'\S+@\S+\.\S+').hasMatch(v))
+                      return 'Enter a valid email';
                     return null;
                   },
                 ),
@@ -123,13 +127,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     prefixIcon: const Icon(Icons.lock_outlined),
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
+                      icon: Icon(
+                          _obscure ? Icons.visibility_off : Icons.visibility),
                       onPressed: () => setState(() => _obscure = !_obscure),
                     ),
                   ),
                   validator: (v) {
                     if (v == null || v.isEmpty) return 'Password is required';
-                    if (v.length < 6) return 'Password must be at least 6 characters';
+                    if (v.length < 6)
+                      return 'Password must be at least 6 characters';
                     return null;
                   },
                 ),
@@ -153,10 +159,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.error_outline, color: theme.colorScheme.error),
+                        Icon(Icons.error_outline,
+                            color: theme.colorScheme.error),
                         const SizedBox(width: 8),
-                        Expanded(child: Text(_error!,
-                            style: TextStyle(color: theme.colorScheme.error))),
+                        Expanded(
+                            child: Text(_error!,
+                                style:
+                                    TextStyle(color: theme.colorScheme.error))),
                       ],
                     ),
                   ),
@@ -170,9 +179,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   child: _isLoading
                       ? const SizedBox(
-                    width: 20, height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
                       : const Text('Sign In', style: TextStyle(fontSize: 16)),
                 ),
 

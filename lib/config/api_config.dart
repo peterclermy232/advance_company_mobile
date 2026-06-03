@@ -14,5 +14,5 @@ class ApiConfig {
   // Raise timeouts so the first login attempt doesn't time out.
   static const Duration connectTimeout = Duration(seconds: 60);
   static const Duration receiveTimeout = Duration(seconds: 60);
-  static const Duration sendTimeout    = Duration(seconds: 90);
+  static const Duration sendTimeout = Duration(seconds: 90);
 }

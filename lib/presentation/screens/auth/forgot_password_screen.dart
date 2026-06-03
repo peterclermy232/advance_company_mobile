@@ -37,8 +37,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:
-                Text(e.toString().replaceAll('Exception: ', '')),
+            content: Text(e.toString().replaceAll('Exception: ', '')),
             backgroundColor: Colors.red,
           ),
         );
@@ -86,7 +85,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 ),
           ),
           const SizedBox(height: 32),
-
           CustomTextField(
             controller: _emailController,
             label: 'Email Address',
@@ -99,7 +97,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             },
           ),
           const SizedBox(height: 24),
-
           CustomButton(
             onPressed: _isLoading ? null : _handleSubmit,
             isLoading: _isLoading,
