@@ -27,9 +27,7 @@ class NotificationService {
 
     await _flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) async {
-        // Handle notification tap
-      },
+      onDidReceiveNotificationResponse: _handleNotificationResponse,
     );
   }
 
@@ -62,7 +60,6 @@ class NotificationService {
       title,
       body,
       platformChannelSpecifics,
-      payload: payload,
     );
   }
 
@@ -72,5 +69,11 @@ class NotificationService {
 
   Future<void> cancelAllNotifications() async {
     await _flutterLocalNotificationsPlugin.cancelAll();
+  }
+
+  Future<void> _handleNotificationResponse(
+    NotificationResponse response,
+  ) async {
+    // Handle notification tap
   }
 }

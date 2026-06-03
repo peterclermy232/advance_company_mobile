@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:dio/dio.dart';
-import '../../../core/network/api_client.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../data/providers/core_providers.dart';
 import '../../widgets/common/custom_button.dart';
@@ -20,7 +19,7 @@ class DocumentUploadScreen extends ConsumerStatefulWidget {
 class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
-  
+
   String _selectedCategory = 'IDENTIFICATION';
   PlatformFile? _selectedFile;
   bool _isLoading = false;
@@ -106,7 +105,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
 
     try {
       final apiClient = ref.read(apiClientProvider);
-      
+
       final formData = FormData.fromMap({
         'title': _titleController.text.trim(),
         'category': _selectedCategory,
@@ -202,7 +201,10 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                         children: [
                           Text(
                             'Document Details',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
                           ),
@@ -277,7 +279,9 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        _categoryDescriptions[_selectedCategory] ?? '',
+                                        _categoryDescriptions[
+                                                _selectedCategory] ??
+                                            '',
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: Colors.grey.shade700,
@@ -304,7 +308,10 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                         children: [
                           Text(
                             'Select File',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
                           ),
@@ -368,7 +375,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                               ),
                             ),
                           ),
-                          
+
                           if (_selectedFile != null) ...[
                             const SizedBox(height: 12),
                             TextButton.icon(
@@ -400,7 +407,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
               ),
             ),
           ),
-          
+
           // Upload Progress Overlay
           if (_isLoading && _uploadProgress > 0)
             Positioned.fill(
@@ -422,7 +429,10 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                           const SizedBox(height: 24),
                           Text(
                             'Uploading Document...',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
                           ),
@@ -435,7 +445,10 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                           const SizedBox(height: 12),
                           Text(
                             '${(_uploadProgress * 100).toStringAsFixed(0)}%',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.blue,
                                 ),

@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -43,7 +42,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           title: const Text('Disable 2FA'),
           content: const Text(
             'Are you sure you want to disable two-factor authentication? '
-                'This will make your account less secure.',
+            'This will make your account less secure.',
           ),
           actions: [
             TextButton(
@@ -85,7 +84,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
     if (confirmed == true && mounted) {
       await ref.read(authProvider.notifier).logout();
-      context.go('/login');
+      if (mounted) {
+        context.go('/login');
+      }
     }
   }
 
@@ -259,14 +260,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 : null,
             child: user.profilePhotoUrl == null
                 ? Text(
-              user.firstName.isNotEmpty
-                  ? user.firstName[0].toUpperCase()
-                  : '?',
-              style: const TextStyle(
-                  fontSize: 24,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold),
-            )
+                    user.firstName.isNotEmpty
+                        ? user.firstName[0].toUpperCase()
+                        : '?',
+                    style: const TextStyle(
+                        fontSize: 24,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold),
+                  )
                 : null,
           ),
           const SizedBox(width: 16),
@@ -293,7 +294,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const SizedBox(height: 4),
                 Container(
                   padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(4),
@@ -320,26 +321,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Widget _sectionLabel(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 8, left: 4),
-    child: Text(
-      text.toUpperCase(),
-      style: const TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
-        color: AppColors.textSecondary,
-        letterSpacing: 1.2,
-      ),
-    ),
-  );
+        padding: const EdgeInsets.only(bottom: 8, left: 4),
+        child: Text(
+          text.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textSecondary,
+            letterSpacing: 1.2,
+          ),
+        ),
+      );
 
   Widget _buildCard(List<Widget> children) => Container(
-    decoration: BoxDecoration(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(12),
-      boxShadow: AppColors.cardShadow,
-    ),
-    child: Column(children: children),
-  );
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: AppColors.cardShadow,
+        ),
+        child: Column(children: children),
+      );
 
   Widget _divider() =>
       const Divider(height: 1, indent: 56, color: AppColors.divider);
@@ -364,12 +365,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       subtitle: subtitle != null
           ? Text(subtitle,
-          style: const TextStyle(
-              color: AppColors.textSecondary, fontSize: 12))
+              style:
+                  const TextStyle(color: AppColors.textSecondary, fontSize: 12))
           : null,
       trailing: onTap != null
           ? const Icon(Icons.chevron_right,
-          color: AppColors.textSecondary, size: 20)
+              color: AppColors.textSecondary, size: 20)
           : null,
       onTap: onTap,
     );
@@ -394,8 +395,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       subtitle: subtitle != null
           ? Text(subtitle,
-          style: const TextStyle(
-              color: AppColors.textSecondary, fontSize: 12))
+              style:
+                  const TextStyle(color: AppColors.textSecondary, fontSize: 12))
           : null,
       value: value,
       onChanged: onChanged,
