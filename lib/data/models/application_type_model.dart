@@ -13,9 +13,9 @@ class ApplicationTypeModel extends Equatable {
 
   factory ApplicationTypeModel.fromJson(Map<String, dynamic> json) {
     return ApplicationTypeModel(
-      value: json['value'] as String,
-      label: json['label'] as String,
-      description: json['description'] as String? ?? '',
+      value: (json['value'] ?? '').toString(),
+      label: (json['label'] ?? '').toString(),
+      description: (json['description'] ?? '').toString(),
     );
   }
 
@@ -31,8 +31,8 @@ class StatusChoiceModel extends Equatable {
 
   factory StatusChoiceModel.fromJson(Map<String, dynamic> json) {
     return StatusChoiceModel(
-      value: json['value'] as String,
-      label: json['label'] as String,
+      value: (json['value'] ?? '').toString(),
+      label: (json['label'] ?? '').toString(),
     );
   }
 
@@ -61,12 +61,16 @@ class ApplicationChoicesModel extends Equatable {
 
   factory ApplicationChoicesModel.fromJson(Map<String, dynamic> json) {
     return ApplicationChoicesModel(
-      applicationTypes: (json['application_types'] as List<dynamic>)
-          .map((e) => ApplicationTypeModel.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      statusChoices: (json['status_choices'] as List<dynamic>)
-          .map((e) => StatusChoiceModel.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      applicationTypes: (json['application_types'] as List<dynamic>?)
+              ?.map((e) => ApplicationTypeModel.fromJson(
+                  (e ?? <String, dynamic>{}) as Map<String, dynamic>))
+              .toList() ??
+          <ApplicationTypeModel>[],
+      statusChoices: (json['status_choices'] as List<dynamic>?)
+              ?.map((e) => StatusChoiceModel.fromJson(
+                  (e ?? <String, dynamic>{}) as Map<String, dynamic>))
+              .toList() ??
+          <StatusChoiceModel>[],
     );
   }
 
