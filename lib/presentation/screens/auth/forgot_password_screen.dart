@@ -27,27 +27,24 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isLoading = true);
-
     try {
-      final authRepository = await ref.read(authRepositoryProvider);
-      await authRepository.forgotPassword(_emailController.text.trim());
-
+      // authRepositoryProvider is a plain Provider — no await needed
+      final repo = ref.read(authRepositoryProvider);
+      await repo.forgotPassword(_emailController.text.trim());
       setState(() => _emailSent = true);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
+            content:
+                Text(e.toString().replaceAll('Exception: ', '')),
             backgroundColor: Colors.red,
           ),
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

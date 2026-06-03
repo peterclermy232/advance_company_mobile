@@ -3,20 +3,20 @@ import 'core_providers.dart';
 import '../repositories/notification_repository.dart';
 import '../models/notification_model.dart';
 
-// Repository Provider
-final notificationRepositoryProvider = FutureProvider<NotificationRepository>((ref) async {
+// NotificationRepository is NOT async — apiClientProvider is a plain Provider
+final notificationRepositoryProvider =
+    Provider<NotificationRepository>((ref) {
   final apiClient = ref.watch(apiClientProvider);
   return NotificationRepository(apiClient);
 });
 
-// Notifications List Provider
-final notificationsProvider = FutureProvider.autoDispose<List<NotificationModel>>((ref) async {
-  final repository = await ref.watch(notificationRepositoryProvider.future);
+final notificationsProvider =
+    FutureProvider.autoDispose<List<NotificationModel>>((ref) {
+  final repository = ref.watch(notificationRepositoryProvider);
   return repository.getNotifications();
 });
 
-// Unread Count Provider
-final unreadCountProvider = FutureProvider.autoDispose<int>((ref) async {
-  final repository = await ref.watch(notificationRepositoryProvider.future);
+final unreadCountProvider = FutureProvider.autoDispose<int>((ref) {
+  final repository = ref.watch(notificationRepositoryProvider);
   return repository.getUnreadCount();
 });

@@ -32,15 +32,21 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() { _isLoading = true; _error = null; _success = null; });
     try {
-      final repo = await ref.read(authRepositoryProvider);
+      // authRepositoryProvider is a plain Provider — no await needed
+      final repo = ref.read(authRepositoryProvider);
       await repo.register(
-        email: _emailCtl.text.trim(), password: _passCtl.text,
-        firstName: _firstCtl.text.trim(), lastName: _lastCtl.text.trim(),
-        phoneNumber: _phoneCtl.text.isEmpty ? null : _phoneCtl.text.trim(),
+        email: _emailCtl.text.trim(),
+        password: _passCtl.text,
+        firstName: _firstCtl.text.trim(),
+        lastName: _lastCtl.text.trim(),
+        phoneNumber:
+            _phoneCtl.text.isEmpty ? null : _phoneCtl.text.trim(),
       );
-      setState(() => _success = 'Account created! Check your email to verify.');
+      setState(() =>
+          _success = 'Account created! Check your email to verify.');
     } catch (e) {
-      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+      setState(
+          () => _error = e.toString().replaceFirst('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

@@ -9,13 +9,13 @@ import '../../widgets/common/loading_indicator.dart';
 import '../../widgets/common/empty_state.dart';
 
 final documentsProvider = FutureProvider.autoDispose((ref) async {
-  final apiClient = await ref.watch(apiClientProvider);
+  // apiClientProvider is a plain Provider — no await
+  final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get(ApiEndpoints.documents);
-  final data = response.data['data'];
-  
-  if (data is List) {
-    return data;
-  } else if (data is Map && data.containsKey('results')) {
+  final data = response.data['data'] ?? response.data;
+
+  if (data is List) return data;
+  if (data is Map && data.containsKey('results')) {
     return data['results'] as List;
   }
   return [];
@@ -164,42 +164,44 @@ class DocumentListScreen extends ConsumerWidget {
   }
 
   Future<void> _uploadDocument(
-  BuildContext context,
-  WidgetRef ref,
-  String title,
-  String category,
-  PlatformFile file,
-) async {
-  try {
-    final apiClient = await ref.read(apiClientProvider);
-    final formData = FormData.fromMap({
-      'title': title,
-      'category': category,
-      'file': await MultipartFile.fromFile(file.path!, filename: file.name),
-    });
-
-    await apiClient.uploadFile(ApiEndpoints.documents, formData);
-
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Document uploaded successfully!'),
-          backgroundColor: Colors.green,
+    BuildContext context,
+    WidgetRef ref,
+    String title,
+    String category,
+    PlatformFile file,
+  ) async {
+    try {
+      // apiClientProvider is a plain Provider — no await
+      final apiClient = ref.read(apiClientProvider);
+      final formData = FormData.fromMap({
+        'title': title,
+        'category': category,
+        'file': await MultipartFile.fromFile(
+          file.path!,
+          filename: file.name,
         ),
-      );
-      ref.invalidate(documentsProvider);
-    }
-  } catch (e) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceAll('Exception: ', '')),
-          backgroundColor: Colors.red,
-        ),
-      );
+      });
+      await apiClient.uploadFile(ApiEndpoints.documents, formData);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Document uploaded successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        ref.invalidate(documentsProvider);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
-}
 }
 
 class _DocumentCard extends StatelessWidget {
@@ -209,28 +211,26 @@ class _DocumentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final status = document['status'] as String;
+    final status = document['status'] as String? ?? 'PENDING';
     Color statusColor;
     IconData statusIcon;
-
     switch (status) {
       case 'VERIFIED':
         statusColor = Colors.green;
-        statusIcon = Icons.check_circle;
+        statusIcon  = Icons.check_circle;
         break;
       case 'PENDING':
         statusColor = Colors.orange;
-        statusIcon = Icons.schedule;
+        statusIcon  = Icons.schedule;
         break;
       case 'REJECTED':
         statusColor = Colors.red;
-        statusIcon = Icons.cancel;
+        statusIcon  = Icons.cancel;
         break;
       default:
         statusColor = Colors.grey;
-        statusIcon = Icons.help;
+        statusIcon  = Icons.help;
     }
-
     return Card(
       child: ListTile(
         leading: Container(
@@ -242,11 +242,12 @@ class _DocumentCard extends StatelessWidget {
           child: const Icon(Icons.description, color: Colors.blue),
         ),
         title: Text(
-          document['title'] as String,
+          document['title'] as String? ?? '',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text(
-          (document['category'] as String).replaceAll('_', ' '),
+          (document['category'] as String? ?? '')
+              .replaceAll('_', ' '),
         ),
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

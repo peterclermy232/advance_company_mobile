@@ -32,15 +32,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() { _isLoading = true; _error = null; });
 
     try {
-      await ref.read(authProvider.notifier).login(
+      final success = await ref.read(authProvider.notifier).login(
         email:    _emailCtl.text.trim(),
         password: _passCtl.text,
       );
-      // Router redirect handles navigation on auth state change
+      if (!success && mounted) {
+        final err = ref.read(authProvider).error ?? 'Login failed';
+        setState(() => _error = err);
+      }
+      // Router redirect handles navigation on success
     } catch (e) {
       final msg = e.toString().replaceFirst('Exception: ', '');
-      // 2FA required — go to OTP screen
-      if (msg.toLowerCase().contains('otp') || msg.toLowerCase().contains('2fa')) {
+      if (msg.toLowerCase().contains('otp') ||
+          msg.toLowerCase().contains('2fa')) {
         if (mounted) context.push('/otp', extra: _emailCtl.text.trim());
         return;
       }

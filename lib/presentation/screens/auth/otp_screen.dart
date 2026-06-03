@@ -37,20 +37,13 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       setState(() => _error = 'Please enter the 6-digit code');
       return;
     }
-
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
+    setState(() { _isLoading = true; _error = null; });
     try {
+      // authRepositoryProvider is a plain Provider — no await needed
       final repo = ref.read(authRepositoryProvider);
-      final user = await repo.verify2FA(code);
-      // Update auth state
+      await repo.verify2FA(code);
       await ref.read(authProvider.notifier).refreshProfile();
-      if (mounted) {
-        context.go('/dashboard');
-      }
+      if (mounted) context.go('/dashboard');
     } catch (e) {
       setState(() {
         _error = e.toString().replaceAll('Exception: ', '');

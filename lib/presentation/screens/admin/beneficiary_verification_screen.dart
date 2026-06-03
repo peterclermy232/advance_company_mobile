@@ -89,8 +89,15 @@ class _BeneficiaryVerificationCard extends ConsumerStatefulWidget {
 
 class _BeneficiaryVerificationCardState
     extends ConsumerState<_BeneficiaryVerificationCard> {
-  bool _isExpanded = false;
+  bool _isExpanded  = false;
   bool _isProcessing = false;
+  final _reasonController = TextEditingController();
+
+  @override
+  void dispose() {
+    _reasonController.dispose();
+    super.dispose();
+  }
 
   Future<void> _verify() async {
     final confirmed = await showDialog<bool>(
@@ -117,8 +124,8 @@ class _BeneficiaryVerificationCardState
 
     setState(() => _isProcessing = true);
     try {
-      final repo =
-      await ref.read(beneficiaryRepositoryProvider);
+      // beneficiaryRepositoryProvider is a plain Provider — no await
+      final repo = ref.read(beneficiaryRepositoryProvider);
       await repo.verifyBeneficiary(widget.beneficiary.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -133,7 +140,8 @@ class _BeneficiaryVerificationCardState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
+            content: Text(
+                e.toString().replaceAll('Exception: ', '')),
             backgroundColor: Colors.red,
           ),
         );
@@ -144,7 +152,6 @@ class _BeneficiaryVerificationCardState
   }
 
   Future<void> _reject() async {
-    final reasonController = TextEditingController();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -155,7 +162,7 @@ class _BeneficiaryVerificationCardState
             const Text('Please provide a reason for rejection:'),
             const SizedBox(height: 16),
             TextField(
-              controller: reasonController,
+              controller: _reasonController,
               decoration: const InputDecoration(
                 labelText: 'Reason *',
                 border: OutlineInputBorder(),
@@ -170,7 +177,7 @@ class _BeneficiaryVerificationCardState
               child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
-              if (reasonController.text.isEmpty) {
+              if (_reasonController.text.isEmpty) {
                 ScaffoldMessenger.of(ctx).showSnackBar(
                   const SnackBar(
                       content: Text('Reason is required')),
@@ -190,11 +197,11 @@ class _BeneficiaryVerificationCardState
 
     setState(() => _isProcessing = true);
     try {
+      // beneficiaryRepositoryProvider is a plain Provider — no await
       final repo = ref.read(beneficiaryRepositoryProvider);
-      // POST /beneficiary/{uuid}/reject/ with { reason: "..." }
       await repo.rejectBeneficiary(
         widget.beneficiary.id,
-        reason: reasonController.text,
+        reason: _reasonController.text,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -209,7 +216,8 @@ class _BeneficiaryVerificationCardState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
+            content: Text(
+                e.toString().replaceAll('Exception: ', '')),
             backgroundColor: Colors.red,
           ),
         );

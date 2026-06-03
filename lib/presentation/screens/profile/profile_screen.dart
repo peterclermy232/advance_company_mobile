@@ -147,11 +147,8 @@ class ProfileScreen extends ConsumerWidget {
           FilledButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              // authRepositoryProvider is a plain Provider<AuthRepository>
-              final authRepository = ref.read(authRepositoryProvider);
-              authRepository.logout().then((_) {
-                ref.read(authProvider.notifier).logout();
-              });
+              // authRepositoryProvider is a plain Provider — no await on read
+              ref.read(authProvider.notifier).logout();
             },
             child: const Text('Sign Out'),
           ),

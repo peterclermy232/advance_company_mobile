@@ -10,32 +10,34 @@ class DepositCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currencyFormat =
-    NumberFormat.currency(symbol: 'KES ', decimalDigits: 2);
+        NumberFormat.currency(symbol: 'KES ', decimalDigits: 2);
     final dateFormat = DateFormat('MMM dd, yyyy');
     final timeFormat = DateFormat('h:mm a');
 
-    // Use model helpers — handles 'completed'→Approved, 'failed'→Rejected, etc.
     final Color statusColor;
     final Color statusBg;
     final IconData statusIcon;
 
     if (deposit.isApproved) {
       statusColor = const Color(0xFF16A34A);
-      statusBg = const Color(0xFFDCFCE7);
-      statusIcon = Icons.check_circle_rounded;
+      statusBg    = const Color(0xFFDCFCE7);
+      statusIcon  = Icons.check_circle_rounded;
     } else if (deposit.isPending) {
       statusColor = const Color(0xFFD97706);
-      statusBg = const Color(0xFFFEF3C7);
-      statusIcon = Icons.schedule_rounded;
+      statusBg    = const Color(0xFFFEF3C7);
+      statusIcon  = Icons.schedule_rounded;
     } else if (deposit.isRejected) {
       statusColor = const Color(0xFFDC2626);
-      statusBg = const Color(0xFFFEE2E2);
-      statusIcon = Icons.cancel_rounded;
+      statusBg    = const Color(0xFFFEE2E2);
+      statusIcon  = Icons.cancel_rounded;
     } else {
       statusColor = Colors.grey.shade600;
-      statusBg = Colors.grey.shade100;
-      statusIcon = Icons.help_outline_rounded;
+      statusBg    = Colors.grey.shade100;
+      statusIcon  = Icons.help_outline_rounded;
     }
+
+    // deposit.amount is already a double — format directly
+    final amountStr = currencyFormat.format(deposit.amount);
 
     return Container(
       decoration: BoxDecoration(
@@ -75,8 +77,7 @@ class DepositCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      currencyFormat
-                          .format(double.tryParse(deposit.amount as String) ?? 0),
+                      amountStr,
                       style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "651243621664",
+    "project_id": "advance-project-ce725",
+    "storage_bucket": "advance-project-ce725.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:651243621664:android:806f4ffa7588d2af9b9b45",
+        "android_client_info": {
+          "package_name": "com.example.advance_company_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA1_EafIUYlfnyUktnkK9xojopW-JzE4MI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

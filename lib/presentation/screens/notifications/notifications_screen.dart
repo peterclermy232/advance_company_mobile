@@ -17,9 +17,9 @@ class NotificationsScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () async {
-              final notificationRepository =
-              await ref.read(notificationRepositoryProvider.future);
-              await notificationRepository.markAllAsRead();
+              // notificationRepositoryProvider is now a plain Provider
+              final repo = ref.read(notificationRepositoryProvider);
+              await repo.markAllAsRead();
               ref.invalidate(notificationsProvider);
               ref.invalidate(unreadCountProvider);
             },
@@ -84,9 +84,9 @@ class NotificationsScreen extends ConsumerWidget {
                   isThreeLine: true,
                   onTap: () async {
                     if (!notification.isRead) {
-                      final notificationRepository =
-                      await ref.read(notificationRepositoryProvider.future);
-                      await notificationRepository.markAsRead(notification.id);
+                      final repo =
+                          ref.read(notificationRepositoryProvider);
+                      await repo.markAsRead(notification.id);
                       ref.invalidate(notificationsProvider);
                       ref.invalidate(unreadCountProvider);
                     }
