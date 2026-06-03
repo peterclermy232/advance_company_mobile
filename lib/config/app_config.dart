@@ -2,8 +2,11 @@
 class AppConfig {
   // App Information
   static const String appName = 'Advance Company';
+  static const String environmentName = 'Staging';
+  static const bool showEnvironmentBanner = true;
   static const String appVersion = '1.0.0';
   static const String buildNumber = '1';
+  static String get appDisplayName => '$appName ($environmentName)';
   
   // Company Information
   static const String companyName = 'Advance Company';

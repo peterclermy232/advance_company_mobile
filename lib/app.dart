@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'presentation/navigation/app_router.dart';
 import 'config/theme_config.dart';
+import 'config/app_config.dart';
 import 'data/providers/connectivity_provider.dart';
 
 class AdvanceCompanyApp extends ConsumerWidget {
@@ -19,7 +20,7 @@ class AdvanceCompanyApp extends ConsumerWidget {
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
-      title: 'Advance Company',
+      title: AppConfig.appDisplayName,
       debugShowCheckedModeBanner: false,
       theme: ThemeConfig.lightTheme,
       themeMode: ThemeMode.light,
@@ -35,6 +36,8 @@ class AdvanceCompanyApp extends ConsumerWidget {
             children: [
               // Offline banner sits above all content
               const OfflineBanner(),
+              if (AppConfig.showEnvironmentBanner)
+                const _EnvironmentBanner(),
               Expanded(
                 child: _GlobalErrorBoundary(child: child!),
               ),
@@ -42,6 +45,31 @@ class AdvanceCompanyApp extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _EnvironmentBanner extends StatelessWidget {
+  const _EnvironmentBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      color: const Color(0xFFFFF3CD),
+      child: const SafeArea(
+        bottom: false,
+        child: Text(
+          'STAGING - Live backend testing',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Color(0xFF664D03),
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
     );
   }
 }
