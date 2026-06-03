@@ -14,12 +14,16 @@ class ApiEndpoints {
   static const String verify2FA = '/auth/verify-2fa/';
   static const String forgotPassword = '/auth/forgot-password/';
   static const String resetPasswordConfirm = '/auth/reset-password-confirm/';
+  static const String resetPassword = resetPasswordConfirm;
   static const String refreshToken = '/token/refresh/';
+  static const String logout = '/auth/logout/';
 
   // Protected User Endpoints
   static const String users = '/auth/users/';
+  static const String currentUser = users;
   static String userDetail(String uuid) => '/auth/users/$uuid/';
   static String updateUser(String uuid) => '/auth/users/$uuid/';
+  static String updateProfile(String uuid) => updateUser(uuid);
   static String deleteUser(String uuid) => '/auth/users/$uuid/';
   static const String changePassword = '/auth/users/change_password/';
   static const String enable2FA = '/auth/users/enable_2fa/';
@@ -44,9 +48,11 @@ class ApiEndpoints {
   static const String myAccount = '/financial/accounts/my_account/';
 
   static const String deposits = '/financial/deposits/';
+  static const String createDeposit = deposits;
   static String depositDetail(String uuid) => '/financial/deposits/$uuid/';
   static const String canDeposit = '/financial/deposits/can_deposit/';
   static const String monthlySummary = '/financial/deposits/monthly_summary/';
+  static const String monthlyLimit = monthlySummary;
   static const String pendingApprovals =
       '/financial/deposits/pending_approvals/';
   static String approveDeposit(String uuid) =>
@@ -141,6 +147,10 @@ class ApiEndpoints {
   static const String adminMembers = '/admin/analytics/members/';
   static const String adminSummary = '/admin/analytics/summary/';
   static const String adminExport = '/admin/analytics/export/';
+  static const String adminAnalytics = adminMembers;
+  static const String analyticsSummary = adminSummary;
+  static const String monthlyTrends = depositTrends;
+  static const String exportAnalytics = adminExport;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Health Endpoints

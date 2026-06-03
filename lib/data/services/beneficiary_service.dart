@@ -132,8 +132,9 @@ class BeneficiaryService {
     if (phoneNumber != null) data['phone_number'] = phoneNumber;
     if (profession != null) data['profession'] = profession;
     if (salaryRange != null) data['salary_range'] = salaryRange;
-    if (percentageAllocation != null)
+    if (percentageAllocation != null) {
       data['percentage_allocation'] = percentageAllocation;
+    }
 
     if (identityDocumentPath != null || birthCertificatePath != null) {
       final formData = FormData.fromMap(data);
