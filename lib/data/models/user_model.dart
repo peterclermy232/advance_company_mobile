@@ -1,10 +1,10 @@
 
 class UserModel {
-  final int id;
+  final String uuid;
   final String email;
   final String firstName;
   final String lastName;
-  final String role; // 'admin' | 'member' | 'staff'
+  final String role; // 'admin' | 'user' | 'staff'
   final bool isEmailVerified;
   final bool isBiometricEnabled;
   final bool twoFactorEnabled;
@@ -19,7 +19,7 @@ class UserModel {
   final DateTime createdAt;
 
   const UserModel({
-    required this.id,
+    required this.uuid,
     required this.email,
     required this.firstName,
     required this.lastName,
@@ -38,22 +38,34 @@ class UserModel {
 
   String get fullName => '$firstName $lastName'.trim();
   bool get isAdmin => role == 'admin';
-  bool get isMember => role == 'member';
+  bool get isMember => role == 'member' || role == 'user';
   bool get biometricEnabled => isBiometricEnabled;
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    // Parse name: backend may return full_name or first_name/last_name
+    String firstName = json['first_name'] as String? ?? '';
+    String lastName = json['last_name'] as String? ?? '';
+    if (firstName.isEmpty && lastName.isEmpty) {
+      final fullName = json['full_name'] as String? ?? '';
+      final parts = fullName.split(' ');
+      firstName = parts.isNotEmpty ? parts.first : '';
+      lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+    }
+
     return UserModel(
-      id: json['id'] as int,
-      email: json['email'] as String,
-      firstName: json['first_name'] as String? ?? '',
-      lastName: json['last_name'] as String? ?? '',
-      role: json['role'] as String? ?? 'member',
-      isEmailVerified: json['is_email_verified'] as bool? ?? false,
-      isBiometricEnabled: json['is_biometric_enabled'] as bool? ?? false,
+      uuid: (json['uuid'] ?? json['id'])?.toString() ?? '',
+      email: json['email'] as String? ?? '',
+      firstName: firstName,
+      lastName: lastName,
+      role: json['role'] as String? ?? 'user',
+      isEmailVerified: json['is_email_verified'] as bool? ??
+          json['email_verified'] as bool? ?? false,
+      isBiometricEnabled: json['biometric_enabled'] as bool? ??
+          json['is_biometric_enabled'] as bool? ?? false,
       twoFactorEnabled: json['two_factor_enabled'] as bool? ??
           json['is_2fa_enabled'] as bool? ?? false,
-      profileImageUrl: json['profile_image'] as String? ??
-          json['profile_photo'] as String?,
+      profileImageUrl: json['profile_photo'] as String? ??
+          json['profile_image'] as String?,
       phoneNumber: json['phone_number'] as String?,
       profession: json['profession'] as String?,
       age: json['age'] as int?,
@@ -65,15 +77,16 @@ class UserModel {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
+    'uuid': uuid,
     'email': email,
+    'full_name': fullName,
     'first_name': firstName,
     'last_name': lastName,
     'role': role,
-    'is_email_verified': isEmailVerified,
-    'is_biometric_enabled': isBiometricEnabled,
+    'email_verified': isEmailVerified,
+    'biometric_enabled': isBiometricEnabled,
     'two_factor_enabled': twoFactorEnabled,
-    'profile_image': profileImageUrl,
+    'profile_photo': profileImageUrl,
     'phone_number': phoneNumber,
     'profession': profession,
     'age': age,
@@ -94,7 +107,7 @@ class UserModel {
     String? maritalStatus,
   }) {
     return UserModel(
-      id: id,
+      uuid: uuid,
       email: email,
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,

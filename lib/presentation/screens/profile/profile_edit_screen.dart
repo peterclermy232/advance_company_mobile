@@ -239,7 +239,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                       _divider(),
                       _readOnlyField(
                         label: 'Member ID',
-                        value: user != null ? '#${user.id}' : '',
+                        value: user != null ? '#${user.uuid}' : '',
                         icon: Icons.badge_outlined,
                       ),
                     ]),
