@@ -20,7 +20,7 @@ class ApiEndpoints {
 
   // Protected User Endpoints
   static const String users = '/auth/users/';
-  static const String currentUser = users;
+  static const String currentUser = '/auth/users/profile/';
   static String userDetail(String uuid) => '/auth/users/$uuid/';
   static String updateUser(String uuid) => '/auth/users/$uuid/';
   static String updateProfile(String uuid) => updateUser(uuid);

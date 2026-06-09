@@ -39,19 +39,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             email: _emailCtl.text.trim(),
             password: _passCtl.text,
           );
-      if (!success && mounted) {
+      if (!mounted) return;
+      if (success) {
+        final auth = ref.read(authProvider);
+        if (auth.requires2FA) {
+          context.push('/otp', extra: auth.twoFactorEmail ?? _emailCtl.text.trim());
+          return;
+        }
+        // Router redirect handles navigation to dashboard
+      } else {
         final err = ref.read(authProvider).error ?? 'Login failed';
         setState(() => _error = err);
       }
-      // Router redirect handles navigation on success
     } catch (e) {
-      final msg = e.toString().replaceFirst('Exception: ', '');
-      if (msg.toLowerCase().contains('otp') ||
-          msg.toLowerCase().contains('2fa')) {
-        if (mounted) context.push('/otp', extra: _emailCtl.text.trim());
-        return;
+      if (mounted) {
+        setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
       }
-      setState(() => _error = msg);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

@@ -45,10 +45,10 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       _error = null;
     });
     try {
-      // authRepositoryProvider is a plain Provider — no await needed
+      final tempToken = ref.read(authProvider).tempToken ?? '';
       final repo = ref.read(authRepositoryProvider);
-      await repo.verify2FA(code);
-      await ref.read(authProvider.notifier).refreshProfile();
+      final user = await repo.verify2FA(tempToken: tempToken, code: code);
+      ref.read(authProvider.notifier).complete2FA(user);
       if (mounted) context.go('/dashboard');
     } catch (e) {
       setState(() {

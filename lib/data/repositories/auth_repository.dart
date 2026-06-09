@@ -3,6 +3,24 @@ import '../../core/constants/api_endpoints.dart';
 import '../../core/network/api_client.dart';
 import '../../core/storage/secure_storage.dart';
 
+// ── Login result ────────────────────────────────────────────────────────────
+
+enum LoginStatus { success, twoFactorRequired }
+
+class LoginResult {
+  final LoginStatus status;
+  final UserModel? user;
+  final String? tempToken;
+  final String? email;
+
+  const LoginResult({
+    required this.status,
+    this.user,
+    this.tempToken,
+    this.email,
+  });
+}
+
 class AuthRepository {
   final ApiClient _apiClient;
   final SecureStorage _storage;
@@ -23,9 +41,21 @@ class AuthRepository {
     if (refresh != null) await _storage.saveRefreshToken(refresh);
   }
 
+  // ── Envelope helper ─────────────────────────────────────────────────────────
+
+  /// Backend wraps responses in {success, message, toast_type, data}.
+  /// This unwraps to return the inner payload, falling back to the
+  /// raw map when no envelope is present.
+  Map<String, dynamic> _unwrap(Map<String, dynamic> raw) {
+    if (raw.containsKey('data') && raw['data'] is Map<String, dynamic>) {
+      return raw['data'] as Map<String, dynamic>;
+    }
+    return raw;
+  }
+
   // ── Login ──────────────────────────────────────────────────────────────────
 
-  Future<UserModel> login({
+  Future<LoginResult> login({
     required String email,
     required String password,
   }) async {
@@ -33,15 +63,32 @@ class AuthRepository {
       ApiEndpoints.login,
       data: {'email': email, 'password': password},
     );
-    final data = response.data as Map<String, dynamic>;
-    final access = data['access'] as String? ?? data['token'] as String? ?? '';
-    final refresh = data['refresh'] as String?;
+    final raw = response.data as Map<String, dynamic>;
+    final payload = _unwrap(raw);
+
+    // 2FA challenge
+    if (payload['requires_2fa'] == true) {
+      return LoginResult(
+        status: LoginStatus.twoFactorRequired,
+        tempToken: payload['temp_token'] as String?,
+        email: payload['email'] as String? ?? email,
+      );
+    }
+
+    // Normal success — tokens may be nested under 'tokens' or flat
+    final tokens = payload['tokens'] as Map<String, dynamic>?;
+    final access = tokens?['access'] as String? ??
+        payload['access'] as String? ?? '';
+    final refresh = tokens?['refresh'] as String? ??
+        payload['refresh'] as String?;
     await _saveTokens(access: access, refresh: refresh);
 
-    if (data.containsKey('user')) {
-      return UserModel.fromJson(data['user'] as Map<String, dynamic>);
+    if (payload.containsKey('user') && payload['user'] is Map<String, dynamic>) {
+      final user = UserModel.fromJson(payload['user'] as Map<String, dynamic>);
+      return LoginResult(status: LoginStatus.success, user: user);
     }
-    return getProfile();
+    final user = await getProfile();
+    return LoginResult(status: LoginStatus.success, user: user);
   }
 
   // ── Register ───────────────────────────────────────────────────────────────
@@ -91,10 +138,12 @@ class AuthRepository {
   Future<UserModel> updateProfile(Map<String, dynamic> data) async {
     final profile = await getProfile();
     final response = await _apiClient.patch(
-      ApiEndpoints.updateProfile(profile.id.toString()),
+      ApiEndpoints.updateProfile(profile.uuid),
       data: data,
     );
-    return UserModel.fromJson(response.data as Map<String, dynamic>);
+    final raw = response.data as Map<String, dynamic>;
+    final payload = _unwrap(raw);
+    return UserModel.fromJson(payload);
   }
 
   // ── Password ───────────────────────────────────────────────────────────────
@@ -166,15 +215,30 @@ class AuthRepository {
     await _apiClient.post(ApiEndpoints.disable2FA, data: {'password': password});
   }
 
-  Future<UserModel> verify2FA(String code) async {
+  Future<UserModel> verify2FA({
+    required String tempToken,
+    required String code,
+  }) async {
     final response = await _apiClient.post(
       ApiEndpoints.verify2FA,
-      data: {'code': code},
+      data: {
+        'temp_token': tempToken,
+        'token_code': code,
+      },
     );
-    final data = response.data as Map<String, dynamic>;
-    final access = data['access'] as String? ?? '';
-    final refresh = data['refresh'] as String?;
+    final raw = response.data as Map<String, dynamic>;
+    final payload = _unwrap(raw);
+
+    final tokens = payload['tokens'] as Map<String, dynamic>?;
+    final access = tokens?['access'] as String? ??
+        payload['access'] as String? ?? '';
+    final refresh = tokens?['refresh'] as String? ??
+        payload['refresh'] as String?;
     await _saveTokens(access: access, refresh: refresh);
+
+    if (payload.containsKey('user') && payload['user'] is Map<String, dynamic>) {
+      return UserModel.fromJson(payload['user'] as Map<String, dynamic>);
+    }
     return getProfile();
   }
 

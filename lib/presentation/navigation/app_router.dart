@@ -18,22 +18,36 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     debugLogDiagnostics: false,
-    initialLocation: '/login',
+    initialLocation: '/',
     redirect: (context, state) {
-      // AuthState is NOT an AsyncValue — access fields directly
       final isLoading = authState.isLoading;
-      if (isLoading) return null;
+      final loc = state.matchedLocation;
+
+      // While auth check is in progress, stay on (or go to) splash
+      if (isLoading) {
+        return loc == '/' ? null : '/';
+      }
 
       final isAuthenticated = authState.isAuthenticated;
-      final isAuthRoute = state.matchedLocation.startsWith('/login') ||
-          state.matchedLocation.startsWith('/register') ||
-          state.matchedLocation.startsWith('/forgot-password');
+      final isAuthRoute = loc.startsWith('/login') ||
+          loc.startsWith('/register') ||
+          loc.startsWith('/forgot-password') ||
+          loc.startsWith('/otp');
+      final isSplash = loc == '/';
 
       if (!isAuthenticated && !isAuthRoute) return '/login';
-      if (isAuthenticated && isAuthRoute) return '/dashboard';
+      if (isAuthenticated && (isAuthRoute || isSplash)) return '/dashboard';
       return null;
     },
     routes: [
+      // ── Splash (shown while checking stored auth) ────────────────────────
+      GoRoute(
+        path: '/',
+        builder: (_, __) => const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+      ),
+
       // ── Auth ──────────────────────────────────────────────────────────────
       GoRoute(path: '/login',           builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register',        builder: (_, __) => const RegisterScreen()),
