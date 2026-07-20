@@ -17,6 +17,11 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 class AuthState {
   final UserModel? user;
   final bool isLoading;
+  // True only while the initial stored-token check is in flight. The router
+  // uses this (not isLoading) to gate the splash screen — isLoading also
+  // covers in-flight login/register/etc. calls, which already have their own
+  // per-screen spinners and must not bounce the router to the splash route.
+  final bool isBootstrapping;
   final String? error;
   final bool isAuthenticated;
   final bool requires2FA;
@@ -26,6 +31,7 @@ class AuthState {
   const AuthState({
     this.user,
     this.isLoading = false,
+    this.isBootstrapping = false,
     this.error,
     this.isAuthenticated = false,
     this.requires2FA = false,
@@ -36,6 +42,7 @@ class AuthState {
   AuthState copyWith({
     UserModel? user,
     bool? isLoading,
+    bool? isBootstrapping,
     String? error,
     bool? isAuthenticated,
     bool? requires2FA,
@@ -45,6 +52,7 @@ class AuthState {
     return AuthState(
       user: user ?? this.user,
       isLoading: isLoading ?? this.isLoading,
+      isBootstrapping: isBootstrapping ?? this.isBootstrapping,
       error: error,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       requires2FA: requires2FA ?? this.requires2FA,
@@ -59,7 +67,8 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _repository;
 
-  AuthNotifier(this._repository) : super(const AuthState(isLoading: true)) {
+  AuthNotifier(this._repository)
+      : super(const AuthState(isBootstrapping: true)) {
     _checkAuth();
   }
 

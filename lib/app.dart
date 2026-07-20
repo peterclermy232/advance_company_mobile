@@ -94,8 +94,11 @@ class _GlobalErrorBoundaryState extends State<_GlobalErrorBoundary> {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (details) {
       originalOnError?.call(details);
-      // Only show boundary for fatal errors, not layout overflow warnings
-      if (details.exception.toString().contains('Fatal')) {
+      // Skip layout overflow warnings; show boundary for everything else
+      final msg = details.exception.toString();
+      final isLayoutOverflow = details.exception is FlutterError &&
+          msg.contains('overflowed');
+      if (!isLayoutOverflow) {
         if (mounted) setState(() => _error = details.exception);
       }
     };

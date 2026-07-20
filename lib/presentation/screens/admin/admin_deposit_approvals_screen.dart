@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../config/theme_config.dart';
 import '../../../data/providers/financial_provider.dart';
 import '../../../data/providers/core_providers.dart';
 import '../../../data/models/deposit_model.dart';
+import '../../widgets/common/status_badge.dart';
+import '../../widgets/dialogs/confirmation_dialog.dart';
 
 class AdminDepositApprovalsScreen extends ConsumerWidget {
   const AdminDepositApprovalsScreen({super.key});
@@ -71,7 +74,7 @@ class _DepositCard extends ConsumerWidget {
                   style: theme.textTheme.titleMedium
                       ?.copyWith(fontWeight: FontWeight.bold),
                 ),
-                _StatusChip(status: deposit.status),
+                StatusBadge.fromStatus(deposit.status.name),
               ],
             ),
             const SizedBox(height: 8),
@@ -91,11 +94,14 @@ class _DepositCard extends ConsumerWidget {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () => _reject(context, ref, deposit.id),
-                      icon: const Icon(Icons.close, color: Colors.red),
+                      icon: const Icon(Icons.close, color: AppColors.error),
                       label: const Text('Reject',
-                          style: TextStyle(color: Colors.red)),
+                          style: TextStyle(color: AppColors.error)),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.red),
+                        side: const BorderSide(color: AppColors.error),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                        ),
                       ),
                     ),
                   ),
@@ -105,6 +111,13 @@ class _DepositCard extends ConsumerWidget {
                       onPressed: () => _approve(context, ref, deposit.id),
                       icon: const Icon(Icons.check),
                       label: const Text('Approve'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.success,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -115,14 +128,14 @@ class _DepositCard extends ConsumerWidget {
     );
   }
 
-  Future<void> _approve(BuildContext context, WidgetRef ref, int id) async {
-    final confirm = await _confirmDialog(
+  Future<void> _approve(BuildContext context, WidgetRef ref, String id) async {
+    final confirm = await ConfirmationDialog.show(
       context,
       title: 'Approve Deposit',
-      content: 'Approve KES ${deposit.amount.toStringAsFixed(2)}?',
-      confirmLabel: 'Approve',
+      message: 'Approve KES ${deposit.amount.toStringAsFixed(2)}?',
+      confirmText: 'Approve',
     );
-    if (!confirm) return;
+    if (confirm != true) return;
 
     try {
       // apiClientProvider is a plain Provider<ApiClient> — no .future
@@ -133,32 +146,81 @@ class _DepositCard extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Deposit approved'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     }
   }
 
-  Future<void> _reject(BuildContext context, WidgetRef ref, int id) async {
-    final confirm = await _confirmDialog(
-      context,
-      title: 'Reject Deposit',
-      content: 'Reject this deposit? This cannot be undone.',
-      confirmLabel: 'Reject',
-      isDanger: true,
+  Future<void> _reject(BuildContext context, WidgetRef ref, String id) async {
+    final reasonCtl = TextEditingController();
+    String? reason;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Reject Deposit'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+                'Reject KES ${deposit.amount.toStringAsFixed(2)}? This cannot be undone.'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: reasonCtl,
+              maxLines: 3,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Rejection Reason *',
+                border: OutlineInputBorder(),
+                hintText: 'Explain why this deposit is being rejected',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+            ),
+            onPressed: () {
+              if (reasonCtl.text.trim().isEmpty) return;
+              reason = reasonCtl.text.trim();
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('Reject'),
+          ),
+        ],
+      ),
     );
-    if (!confirm) return;
+    reasonCtl.dispose();
+    if (reason == null) return;
 
     try {
       final apiClient = ref.read(apiClientProvider);
-      await apiClient.post('/financial/deposits/$id/reject_deposit/');
+      await apiClient.post(
+        '/financial/deposits/$id/reject_deposit/',
+        data: {'reason': reason},
+      );
       ref.read(pendingDepositsProvider.notifier).refresh();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -168,66 +230,18 @@ class _DepositCard extends ConsumerWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     }
   }
 
-  Future<bool> _confirmDialog(
-    BuildContext context, {
-    required String title,
-    required String content,
-    required String confirmLabel,
-    bool isDanger = false,
-  }) async {
-    return await showDialog<bool>(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: Text(title),
-            content: Text(content),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: isDanger
-                    ? FilledButton.styleFrom(backgroundColor: Colors.red)
-                    : null,
-                child: Text(confirmLabel),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-  }
-
   String _formatDate(DateTime d) => '${d.day}/${d.month}/${d.year} '
       '${d.hour.toString().padLeft(2, '0')}:'
       '${d.minute.toString().padLeft(2, '0')}';
-}
-
-class _StatusChip extends StatelessWidget {
-  final DepositStatus status;
-  const _StatusChip({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    final (color, label) = switch (status) {
-      DepositStatus.pending => (Colors.orange, 'Pending'),
-      DepositStatus.approved => (Colors.green, 'Approved'),
-      DepositStatus.rejected => (Colors.red, 'Rejected'),
-      DepositStatus.processing => (Colors.blue, 'Processing'),
-    };
-    return Chip(
-      label: Text(label, style: TextStyle(color: color, fontSize: 11)),
-      side: BorderSide(color: color),
-      backgroundColor: color.withValues(alpha: 0.1),
-      padding: EdgeInsets.zero,
-    );
-  }
 }
 
 class _EmptyView extends StatelessWidget {
@@ -239,7 +253,7 @@ class _EmptyView extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.check_circle_outline, size: 64, color: Colors.green),
+          Icon(Icons.check_circle_outline, size: 64, color: AppColors.success),
           SizedBox(height: 16),
           Text(
             'All caught up!',
@@ -266,7 +280,7 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),

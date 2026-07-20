@@ -17,7 +17,7 @@ class AppDrawer extends ConsumerWidget {
         children: [
           // Header
           UserAccountsDrawerHeader(
-            decoration: const BoxDecoration(color: AppColors.primary),
+            decoration: const BoxDecoration(gradient: AppColors.brandGradient),
             accountName: Text(
               user?.fullName ?? 'Guest',
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -48,7 +48,7 @@ class AppDrawer extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
+                  color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -159,6 +159,7 @@ class AppDrawer extends ConsumerWidget {
                 fontWeight: FontWeight.w500,
               ),
             ),
+            tileColor: AppColors.errorBg,
             onTap: () async {
               Navigator.pop(context); // close drawer
               await ref.read(authProvider.notifier).logout();
@@ -180,25 +181,28 @@ class AppDrawer extends ConsumerWidget {
     final currentRoute = GoRouterState.of(context).matchedLocation;
     final isActive = currentRoute == route;
 
-    return ListTile(
-      leading: Icon(
-        icon,
-        color: isActive ? AppColors.primary : AppColors.textSecondary,
-        size: 22,
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontSize: 15,
-          color: isActive ? AppColors.primary : AppColors.textPrimary,
-          fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      child: ListTile(
+        leading: Icon(
+          icon,
+          color: isActive ? Colors.white : AppColors.textSecondary,
+          size: 22,
         ),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: 15,
+            color: isActive ? Colors.white : AppColors.textPrimary,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
+        tileColor: isActive ? AppColors.primary : null,
+        onTap: () {
+          Navigator.pop(context);
+          context.go(route);
+        },
       ),
-      tileColor: isActive ? AppColors.primary.withValues(alpha: 0.08) : null,
-      onTap: () {
-        Navigator.pop(context);
-        context.go(route);
-      },
     );
   }
 }

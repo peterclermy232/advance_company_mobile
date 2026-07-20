@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../config/theme_config.dart';
+
 class CustomTextField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
@@ -35,6 +37,7 @@ class CustomTextField extends StatelessWidget {
           style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
           ),
         ),
         const SizedBox(height: 8),
@@ -49,11 +52,8 @@ class CustomTextField extends StatelessWidget {
             hintText: hintText,
             suffixIcon: suffixIcon,
             prefixIcon: prefixIcon,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
             filled: true,
-            fillColor: enabled ? Colors.grey[50] : Colors.grey[200],
+            fillColor: enabled ? AppColors.surface : AppColors.divider,
           ),
         ),
       ],

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../config/theme_config.dart';
 import '../../../data/providers/beneficiary_provider.dart';
 import '../../../data/models/beneficiary_model.dart';
 import '../../widgets/common/loading_indicator.dart';
 import '../../widgets/common/empty_state.dart';
+import '../../widgets/dialogs/confirmation_dialog.dart';
 
 class BeneficiaryVerificationScreen extends ConsumerWidget {
   const BeneficiaryVerificationScreen({super.key});
@@ -49,7 +51,8 @@ class BeneficiaryVerificationScreen extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const Icon(Icons.error_outline,
+                    size: 64, color: AppColors.error),
                 const SizedBox(height: 16),
                 Text('Error: $e'),
                 const SizedBox(height: 16),
@@ -96,23 +99,12 @@ class _BeneficiaryVerificationCardState
   }
 
   Future<void> _verify() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Verify Beneficiary'),
-        content: Text('Verify ${widget.beneficiary.name} for member '
-            '${widget.beneficiary.userName ?? "unknown"}?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('Verify'),
-          ),
-        ],
-      ),
+    final confirmed = await ConfirmationDialog.show(
+      context,
+      title: 'Verify Beneficiary',
+      message: 'Verify ${widget.beneficiary.name} for member '
+          '${widget.beneficiary.userName ?? "unknown"}?',
+      confirmText: 'Verify',
     );
     if (confirmed != true) return;
 
@@ -125,7 +117,7 @@ class _BeneficiaryVerificationCardState
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Beneficiary verified successfully!'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
         widget.onActionComplete();
@@ -135,7 +127,7 @@ class _BeneficiaryVerificationCardState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -178,7 +170,10 @@ class _BeneficiaryVerificationCardState
               }
               Navigator.pop(ctx, true);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Reject'),
           ),
         ],
@@ -198,7 +193,7 @@ class _BeneficiaryVerificationCardState
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Beneficiary rejected'),
-            backgroundColor: Colors.orange,
+            backgroundColor: AppColors.warning,
           ),
         );
         widget.onActionComplete();
@@ -208,7 +203,7 @@ class _BeneficiaryVerificationCardState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -226,19 +221,21 @@ class _BeneficiaryVerificationCardState
           ListTile(
             leading: CircleAvatar(
               radius: 28,
-              backgroundColor: Colors.blue.shade100,
+              backgroundColor: AppColors.avatar2,
               child: Text(
                 b.name[0].toUpperCase(),
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue.shade700,
+                  color: AppColors.primaryDark,
                 ),
               ),
             ),
             title: Text(b.name,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary)),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -247,19 +244,21 @@ class _BeneficiaryVerificationCardState
                   '${b.relationDisplay ?? b.relation} • '
                   '${b.age} yrs • '
                   '${b.genderDisplay ?? b.gender}',
+                  style: const TextStyle(color: AppColors.textSecondary),
                 ),
                 if (b.userName != null) ...[
                   const SizedBox(height: 4),
                   Text(
                     'Member: ${b.userName}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    style:
+                        const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   ),
                 ],
                 if (b.percentageAllocation > 0) ...[
                   const SizedBox(height: 4),
                   Text(
                     'Allocation: ${b.percentageAllocation.toStringAsFixed(0)}%',
-                    style: TextStyle(fontSize: 12, color: Colors.blue.shade600),
+                    style: const TextStyle(fontSize: 12, color: AppColors.primary),
                   ),
                 ],
               ],
@@ -281,8 +280,10 @@ class _BeneficiaryVerificationCardState
                   _detailRow('Salary Range', b.salaryRange ?? 'N/A'),
                   const SizedBox(height: 16),
                   const Text('Documents',
-                      style:
-                          TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary)),
                   const SizedBox(height: 8),
                   if (b.identityDocument != null)
                     _docChip('Identity Document', Icons.badge),
@@ -290,7 +291,7 @@ class _BeneficiaryVerificationCardState
                     _docChip('Birth Certificate', Icons.description),
                   if (b.identityDocument == null && b.birthCertificate == null)
                     const Text('No documents uploaded',
-                        style: TextStyle(color: Colors.grey)),
+                        style: TextStyle(color: AppColors.textSecondary)),
                   const SizedBox(height: 24),
                   if (_isProcessing)
                     const Center(child: CircularProgressIndicator())
@@ -303,8 +304,12 @@ class _BeneficiaryVerificationCardState
                             icon: const Icon(Icons.close),
                             label: const Text('Reject'),
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.red,
-                              side: const BorderSide(color: Colors.red),
+                              foregroundColor: AppColors.error,
+                              side: const BorderSide(color: AppColors.error),
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.sm),
+                              ),
                             ),
                           ),
                         ),
@@ -315,8 +320,12 @@ class _BeneficiaryVerificationCardState
                             icon: const Icon(Icons.check),
                             label: const Text('Verify'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
+                              backgroundColor: AppColors.success,
                               foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.sm),
+                              ),
                             ),
                           ),
                         ),
@@ -339,11 +348,14 @@ class _BeneficiaryVerificationCardState
           SizedBox(
               width: 120,
               child: Text(label,
-                  style: const TextStyle(color: Colors.grey, fontSize: 13))),
+                  style: const TextStyle(
+                      color: AppColors.textSecondary, fontSize: 13))),
           Expanded(
               child: Text(value,
                   style: const TextStyle(
-                      fontWeight: FontWeight.w500, fontSize: 13))),
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                      color: AppColors.textPrimary))),
         ],
       ),
     );
@@ -355,7 +367,7 @@ class _BeneficiaryVerificationCardState
       child: Chip(
         avatar: Icon(icon, size: 16),
         label: Text(label),
-        backgroundColor: Colors.blue.shade50,
+        backgroundColor: AppColors.infoBg,
       ),
     );
   }

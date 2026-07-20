@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../config/theme_config.dart';
 import '../../../data/providers/financial_provider.dart';
 import '../../../data/models/deposit_model.dart';
 import '../../widgets/common/loading_indicator.dart';
+import '../../widgets/common/status_badge.dart';
 
 // Filter state
 final depositTabFilterProvider = StateProvider<String>((ref) => 'pending');
@@ -25,9 +27,11 @@ class DepositHistoryScreen extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const Icon(Icons.error_outline_rounded,
+                size: 64, color: AppColors.error),
             const SizedBox(height: 16),
-            Text('Error: ${depositsState.error}'),
+            Text('Error: ${depositsState.error}',
+                style: const TextStyle(color: AppColors.textSecondary)),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () => ref.read(depositsProvider.notifier).refresh(),
@@ -74,26 +78,21 @@ class DepositHistoryScreen extends ConsumerWidget {
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 2))
-        ],
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        boxShadow: AppColors.cardShadow,
       ),
       child: Row(
         children: [
           _buildTabButton(
               context, ref, 'pending', 'Pending ($pendingCount)', current,
-              activeColor: Colors.blue.shade600),
+              activeColor: AppColors.warning),
           _buildTabButton(
               context, ref, 'completed', 'Approved ($approvedCount)', current,
-              activeColor: Colors.green.shade600),
+              activeColor: AppColors.success),
           _buildTabButton(
               context, ref, 'failed', 'Rejected ($rejectedCount)', current,
-              activeColor: Colors.red.shade600),
+              activeColor: AppColors.error),
         ],
       ),
     );
@@ -117,7 +116,7 @@ class DepositHistoryScreen extends ConsumerWidget {
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: isActive ? Colors.white : Colors.grey.shade600,
+              color: isActive ? Colors.white : AppColors.textSecondary,
               fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
               fontSize: 12,
             ),
@@ -137,15 +136,16 @@ class DepositHistoryScreen extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.receipt_long_outlined,
-              size: 64, color: Colors.grey.shade300),
+          const Icon(Icons.receipt_long_outlined,
+              size: 64, color: AppColors.textMuted),
           const SizedBox(height: 16),
           Text('No ${labels[filter] ?? filter} deposits found',
               style: const TextStyle(
-                  fontWeight: FontWeight.w500, color: Colors.grey)),
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textSecondary)),
           const SizedBox(height: 6),
-          Text('Deposits will appear here once submitted',
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade400)),
+          const Text('Deposits will appear here once submitted',
+              style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
         ],
       ),
     );
@@ -187,30 +187,14 @@ class _DepositTableRow extends StatelessWidget {
     final dateFormat = DateFormat('MMM d, y');
     final timeFormat = DateFormat('h:mm a');
 
-    final Color statusColor;
-    if (deposit.isApproved) {
-      statusColor = Colors.green;
-    } else if (deposit.isPending) {
-      statusColor = Colors.orange;
-    } else if (deposit.isRejected) {
-      statusColor = Colors.red;
-    } else {
-      statusColor = Colors.grey;
-    }
-
     // deposit.amount is already a double — no tryParse needed
     final amountStr = currencyFormat.format(deposit.amount);
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2))
-        ],
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        boxShadow: AppColors.cardShadow,
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -222,11 +206,11 @@ class _DepositTableRow extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 22,
-                  backgroundColor: Colors.blue.shade100,
+                  backgroundColor: AppColors.avatar2,
                   child: Text(
                     _initials(deposit.userName),
-                    style: TextStyle(
-                        color: Colors.blue.shade700,
+                    style: const TextStyle(
+                        color: AppColors.primaryDark,
                         fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -243,27 +227,13 @@ class _DepositTableRow extends StatelessWidget {
                       Text(
                         '${dateFormat.format(deposit.createdAt)}  '
                         '${timeFormat.format(deposit.createdAt)}',
-                        style: TextStyle(
-                            fontSize: 12, color: Colors.grey.shade500),
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.textSecondary),
                       ),
                     ],
                   ),
                 ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    deposit.statusLabel,
-                    style: TextStyle(
-                        color: statusColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12),
-                  ),
-                ),
+                StatusBadge.fromStatus(deposit.statusLabel),
               ],
             ),
             const Divider(height: 20),
@@ -275,9 +245,9 @@ class _DepositTableRow extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Amount',
+                    const Text('Amount',
                         style: TextStyle(
-                            fontSize: 11, color: Colors.grey.shade500)),
+                            fontSize: 11, color: AppColors.textSecondary)),
                     const SizedBox(height: 2),
                     Text(amountStr,
                         style: const TextStyle(
@@ -288,13 +258,13 @@ class _DepositTableRow extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(20),
+                    color: AppColors.infoBg,
+                    borderRadius: BorderRadius.circular(AppRadius.full),
                   ),
                   child: Text(
                     deposit.paymentMethodLabel,
-                    style: TextStyle(
-                        color: Colors.blue.shade700,
+                    style: const TextStyle(
+                        color: AppColors.infoText,
                         fontWeight: FontWeight.w500,
                         fontSize: 12),
                   ),
@@ -306,15 +276,16 @@ class _DepositTableRow extends StatelessWidget {
             // Reference
             Row(
               children: [
-                Icon(Icons.tag, size: 14, color: Colors.grey.shade400),
+                const Icon(Icons.tag_rounded,
+                    size: 14, color: AppColors.textMuted),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     deposit.transactionReference,
-                    style: TextStyle(
+                    style: const TextStyle(
                         fontFamily: 'monospace',
                         fontSize: 12,
-                        color: Colors.grey.shade600),
+                        color: AppColors.textSecondary),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -327,12 +298,12 @@ class _DepositTableRow extends StatelessWidget {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  Icon(Icons.phone_android,
-                      size: 14, color: Colors.grey.shade400),
+                  const Icon(Icons.phone_android_rounded,
+                      size: 14, color: AppColors.textMuted),
                   const SizedBox(width: 4),
                   Text(deposit.mpesaPhone!,
-                      style:
-                          TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColors.textSecondary)),
                 ],
               ),
             ],
@@ -346,21 +317,21 @@ class _DepositTableRow extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.shade200),
+                  color: AppColors.errorBg,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  border: Border.all(color: AppColors.error.withOpacity(0.3)),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info_outline,
-                        color: Colors.red.shade700, size: 15),
+                    const Icon(Icons.info_outline_rounded,
+                        color: AppColors.errorText, size: 15),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         deposit.rejectionReason!,
-                        style:
-                            TextStyle(color: Colors.red.shade700, fontSize: 13),
+                        style: const TextStyle(
+                            color: AppColors.errorText, fontSize: 13),
                       ),
                     ),
                   ],

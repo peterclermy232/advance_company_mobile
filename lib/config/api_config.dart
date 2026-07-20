@@ -23,7 +23,7 @@ class ApiConfig {
 
   /// Toggle between production and development
   /// Set to false for local development
-  static const bool _isProduction = false;
+  static const bool _isProduction = true;
 
   static String get baseUrl => _isProduction ? prodBaseUrl : devBaseUrl;
 

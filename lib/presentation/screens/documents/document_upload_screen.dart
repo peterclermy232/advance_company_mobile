@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:dio/dio.dart';
+import '../../../config/theme_config.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../data/providers/core_providers.dart';
 import '../../widgets/common/custom_button.dart';
@@ -67,7 +68,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error picking file: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -81,7 +82,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select a file to upload'),
-          backgroundColor: Colors.orange,
+          backgroundColor: AppColors.warning,
         ),
       );
       return;
@@ -92,7 +93,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('File size must be less than 10MB'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.error,
         ),
       );
       return;
@@ -129,7 +130,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Document uploaded successfully!'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
         context.pop(true); // Return true to indicate success
@@ -139,7 +140,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -169,19 +170,19 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Info Card
-                  Card(
-                    color: Colors.blue.shade50,
+                  const Card(
+                    color: AppColors.infoBg,
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: EdgeInsets.all(16.0),
                       child: Row(
                         children: [
-                          Icon(Icons.info_outline, color: Colors.blue.shade700),
-                          const SizedBox(width: 12),
+                          Icon(Icons.info_outline, color: AppColors.info),
+                          SizedBox(width: 12),
                           Expanded(
                             child: Text(
                               'Upload clear, readable documents. Supported formats: PDF, JPG, PNG (Max 10MB)',
                               style: TextStyle(
-                                color: Colors.blue.shade900,
+                                color: AppColors.infoText,
                                 fontSize: 13,
                               ),
                             ),
@@ -237,13 +238,14 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                               ),
                               const SizedBox(height: 8),
                               DropdownButtonFormField<String>(
-                                initialValue: _selectedCategory,
+                                value: _selectedCategory,
                                 decoration: InputDecoration(
                                   border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius:
+                                        BorderRadius.circular(AppRadius.md),
                                   ),
                                   filled: true,
-                                  fillColor: Colors.grey[50],
+                                  fillColor: AppColors.divider,
                                   contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 16,
                                     vertical: 12,
@@ -266,15 +268,16 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: Colors.grey.shade100,
-                                  borderRadius: BorderRadius.circular(8),
+                                  color: AppColors.divider,
+                                  borderRadius:
+                                      BorderRadius.circular(AppRadius.sm),
                                 ),
                                 child: Row(
                                   children: [
-                                    Icon(
+                                    const Icon(
                                       Icons.help_outline,
                                       size: 16,
-                                      color: Colors.grey.shade600,
+                                      color: AppColors.textSecondary,
                                     ),
                                     const SizedBox(width: 8),
                                     Expanded(
@@ -282,9 +285,9 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                                         _categoryDescriptions[
                                                 _selectedCategory] ??
                                             '',
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           fontSize: 12,
-                                          color: Colors.grey.shade700,
+                                          color: AppColors.textSecondary,
                                         ),
                                       ),
                                     ),
@@ -317,24 +320,25 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                           ),
                           const SizedBox(height: 16),
 
-                          // File picker button
+                          // File picker drop-zone
                           InkWell(
                             onTap: _isLoading ? null : _pickFile,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
                             child: Container(
+                              width: double.infinity,
                               padding: const EdgeInsets.all(20),
                               decoration: BoxDecoration(
                                 border: Border.all(
                                   color: _selectedFile != null
-                                      ? Colors.green
-                                      : Colors.grey.shade300,
-                                  width: 2,
-                                  style: BorderStyle.solid,
+                                      ? AppColors.primary
+                                      : AppColors.border,
+                                  width: 1.5,
                                 ),
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.sm),
                                 color: _selectedFile != null
-                                    ? Colors.green.shade50
-                                    : Colors.grey[50],
+                                    ? AppColors.primary.withOpacity(0.05)
+                                    : AppColors.background,
                               ),
                               child: Column(
                                 children: [
@@ -344,8 +348,8 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                                         : Icons.upload_file,
                                     size: 48,
                                     color: _selectedFile != null
-                                        ? Colors.green
-                                        : Colors.grey,
+                                        ? AppColors.primary
+                                        : AppColors.textMuted,
                                   ),
                                   const SizedBox(height: 12),
                                   Text(
@@ -356,8 +360,8 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                                       fontSize: 16,
                                       fontWeight: FontWeight.w500,
                                       color: _selectedFile != null
-                                          ? Colors.green.shade900
-                                          : Colors.grey.shade700,
+                                          ? AppColors.primaryDark
+                                          : AppColors.textSecondary,
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
@@ -365,9 +369,9 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                                     const SizedBox(height: 8),
                                     Text(
                                       '${(_selectedFile!.size / 1024).toStringAsFixed(2)} KB',
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         fontSize: 12,
-                                        color: Colors.grey.shade600,
+                                        color: AppColors.textSecondary,
                                       ),
                                     ),
                                   ],
@@ -387,7 +391,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                               icon: const Icon(Icons.close),
                               label: const Text('Remove file'),
                               style: TextButton.styleFrom(
-                                foregroundColor: Colors.red,
+                                foregroundColor: AppColors.error,
                               ),
                             ),
                           ],
@@ -399,6 +403,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
 
                   // Upload Button
                   CustomButton(
+                    gradient: true,
                     onPressed: _isLoading ? null : _uploadDocument,
                     isLoading: _isLoading,
                     child: const Text('Upload Document'),
@@ -424,7 +429,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                           const Icon(
                             Icons.cloud_upload,
                             size: 64,
-                            color: Colors.blue,
+                            color: AppColors.primary,
                           ),
                           const SizedBox(height: 24),
                           Text(
@@ -450,7 +455,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                                 .titleMedium
                                 ?.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.blue,
+                                  color: AppColors.primary,
                                 ),
                           ),
                         ],

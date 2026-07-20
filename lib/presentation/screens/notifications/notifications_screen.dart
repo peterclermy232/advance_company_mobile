@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/providers/notification_provider.dart';
+import '../../../config/theme_config.dart';
 import '../../widgets/common/loading_indicator.dart';
 import '../../widgets/common/empty_state.dart';
+import '../../widgets/common/status_badge.dart';
 
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
@@ -12,6 +14,7 @@ class NotificationsScreen extends ConsumerWidget {
     final notificationsAsync = ref.watch(notificationsProvider);
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Notifications'),
         actions: [
@@ -44,52 +47,96 @@ class NotificationsScreen extends ConsumerWidget {
             return ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: notifications.length,
-              separatorBuilder: (_, __) => const Divider(),
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 final notification = notifications[index];
-                return ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: notification.isRead
-                          ? Colors.grey.shade100
-                          : Colors.blue.shade100,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      _getNotificationIcon(notification.notificationType),
-                      color: notification.isRead ? Colors.grey : Colors.blue,
-                    ),
-                  ),
-                  title: Text(
-                    notification.title,
-                    style: TextStyle(
-                      fontWeight: notification.isRead
-                          ? FontWeight.normal
-                          : FontWeight.bold,
-                    ),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 4),
-                      Text(notification.message),
-                      const SizedBox(height: 4),
-                      Text(
-                        notification.timeAgo,
-                        style: const TextStyle(fontSize: 12),
+                final isUnread = !notification.isRead;
+                final chipColor =
+                    _getNotificationColor(notification.notificationType);
+
+                return Material(
+                  color: isUnread ? AppColors.infoBg : AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    onTap: () async {
+                      if (isUnread) {
+                        final repo =
+                            ref.read(notificationRepositoryProvider);
+                        await repo.markAsRead(notification.id);
+                        ref.invalidate(notificationsProvider);
+                        ref.invalidate(unreadCountProvider);
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        border: isUnread
+                            ? null
+                            : Border.all(color: AppColors.border),
+                        boxShadow:
+                            isUnread ? null : AppColors.cardShadow,
                       ),
-                    ],
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          IconChip(
+                            icon: _getNotificationIcon(
+                                notification.notificationType),
+                            color: chipColor,
+                            size: 40,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  notification.title,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    color: AppColors.textPrimary,
+                                    fontWeight: isUnread
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  notification.message,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  notification.timeAgo,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textMuted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (isUnread) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              width: 8,
+                              height: 8,
+                              margin: const EdgeInsets.only(top: 4),
+                              decoration: const BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                   ),
-                  isThreeLine: true,
-                  onTap: () async {
-                    if (!notification.isRead) {
-                      final repo = ref.read(notificationRepositoryProvider);
-                      await repo.markAsRead(notification.id);
-                      ref.invalidate(notificationsProvider);
-                      ref.invalidate(unreadCountProvider);
-                    }
-                  },
                 );
               },
             );
@@ -120,5 +167,21 @@ class NotificationsScreen extends ConsumerWidget {
       default:
         return Icons.notifications;
     }
+  }
+
+  /// Maps notification type to the semantic status color, mirroring the
+  /// web's approved=green / rejected=red / submitted=blue conventions.
+  Color _getNotificationColor(String type) {
+    final normalized = type.toLowerCase();
+    if (normalized.contains('rejected') || normalized.contains('failed')) {
+      return AppColors.error;
+    }
+    if (normalized.contains('approved') || normalized.contains('verified')) {
+      return AppColors.success;
+    }
+    if (normalized.contains('submitted') || normalized.contains('created')) {
+      return AppColors.info;
+    }
+    return AppColors.neutral;
   }
 }

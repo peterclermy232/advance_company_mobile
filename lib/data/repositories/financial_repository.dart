@@ -76,7 +76,7 @@ class FinancialRepository {
   }
 
   Future<DepositModel> getDepositDetail(int id) async {
-    final response = await _apiClient.get('${ApiEndpoints.depositDetail}$id/');
+    final response = await _apiClient.get(ApiEndpoints.depositDetail(id.toString()));
     return DepositModel.fromJson(response.data as Map<String, dynamic>);
   }
 
@@ -91,8 +91,8 @@ class FinancialRepository {
       ApiEndpoints.createDeposit,
       data: {
         'amount': amount,
-        'method': method,
-        if (phoneNumber != null) 'phone_number': phoneNumber,
+        'payment_method': method,
+        if (phoneNumber != null) 'mpesa_phone': phoneNumber,
         if (mpesaTransactionId != null)
           'mpesa_transaction_id': mpesaTransactionId,
         if (notes != null) 'notes': notes,

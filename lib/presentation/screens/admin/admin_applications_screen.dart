@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../config/theme_config.dart';
 import '../../../data/models/application_model.dart';
 import '../../../data/providers/application_providers.dart';
 import '../../widgets/common/loading_indicator.dart';
 import '../../widgets/common/empty_state.dart';
+import '../../widgets/common/status_badge.dart';
 
 class AdminApplicationsScreen extends ConsumerWidget {
   const AdminApplicationsScreen({super.key});
@@ -31,7 +33,8 @@ class AdminApplicationsScreen extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const Icon(Icons.error_outline,
+                    size: 64, color: AppColors.error),
                 const SizedBox(height: 16),
                 Text('$e'),
                 const SizedBox(height: 16),
@@ -94,14 +97,34 @@ class _AdminApplicationCardState extends ConsumerState<_AdminApplicationCard> {
   Color get _statusColor {
     switch (widget.application.status) {
       case 'approved':
-        return Colors.green;
+        return AppColors.success;
       case 'rejected':
-        return Colors.red;
+        return AppColors.error;
       case 'under_review':
-        return Colors.blue;
+        return AppColors.info;
       default:
-        return Colors.orange;
+        return AppColors.warning;
     }
+  }
+
+  StatusKind get _statusKind {
+    switch (widget.application.status) {
+      case 'approved':
+        return StatusKind.success;
+      case 'rejected':
+        return StatusKind.error;
+      case 'under_review':
+        return StatusKind.info;
+      default:
+        return StatusKind.warning;
+    }
+  }
+
+  String get _statusLabel {
+    final words = widget.application.status.split('_');
+    return words
+        .map((w) => w.isEmpty ? w : w[0].toUpperCase() + w.substring(1))
+        .join(' ');
   }
 
   Future<void> _doAction(Future<void> Function() action) async {
@@ -112,7 +135,7 @@ class _AdminApplicationCardState extends ConsumerState<_AdminApplicationCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Done!'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
       }
@@ -121,7 +144,7 @@ class _AdminApplicationCardState extends ConsumerState<_AdminApplicationCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -161,7 +184,10 @@ class _AdminApplicationCardState extends ConsumerState<_AdminApplicationCard> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Approve'),
           ),
         ],
@@ -210,7 +236,10 @@ class _AdminApplicationCardState extends ConsumerState<_AdminApplicationCard> {
               }
               Navigator.pop(ctx, true);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Reject'),
           ),
         ],
@@ -243,9 +272,10 @@ class _AdminApplicationCardState extends ConsumerState<_AdminApplicationCard> {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: _statusColor.withValues(alpha: 0.15),
+                  backgroundColor: _statusColor.withOpacity(0.15),
                   child: Text(
-                    (app.userName ?? '?')[0].toUpperCase(),
+                    (app.userName?.isNotEmpty == true ? app.userName! : '?')[0]
+                        .toUpperCase(),
                     style: TextStyle(
                       color: _statusColor,
                       fontWeight: FontWeight.bold,
@@ -262,35 +292,22 @@ class _AdminApplicationCardState extends ConsumerState<_AdminApplicationCard> {
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       Text(
                         'Submitted ${dateFormat.format(app.submittedAt)}',
                         style: const TextStyle(
                           fontSize: 12,
-                          color: Colors.grey,
+                          color: AppColors.textSecondary,
                         ),
                       ),
                     ],
                   ),
                 ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _statusColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                    border:
-                        Border.all(color: _statusColor.withValues(alpha: 0.4)),
-                  ),
-                  child: Text(
-                    app.status.replaceAll('_', ' ').toUpperCase(),
-                    style: TextStyle(
-                      color: _statusColor,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 11,
-                    ),
-                  ),
+                StatusBadge(
+                  label: _statusLabel,
+                  kind: _statusKind,
                 ),
               ],
             ),
@@ -303,12 +320,14 @@ class _AdminApplicationCardState extends ConsumerState<_AdminApplicationCard> {
               style: const TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 15,
+                color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 6),
             Text(
               app.reason,
-              style: const TextStyle(color: Colors.grey, height: 1.5),
+              style:
+                  const TextStyle(color: AppColors.textSecondary, height: 1.5),
             ),
 
             // Document chip
@@ -317,7 +336,7 @@ class _AdminApplicationCardState extends ConsumerState<_AdminApplicationCard> {
               Chip(
                 avatar: const Icon(Icons.attach_file, size: 16),
                 label: const Text('Supporting Document'),
-                backgroundColor: Colors.blue.shade50,
+                backgroundColor: AppColors.infoBg,
               ),
             ],
 
@@ -327,13 +346,14 @@ class _AdminApplicationCardState extends ConsumerState<_AdminApplicationCard> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade300),
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  border: Border.all(color: AppColors.border),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.comment, size: 16, color: Colors.grey),
+                    const Icon(Icons.comment,
+                        size: 16, color: AppColors.textSecondary),
                     const SizedBox(width: 8),
                     Expanded(child: Text(app.adminComments!)),
                   ],
@@ -357,8 +377,12 @@ class _AdminApplicationCardState extends ConsumerState<_AdminApplicationCard> {
                           icon: const Icon(Icons.rate_review),
                           label: const Text('Mark Under Review'),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.blue,
-                            side: const BorderSide(color: Colors.blue),
+                            foregroundColor: AppColors.info,
+                            side: const BorderSide(color: AppColors.info),
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(AppRadius.sm),
+                            ),
                           ),
                         ),
                       ),
@@ -371,8 +395,12 @@ class _AdminApplicationCardState extends ConsumerState<_AdminApplicationCard> {
                             icon: const Icon(Icons.close),
                             label: const Text('Reject'),
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.red,
-                              side: const BorderSide(color: Colors.red),
+                              foregroundColor: AppColors.error,
+                              side: const BorderSide(color: AppColors.error),
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.sm),
+                              ),
                             ),
                           ),
                         ),
@@ -383,8 +411,12 @@ class _AdminApplicationCardState extends ConsumerState<_AdminApplicationCard> {
                             icon: const Icon(Icons.check),
                             label: const Text('Approve'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
+                              backgroundColor: AppColors.success,
                               foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.sm),
+                              ),
                             ),
                           ),
                         ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../config/theme_config.dart';
 
 class InfoDialog extends StatelessWidget {
   final String title;
@@ -18,23 +19,57 @@ class InfoDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Row(
-        children: [
-          if (icon != null) ...[
-            Icon(icon, color: iconColor),
-            const SizedBox(width: 12),
-          ],
-          Expanded(child: Text(title)),
-        ],
+    final color = iconColor ?? AppColors.primary;
+
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
-      content: Text(message),
-      actions: [
-        ElevatedButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(buttonText),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 28),
+              ),
+              const SizedBox(height: 16),
+            ],
+            Text(
+              title,
+              style: Theme.of(context).textTheme.headlineSmall,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              style: Theme.of(context).textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: ElevatedButton.styleFrom(
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  ),
+                ),
+                child: Text(buttonText),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -68,7 +103,7 @@ class InfoDialog extends StatelessWidget {
       title: title,
       message: message,
       icon: Icons.check_circle,
-      iconColor: Colors.green,
+      iconColor: AppColors.success,
     );
   }
 
@@ -82,7 +117,7 @@ class InfoDialog extends StatelessWidget {
       title: title,
       message: message,
       icon: Icons.error,
-      iconColor: Colors.red,
+      iconColor: AppColors.error,
     );
   }
 
@@ -96,7 +131,7 @@ class InfoDialog extends StatelessWidget {
       title: title,
       message: message,
       icon: Icons.warning,
-      iconColor: Colors.orange,
+      iconColor: AppColors.warning,
     );
   }
 }

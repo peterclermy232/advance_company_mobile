@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../data/providers/auth_provider.dart';
-import '../../../core/constants/app_colors.dart';
+import '../../../config/theme_config.dart';
+import '../../widgets/common/custom_button.dart';
 
 class ProfileEditScreen extends ConsumerStatefulWidget {
   const ProfileEditScreen({super.key});
@@ -134,25 +135,35 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                 child: Center(
                   child: Stack(
                     children: [
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundColor: AppColors.primaryLight,
-                        backgroundImage: user?.profilePhotoUrl != null
-                            ? NetworkImage(user!.profilePhotoUrl!)
-                            : null,
-                        child: user?.profilePhotoUrl == null
-                            ? Text(
-                          (user?.firstName.isNotEmpty == true
-                              ? user!.firstName[0].toUpperCase()
-                              : '?'),
-                          style: const TextStyle(
-                            fontSize: 36,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        )
-                            : null,
-                      ),
+                      user?.profilePhotoUrl != null
+                          ? CircleAvatar(
+                              radius: 50,
+                              backgroundImage:
+                                  NetworkImage(user!.profilePhotoUrl!),
+                            )
+                          : Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                gradient: AppColors.brandGradient,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                    color: Colors.white.withOpacity(0.4),
+                                    width: 3),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  (user?.firstName.isNotEmpty == true
+                                      ? user!.firstName[0].toUpperCase()
+                                      : '?'),
+                                  style: const TextStyle(
+                                    fontSize: 36,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
                       Positioned(
                         bottom: 0,
                         right: 0,
@@ -247,22 +258,11 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                     SizedBox(
                       width: double.infinity,
                       height: 52,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _save,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 2),
-                        )
-                            : const Text(
+                      child: CustomButton(
+                        gradient: true,
+                        isLoading: _isLoading,
+                        onPressed: _save,
+                        child: const Text(
                           'Save Changes',
                           style: TextStyle(
                             fontSize: 16,
@@ -299,7 +299,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   Widget _buildCard(List<Widget> children) => Container(
     decoration: BoxDecoration(
       color: AppColors.surface,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppRadius.md),
       boxShadow: AppColors.cardShadow,
     ),
     child: Column(children: children),
@@ -337,7 +337,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     required ValueChanged<String?> onChanged,
   }) {
     return DropdownButtonFormField<String>(
-      initialValue: value,
+      value: value,
       onChanged: onChanged,
       decoration: InputDecoration(
         labelText: label,

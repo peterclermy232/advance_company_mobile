@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../data/providers/auth_provider.dart';
+import '../../../config/theme_config.dart';
 import '../../widgets/common/custom_button.dart';
 import '../../widgets/common/custom_text_field.dart';
 
@@ -38,7 +39,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -71,18 +72,35 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Center(
+            child: Container(
+              width: 64,
+              height: 64,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                gradient: AppColors.brandGradient,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+              ),
+              child: const Icon(
+                Icons.lock_reset,
+                size: 32,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
           Text(
             'Forgot Password?',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(context).textTheme.headlineLarge,
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
             'Enter your email and we\'ll send you a reset link',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.grey,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
                 ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
           CustomTextField(
@@ -100,6 +118,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           CustomButton(
             onPressed: _isLoading ? null : _handleSubmit,
             isLoading: _isLoading,
+            gradient: true,
             child: const Text('Send Reset Link'),
           ),
         ],
@@ -111,27 +130,36 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Icon(
-          Icons.mark_email_read,
-          size: 80,
-          color: Colors.green,
+        Container(
+          width: 80,
+          height: 80,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            color: AppColors.successBg,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.mark_email_read,
+            size: 40,
+            color: AppColors.success,
+          ),
         ),
         const SizedBox(height: 24),
         Text(
           'Check Your Email! 📧',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(context).textTheme.headlineLarge,
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 16),
         Text(
           'We\'ve sent a password reset link to ${_emailController.text}',
-          style: Theme.of(context).textTheme.bodyLarge,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.textSecondary,
+              ),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 32),
-        CustomButton(
+        TextButton(
           onPressed: () => context.pop(),
           child: const Text('Back to Login'),
         ),

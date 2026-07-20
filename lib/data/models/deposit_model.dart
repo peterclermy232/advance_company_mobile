@@ -1,9 +1,10 @@
+import '../../core/utils/parsing.dart';
 
 enum DepositStatus { pending, approved, rejected, processing }
 
 class DepositModel {
-  final int id;
-  final int accountId;
+  final String id;
+  final String accountId;
   final double amount;
   final String method; // 'mpesa' | 'bank_transfer' | 'cash'
   final DepositStatus status;
@@ -17,6 +18,7 @@ class DepositModel {
   final String? userName;
   final String? notes;
   final String? mpesaReceiptNumber;
+  final String? backendTransactionReference;
 
   const DepositModel({
     required this.id,
@@ -33,6 +35,7 @@ class DepositModel {
     this.userName,
     this.notes,
     this.mpesaReceiptNumber,
+    this.backendTransactionReference,
   });
 
   bool get isPending => status == DepositStatus.pending || status == DepositStatus.processing;
@@ -70,7 +73,10 @@ class DepositModel {
 
   /// Transaction reference for display
   String get transactionReference =>
-      mpesaTransactionId ?? mpesaReceiptNumber ?? 'TXN-${id.toString().padLeft(8, '0')}';
+      backendTransactionReference ??
+      mpesaTransactionId ??
+      mpesaReceiptNumber ??
+      'TXN-$id';
 
   /// M-Pesa phone number alias
   String? get mpesaPhone => phoneNumber;
@@ -78,13 +84,15 @@ class DepositModel {
   factory DepositModel.fromJson(Map<String, dynamic> json) {
     final rawStatus = json['status'] as String? ?? 'pending';
     return DepositModel(
-      id: json['id'] as int,
-      accountId: json['account'] as int? ?? json['account_id'] as int? ?? 0,
-      amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
-      method: json['method'] as String? ?? 'mpesa',
+      id: json['uuid'] as String? ?? json['id']?.toString() ?? '',
+      accountId: json['account']?.toString() ??
+          json['account_id']?.toString() ??
+          '',
+      amount: parseDouble(json['amount']),
+      method: json['payment_method'] as String? ?? json['method'] as String? ?? 'mpesa',
       status: _parseStatus(rawStatus),
       mpesaTransactionId: json['mpesa_transaction_id'] as String?,
-      phoneNumber: json['phone_number'] as String?,
+      phoneNumber: json['mpesa_phone'] as String? ?? json['phone_number'] as String?,
       rejectionReason: json['rejection_reason'] as String?,
       approvedBy: json['approved_by'] as String?,
       createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
@@ -96,6 +104,7 @@ class DepositModel {
           json['member_name'] as String?,
       notes: json['notes'] as String?,
       mpesaReceiptNumber: json['mpesa_receipt_number'] as String?,
+      backendTransactionReference: json['transaction_reference'] as String?,
     );
   }
 

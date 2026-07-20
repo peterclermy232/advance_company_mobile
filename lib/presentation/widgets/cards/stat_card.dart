@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../config/theme_config.dart';
+import '../common/status_badge.dart';
 
 class StatCard extends StatelessWidget {
   final String label;
@@ -18,21 +20,12 @@ class StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = color.withValues(alpha: 0.08);
-
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        boxShadow: AppColors.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -40,23 +33,16 @@ class StatCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Icon box — matches web's colored icon container
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: color, size: 20),
-              ),
+              // Solid colored icon chip — matches the web's `p-3 rounded-lg bg-{color}-600`
+              IconChip(icon: icon, color: color, size: 40),
               // Trend badge — matches web's green trend chip
               if (trend != null)
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF0FDF4),
-                    borderRadius: BorderRadius.circular(20),
+                    color: AppColors.successBg,
+                    borderRadius: BorderRadius.circular(AppRadius.full),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -64,13 +50,13 @@ class StatCard extends StatelessWidget {
                       const Icon(
                         Icons.trending_up_rounded,
                         size: 12,
-                        color: Color(0xFF16A34A),
+                        color: AppColors.successText,
                       ),
                       const SizedBox(width: 3),
                       Text(
                         trend!,
                         style: const TextStyle(
-                          color: Color(0xFF16A34A),
+                          color: AppColors.successText,
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                         ),
@@ -80,21 +66,21 @@ class StatCard extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Text(
             label,
             style: const TextStyle(
-              color: Color(0xFF94A3B8),
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
+              color: AppColors.textSecondary,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             value,
             style: const TextStyle(
-              color: Color(0xFF0F172A),
-              fontSize: 18,
+              color: AppColors.textPrimary,
+              fontSize: 22,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.4,
             ),

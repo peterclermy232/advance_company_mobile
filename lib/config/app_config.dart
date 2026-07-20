@@ -1,13 +1,18 @@
+import 'package:flutter/foundation.dart';
 
 class AppConfig {
   // App Information
   static const String appName = 'Advance Company';
-  static const String environmentName = 'Staging';
-  static const bool showEnvironmentBanner = true;
+
+  /// Derived from the actual build mode — never a manually-set flag — so a
+  /// release build can never accidentally ship the staging banner/label.
+  static String get environmentName => kReleaseMode ? 'Production' : 'Staging';
+  static bool get showEnvironmentBanner => !kReleaseMode;
   static const String appVersion = '1.0.0';
   static const String buildNumber = '1';
-  static String get appDisplayName => '$appName ($environmentName)';
-  
+  static String get appDisplayName =>
+      kReleaseMode ? appName : '$appName ($environmentName)';
+
   // Company Information
   static const String companyName = 'Advance Company';
   static const String supportEmail = 'support@advancecompany.com';

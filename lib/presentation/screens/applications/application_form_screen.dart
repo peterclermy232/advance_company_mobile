@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
+import '../../../config/theme_config.dart';
 import '../../../data/models/application_type_model.dart';
 import '../../../data/providers/application_providers.dart';
 import '../../widgets/common/custom_button.dart';
@@ -85,7 +86,7 @@ class _ApplicationFormScreenState
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
+        backgroundColor: isError ? AppColors.error : AppColors.success,
       ),
     );
   }
@@ -106,21 +107,21 @@ class _ApplicationFormScreenState
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // ── Info banner
-              Card(
-                color: Colors.blue.shade50,
+              const Card(
+                color: AppColors.infoBg,
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(16),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, color: Colors.blue.shade700),
-                      const SizedBox(width: 12),
+                      Icon(Icons.info_outline, color: AppColors.info),
+                      SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           'Submit applications for loans, withdrawals, or '
                               'membership changes. All applications are reviewed '
                               'by admin.',
                           style: TextStyle(
-                              color: Colors.blue.shade900, fontSize: 13),
+                              color: AppColors.infoText, fontSize: 13),
                         ),
                       ),
                     ],
@@ -138,17 +139,13 @@ class _ApplicationFormScreenState
                     children: [
                       Text(
                         'Application Details',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
+                        style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 20),
 
-                      const Text(
+                      Text(
                         'Application Type',
-                        style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w600),
+                        style: Theme.of(context).textTheme.labelLarge,
                       ),
                       const SizedBox(height: 8),
 
@@ -162,18 +159,18 @@ class _ApplicationFormScreenState
                         error: (error, _) => Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.red.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.red.shade200),
+                            color: AppColors.errorBg,
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.error_outline,
-                                  color: Colors.red.shade700),
+                              const Icon(Icons.error_outline,
+                                  color: AppColors.error),
                               const SizedBox(width: 8),
                               const Expanded(
                                 child: Text(
                                   'Failed to load application types.',
+                                  style: TextStyle(color: AppColors.errorText),
                                 ),
                               ),
                               TextButton(
@@ -204,17 +201,7 @@ class _ApplicationFormScreenState
                           return Column(
                             children: [
                               DropdownButtonFormField<String>(
-                                initialValue: _selectedType,
-                                decoration: InputDecoration(
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.grey[50],
-                                  contentPadding:
-                                  const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 12),
-                                ),
+                                value: _selectedType,
                                 items: types
                                     .map((t) => DropdownMenuItem(
                                   value: t.value,
@@ -236,21 +223,22 @@ class _ApplicationFormScreenState
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: Colors.grey.shade100,
-                                    borderRadius: BorderRadius.circular(8),
+                                    color: AppColors.divider,
+                                    borderRadius:
+                                        BorderRadius.circular(AppRadius.sm),
                                   ),
                                   child: Row(
                                     children: [
-                                      Icon(Icons.help_outline,
+                                      const Icon(Icons.help_outline,
                                           size: 16,
-                                          color: Colors.grey.shade600),
+                                          color: AppColors.textSecondary),
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
                                           selected.description,
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                               fontSize: 12,
-                                              color: Colors.grey.shade700),
+                                              color: AppColors.textSecondary),
                                         ),
                                       ),
                                     ],
@@ -296,29 +284,19 @@ class _ApplicationFormScreenState
                     children: [
                       Text(
                         'Supporting Documents (Optional)',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
+                        style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 16),
-                      InkWell(
+                      _DashedDropzone(
                         onTap: _isLoading ? null : _pickDocument,
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
+                        borderColor: _supportingDocument != null
+                            ? AppColors.success
+                            : AppColors.border,
+                        fillColor: _supportingDocument != null
+                            ? AppColors.successBg
+                            : AppColors.divider,
+                        child: Padding(
                           padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: _supportingDocument != null
-                                  ? Colors.green
-                                  : Colors.grey.shade300,
-                              width: 2,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                            color: _supportingDocument != null
-                                ? Colors.green.shade50
-                                : Colors.grey[50],
-                          ),
                           child: Column(
                             children: [
                               Icon(
@@ -327,8 +305,8 @@ class _ApplicationFormScreenState
                                     : Icons.upload_file,
                                 size: 48,
                                 color: _supportingDocument != null
-                                    ? Colors.green
-                                    : Colors.grey,
+                                    ? AppColors.success
+                                    : AppColors.textMuted,
                               ),
                               const SizedBox(height: 12),
                               Text(
@@ -339,8 +317,8 @@ class _ApplicationFormScreenState
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                   color: _supportingDocument != null
-                                      ? Colors.green.shade900
-                                      : Colors.grey.shade700,
+                                      ? AppColors.successText
+                                      : AppColors.textSecondary,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
@@ -348,9 +326,9 @@ class _ApplicationFormScreenState
                                 const SizedBox(height: 8),
                                 Text(
                                   '${(_supportingDocument!.size / 1024).toStringAsFixed(2)} KB',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey.shade600),
+                                      color: AppColors.textSecondary),
                                 ),
                               ],
                             ],
@@ -367,7 +345,7 @@ class _ApplicationFormScreenState
                           icon: const Icon(Icons.close),
                           label: const Text('Remove document'),
                           style: TextButton.styleFrom(
-                              foregroundColor: Colors.red),
+                              foregroundColor: AppColors.error),
                         ),
                       ],
                     ],
@@ -377,6 +355,7 @@ class _ApplicationFormScreenState
               const SizedBox(height: 32),
 
               CustomButton(
+                gradient: true,
                 onPressed: _isLoading ? null : _submitApplication,
                 isLoading: _isLoading,
                 child: const Text('Submit Application'),
@@ -386,7 +365,7 @@ class _ApplicationFormScreenState
               Text(
                 'Your application will be reviewed by an administrator. '
                     'You will receive a notification once it has been processed.',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                style: Theme.of(context).textTheme.bodySmall,
                 textAlign: TextAlign.center,
               ),
             ],
@@ -394,5 +373,84 @@ class _ApplicationFormScreenState
         ),
       ),
     );
+  }
+}
+
+// ─── Dashed upload dropzone ────────────────────────────────────────────────────
+
+/// Lightweight dashed-border drop-zone container — mirrors the web app's
+/// dashed file-upload panel without pulling in a new dependency.
+class _DashedDropzone extends StatelessWidget {
+  const _DashedDropzone({
+    required this.child,
+    required this.onTap,
+    required this.borderColor,
+    required this.fillColor,
+  });
+
+  final Widget child;
+  final VoidCallback? onTap;
+  final Color borderColor;
+  final Color fillColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppRadius.sm),
+      child: CustomPaint(
+        painter: _DashedBorderPainter(
+          color: borderColor,
+          radius: AppRadius.sm,
+        ),
+        child: Material(
+          color: fillColor,
+          child: InkWell(
+            onTap: onTap,
+            splashColor: AppColors.primary.withOpacity(0.08),
+            highlightColor: AppColors.primary.withOpacity(0.04),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DashedBorderPainter extends CustomPainter {
+  _DashedBorderPainter({required this.color, required this.radius});
+
+  final Color color;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
+    final rrect = RRect.fromRectAndRadius(rect, Radius.circular(radius));
+    final path = Path()..addRRect(rrect);
+
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    const dashWidth = 6.0;
+    const dashSpace = 4.0;
+
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        final next = distance + dashWidth;
+        canvas.drawPath(
+          metric.extractPath(distance, next.clamp(0, metric.length)),
+          paint,
+        );
+        distance = next + dashSpace;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) {
+    return oldDelegate.color != color || oldDelegate.radius != radius;
   }
 }

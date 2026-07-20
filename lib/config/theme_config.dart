@@ -1,43 +1,95 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+/// Single source of truth for app colors — mirrors the advance-company-project
+/// web app's Tailwind palette (blue-600/indigo-700 brand, gray neutrals,
+/// bg-100/text-800 status pill pairs).
 class AppColors {
   // Brand
-  static const primary = Color(0xFF1A56DB);
-  static const primaryDark = Color(0xFF1241A8);
-  static const primaryLight = Color(0xFF4D7EF7);
-  static const secondary = Color(0xFF0D9488);
+  static const primary = Color(0xFF2563EB); // blue-600
+  static const primaryDark = Color(0xFF1D4ED8); // blue-700 (hover/pressed)
+  static const primaryLight = Color(0xFF60A5FA); // blue-400
+  static const secondary = Color(0xFF4338CA); // indigo-700
+  static const accent = secondary;
 
-  // Status
-  static const success = Color(0xFF059669);
-  static const warning = Color(0xFFD97706);
+  static const brandGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [primary, secondary],
+  );
+
+  // Status — solid (icons, dots, buttons)
+  static const success = Color(0xFF16A34A);
+  static const warning = Color(0xFFF59E0B);
   static const error = Color(0xFFDC2626);
   static const info = Color(0xFF2563EB);
+  static const neutral = Color(0xFF6B7280);
 
-  // Neutrals
-  static const surface = Color(0xFFF8FAFC);
-  static const background = Color(0xFFFFFFFF);
+  // Status — bg tint (pill backgrounds), mirrors Tailwind's `-100`
+  static const successBg = Color(0xFFDCFCE7);
+  static const warningBg = Color(0xFFFEF9C3);
+  static const errorBg = Color(0xFFFEE2E2);
+  static const infoBg = Color(0xFFDBEAFE);
+  static const neutralBg = Color(0xFFF3F4F6);
+
+  // Status — text on tint, mirrors Tailwind's `-800`
+  static const successText = Color(0xFF166534);
+  static const warningText = Color(0xFF854D0E);
+  static const errorText = Color(0xFF991B1B);
+  static const infoText = Color(0xFF1E40AF);
+  static const neutralText = Color(0xFF374151);
+
+  // Neutrals (Tailwind gray scale)
+  static const background = Color(0xFFF9FAFB); // gray-50, page background
+  static const surface = Color(0xFFFFFFFF); // card/app-bar/input background
   static const card = Color(0xFFFFFFFF);
-  static const border = Color(0xFFE2E8F0);
-  static const divider = Color(0xFFF1F5F9);
+  static const border = Color(0xFFE5E7EB); // gray-200
+  static const divider = Color(0xFFF3F4F6); // gray-100
 
   // Text
-  static const textPrimary = Color(0xFF0F172A);
-  static const textSecondary = Color(0xFF64748B);
-  static const textMuted = Color(0xFF94A3B8);
+  static const textPrimary = Color(0xFF111827); // gray-900
+  static const textSecondary = Color(0xFF6B7280); // gray-500
+  static const textMuted = Color(0xFF9CA3AF); // gray-400
   static const textInverse = Color(0xFFFFFFFF);
 
-  // Status backgrounds
-  static const successBg = Color(0xFFECFDF5);
-  static const warningBg = Color(0xFFFFFBEB);
-  static const errorBg = Color(0xFFFEF2F2);
-  static const infoBg = Color(0xFFEFF6FF);
-
-  // Avatar backgrounds
+  // Avatar placeholder tints
   static const avatar1 = Color(0xFFDDD6FE);
   static const avatar2 = Color(0xFFBFDBFE);
   static const avatar3 = Color(0xFFBBF7D0);
   static const avatar4 = Color(0xFFFED7AA);
+
+  /// Mirrors Tailwind's `shadow-sm` — the default card elevation on the web.
+  static List<BoxShadow> get cardShadow => [
+        BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 3,
+            offset: const Offset(0, 1)),
+        BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 2,
+            offset: const Offset(0, 1)),
+      ];
+
+  /// Mirrors Tailwind's `shadow-lg`/`shadow-xl` — hero banners, modals, dropdowns.
+  static List<BoxShadow> get elevatedShadow => [
+        BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 4)),
+        BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 6,
+            offset: const Offset(0, 2)),
+      ];
+}
+
+/// Radius scale mirroring the web's Tailwind conventions:
+/// 8px inputs/buttons/nav, 12px cards, 16px hero panels/modals, full pills/avatars.
+class AppRadius {
+  static const sm = 8.0;
+  static const md = 12.0;
+  static const lg = 16.0;
+  static const full = 999.0;
 }
 
 class ThemeConfig {
@@ -113,12 +165,12 @@ class ThemeConfig {
             color: AppColors.textMuted,
             letterSpacing: 0.5),
       ),
-      scaffoldBackgroundColor: AppColors.surface,
+      scaffoldBackgroundColor: AppColors.background,
       appBarTheme: AppBarTheme(
         centerTitle: false,
         elevation: 0,
         scrolledUnderElevation: 0.5,
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
         foregroundColor: AppColors.textPrimary,
         shadowColor: AppColors.border,
@@ -138,8 +190,8 @@ class ThemeConfig {
           shadowColor: Colors.transparent,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
           minimumSize: const Size(double.infinity, 52),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.sm)),
           textStyle: GoogleFonts.plusJakartaSans(
               fontSize: 15, fontWeight: FontWeight.w600),
         ),
@@ -150,8 +202,8 @@ class ThemeConfig {
           side: const BorderSide(color: AppColors.primary, width: 1.5),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
           minimumSize: const Size(double.infinity, 52),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.sm)),
           textStyle: GoogleFonts.plusJakartaSans(
               fontSize: 15, fontWeight: FontWeight.w600),
         ),
@@ -170,23 +222,23 @@ class ThemeConfig {
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           borderSide: const BorderSide(color: AppColors.border, width: 1.5),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           borderSide: const BorderSide(color: AppColors.border, width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           borderSide: const BorderSide(color: AppColors.error, width: 1.5),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           borderSide: const BorderSide(color: AppColors.error, width: 2),
         ),
         labelStyle: GoogleFonts.plusJakartaSans(
@@ -200,19 +252,19 @@ class ThemeConfig {
         prefixIconColor: AppColors.textSecondary,
         suffixIconColor: AppColors.textSecondary,
       ),
-      cardTheme: CardThemeData(
-        elevation: 0,
+      cardTheme: CardTheme(
+        elevation: 1,
+        shadowColor: Colors.black.withOpacity(0.06),
         color: AppColors.card,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: AppColors.border, width: 1),
+          borderRadius: BorderRadius.circular(AppRadius.md),
         ),
         margin: EdgeInsets.zero,
       ),
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.surface,
-        selectedColor: AppColors.primary.withValues(alpha: 0.12),
+        selectedColor: AppColors.primary.withOpacity(0.12),
         side: const BorderSide(color: AppColors.border),
         labelStyle: GoogleFonts.plusJakartaSans(
             fontSize: 13, fontWeight: FontWeight.w500),
@@ -236,10 +288,10 @@ class ThemeConfig {
         foregroundColor: Colors.white,
         elevation: 2,
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(16))),
+            borderRadius: BorderRadius.all(Radius.circular(AppRadius.lg))),
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.surface,
         elevation: 0,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textMuted,
@@ -250,13 +302,14 @@ class ThemeConfig {
         type: BottomNavigationBarType.fixed,
       ),
       drawerTheme: const DrawerThemeData(
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
       ),
       listTileTheme: ListTileThemeData(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.md)),
         iconColor: AppColors.textSecondary,
       ),
       switchTheme: SwitchThemeData(
@@ -266,7 +319,7 @@ class ThemeConfig {
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return AppColors.primary.withValues(alpha: 0.4);
+            return AppColors.primary.withOpacity(0.4);
           }
           return AppColors.border;
         }),

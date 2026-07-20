@@ -49,6 +49,8 @@
     <string>We need camera access to upload your profile photo.</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>We need photo library access to upload your profile photo.</string>
+    <key>NSFaceIDUsageDescription</key>
+    <string>Use Face ID to securely sign in to your account.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

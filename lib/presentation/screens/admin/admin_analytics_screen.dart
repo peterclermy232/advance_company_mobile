@@ -3,23 +3,35 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/api_endpoints.dart';
+import '../../../config/theme_config.dart';
 import '../../../data/providers/core_providers.dart';
 import '../../widgets/common/loading_indicator.dart';
 import '../../widgets/cards/stat_card.dart';
+import '../../widgets/common/status_badge.dart';
+
+// Chart accent palette — mirrors the web app's Chart.js dataset colors.
+// Kept as literals (distinct from the semantic AppColors status palette)
+// so the mobile charts visually match the Angular dashboard 1:1.
+const _chartBlue = Color(0xFF3B82F6);
+const _chartGreen = Color(0xFF10B981);
+const _chartAmber = Color(0xFFF59E0B);
+const _chartViolet = Color(0xFF8B5CF6);
 
 // Provider for analytics summary
 final analyticsSummaryProvider = FutureProvider.autoDispose((ref) async {
   // apiClientProvider is a plain Provider<ApiClient>
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get(ApiEndpoints.analyticsSummary);
-  return response.data['data'] ?? response.data;
+  final raw = response.data;
+  return raw is Map ? (raw['data'] ?? raw) : raw;
 });
 
 // Provider for monthly trends
 final monthlyTrendsProvider = FutureProvider.autoDispose((ref) async {
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get(ApiEndpoints.monthlyTrends);
-  final data = response.data['data'] ?? response.data;
+  final raw = response.data;
+  final data = raw is Map ? (raw['data'] ?? raw) : raw;
   if (data is List) return data;
   return <dynamic>[];
 });
@@ -85,9 +97,21 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                     _buildErrorCard('Failed to load trends', error),
               ),
               const SizedBox(height: 24),
-              _buildMemberActivityCard(context),
-              const SizedBox(height: 16),
-              _buildTopContributorsCard(context),
+              summaryAsync.when(
+                data: (summary) {
+                  final s = summary as Map<String, dynamic>;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildMemberActivityCard(context, s),
+                      const SizedBox(height: 16),
+                      _buildTopContributorsCard(context, s),
+                    ],
+                  );
+                },
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
             ],
           ),
         ),
@@ -110,13 +134,13 @@ class AdminAnalyticsScreen extends ConsumerWidget {
           label: 'Total Members',
           value: (summary['total_members'] ?? 0).toString(),
           icon: Icons.people,
-          color: Colors.blue,
+          color: AppColors.primary,
         ),
         StatCard(
           label: 'Active Members',
           value: (summary['active_members'] ?? 0).toString(),
           icon: Icons.person_outline,
-          color: Colors.green,
+          color: AppColors.success,
         ),
         StatCard(
           label: 'Total Deposits',
@@ -124,25 +148,25 @@ class AdminAnalyticsScreen extends ConsumerWidget {
             double.tryParse(summary['total_deposits']?.toString() ?? '0') ?? 0,
           ),
           icon: Icons.account_balance_wallet,
-          color: Colors.orange,
+          color: AppColors.warning,
         ),
         StatCard(
           label: 'Pending Approvals',
           value: (summary['pending_approvals'] ?? 0).toString(),
           icon: Icons.pending_actions,
-          color: Colors.purple,
+          color: AppColors.secondary,
         ),
         StatCard(
           label: 'Total Beneficiaries',
           value: (summary['total_beneficiaries'] ?? 0).toString(),
           icon: Icons.family_restroom,
-          color: Colors.teal,
+          color: AppColors.info,
         ),
         StatCard(
           label: 'Documents Pending',
           value: (summary['documents_pending'] ?? 0).toString(),
           icon: Icons.description,
-          color: Colors.red,
+          color: AppColors.error,
         ),
       ],
     );
@@ -156,7 +180,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
           child: Center(
             child: Text(
               'No trend data available',
-              style: TextStyle(color: Colors.grey.shade600),
+              style: TextStyle(color: AppColors.textSecondary),
             ),
           ),
         ),
@@ -218,14 +242,14 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                     LineChartBarData(
                       spots: depositSpots,
                       isCurved: true,
-                      color: Colors.blue,
+                      color: _chartBlue,
                       barWidth: 3,
                       dotData: const FlDotData(show: true),
                     ),
                     LineChartBarData(
                       spots: memberSpots,
                       isCurved: true,
-                      color: Colors.green,
+                      color: _chartGreen,
                       barWidth: 3,
                       dotData: const FlDotData(show: true),
                     ),
@@ -237,9 +261,9 @@ class AdminAnalyticsScreen extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _buildLegendItem('Deposits', Colors.blue),
+                _buildLegendItem('Deposits', _chartBlue),
                 const SizedBox(width: 24),
-                _buildLegendItem('New Members', Colors.green),
+                _buildLegendItem('New Members', _chartGreen),
               ],
             ),
           ],
@@ -262,7 +286,14 @@ class AdminAnalyticsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildMemberActivityCard(BuildContext context) {
+  Widget _buildMemberActivityCard(
+      BuildContext context, Map<String, dynamic> summary) {
+    final newReg =
+        (summary['new_registrations_this_month'] ?? summary['new_members_this_month'] ?? 0)
+            .toString();
+    final activeMembers = (summary['active_members'] ?? 0).toString();
+    final pendingApprovals = (summary['pending_approvals'] ?? 0).toString();
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -275,14 +306,14 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                     .titleMedium
                     ?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
-            _buildActivityItem('New Registrations (This Month)', '24',
-                Icons.person_add, Colors.blue, '+12%'),
+            _buildActivityItem('New Registrations', newReg, Icons.person_add,
+                AppColors.primary),
             const Divider(),
-            _buildActivityItem('Active Users (Last 30 Days)', '156',
-                Icons.people, Colors.green, '+8%'),
+            _buildActivityItem('Active Members', activeMembers, Icons.people,
+                AppColors.success),
             const Divider(),
-            _buildActivityItem('Deposits This Month', '89',
-                Icons.account_balance_wallet, Colors.orange, '+15%'),
+            _buildActivityItem('Pending Approvals', pendingApprovals,
+                Icons.pending_actions, AppColors.warning),
           ],
         ),
       ),
@@ -290,42 +321,23 @@ class AdminAnalyticsScreen extends ConsumerWidget {
   }
 
   Widget _buildActivityItem(
-      String label, String value, IconData icon, Color color, String trend) {
+      String label, String value, IconData icon, Color color) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(icon, color: color),
-      ),
+      leading: IconChip(icon: icon, color: color, size: 40),
       title: Text(label),
-      trailing: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(value,
-              style:
-                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          Text(trend,
-              style: TextStyle(
-                  fontSize: 12,
-                  color: trend.startsWith('+') ? Colors.green : Colors.red)),
-        ],
-      ),
+      trailing: Text(value,
+          style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary)),
     );
   }
 
-  Widget _buildTopContributorsCard(BuildContext context) {
-    final topContributors = [
-      {'name': 'John Doe', 'amount': 50000.0},
-      {'name': 'Jane Smith', 'amount': 45000.0},
-      {'name': 'Bob Johnson', 'amount': 40000.0},
-      {'name': 'Alice Williams', 'amount': 35000.0},
-      {'name': 'Charlie Brown', 'amount': 30000.0},
-    ];
+  Widget _buildTopContributorsCard(
+      BuildContext context, Map<String, dynamic> summary) {
+    final rawList = summary['top_contributors'];
+    final topContributors = rawList is List ? rawList : <dynamic>[];
     final currencyFormat = NumberFormat.currency(symbol: 'KES ');
 
     return Card(
@@ -340,25 +352,40 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                     .titleMedium
                     ?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
-            ...topContributors.asMap().entries.map((entry) {
-              final index = entry.key;
-              final contributor = entry.value;
-              return ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: CircleAvatar(
-                  backgroundColor: _getRankColor(index),
-                  child: Text('${index + 1}',
-                      style: const TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.bold)),
+            if (topContributors.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Center(
+                  child: Text('No contributor data available',
+                      style: TextStyle(color: AppColors.textSecondary)),
                 ),
-                title: Text(contributor['name'] as String),
-                trailing: Text(
-                  currencyFormat.format(contributor['amount']),
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-              );
-            }),
+              )
+            else
+              ...topContributors.asMap().entries.map((entry) {
+                final index = entry.key;
+                final contributor = entry.value as Map<String, dynamic>;
+                final name = contributor['name'] as String? ??
+                    contributor['full_name'] as String? ??
+                    'Member';
+                final amount = double.tryParse(
+                        contributor['amount']?.toString() ?? '0') ??
+                    0.0;
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: CircleAvatar(
+                    backgroundColor: _getRankColor(index),
+                    child: Text('${index + 1}',
+                        style: const TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                  title: Text(name),
+                  trailing: Text(
+                    currencyFormat.format(amount),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                );
+              }),
           ],
         ),
       ),
@@ -368,13 +395,13 @@ class AdminAnalyticsScreen extends ConsumerWidget {
   Color _getRankColor(int index) {
     switch (index) {
       case 0:
-        return Colors.amber;
+        return _chartAmber;
       case 1:
-        return Colors.grey;
+        return AppColors.textMuted;
       case 2:
-        return Colors.brown;
+        return _chartViolet;
       default:
-        return Colors.blue;
+        return AppColors.primary;
     }
   }
 
@@ -384,14 +411,16 @@ class AdminAnalyticsScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(32),
         child: Column(
           children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
             const SizedBox(height: 16),
             Text(title,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary)),
             const SizedBox(height: 8),
             Text(error.toString(),
-                style: const TextStyle(color: Colors.grey),
+                style: const TextStyle(color: AppColors.textSecondary),
                 textAlign: TextAlign.center),
           ],
         ),
@@ -409,7 +438,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Analytics exported successfully!'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
       }
@@ -418,7 +447,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Export failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }

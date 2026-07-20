@@ -1,5 +1,6 @@
 package com.example.advance_company_mobile
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FlutterActivity()
+// local_auth requires a FragmentActivity host for biometric prompts on Android.
+class MainActivity : FlutterFragmentActivity()

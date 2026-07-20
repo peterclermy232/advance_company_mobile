@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../config/theme_config.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../data/providers/core_providers.dart';
 import '../../widgets/common/loading_indicator.dart';
 import '../../widgets/common/empty_state.dart';
+import '../../widgets/common/status_badge.dart';
 
 final allMembersProvider = FutureProvider.autoDispose((ref) async {
   final apiClient = ref.watch(apiClientProvider);
@@ -67,10 +69,10 @@ class _AdminMembersScreenState extends ConsumerState<AdminMembersScreen> {
                 hintText: 'Search members...',
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
                 filled: true,
-                fillColor: Colors.grey[50],
+                fillColor: AppColors.background,
               ),
               onChanged: (value) => setState(() => _searchQuery = value),
             ),
@@ -114,7 +116,8 @@ class _AdminMembersScreenState extends ConsumerState<AdminMembersScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                    const Icon(Icons.error_outline,
+                        size: 64, color: AppColors.error),
                     const SizedBox(height: 16),
                     Text('Error: $error'),
                     ElevatedButton(
@@ -153,52 +156,40 @@ class _MemberListTile extends StatelessWidget {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: CircleAvatar(
-        backgroundColor: Colors.blue.shade100,
+        backgroundColor: AppColors.avatar2,
         child: Text(
           fullName.isNotEmpty ? fullName[0].toUpperCase() : '?',
-          style: TextStyle(
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.blue.shade700,
+            color: AppColors.primaryDark,
           ),
         ),
       ),
       title: Text(
         fullName.isNotEmpty ? fullName : email,
-        style: const TextStyle(fontWeight: FontWeight.w600),
+        style: const TextStyle(
+            fontWeight: FontWeight.w600, color: AppColors.textPrimary),
       ),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(email, style: const TextStyle(fontSize: 12)),
+          Text(email,
+              style:
+                  const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
           if (role != null)
             Text(
               role.toUpperCase(),
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 11,
-                color: Colors.purple.shade700,
+                color: AppColors.secondary,
                 fontWeight: FontWeight.bold,
               ),
             ),
         ],
       ),
-      trailing: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: isActive ? Colors.green.shade50 : Colors.red.shade50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isActive ? Colors.green : Colors.red,
-          ),
-        ),
-        child: Text(
-          // ✅ Show the actual status string from the API
-          activityStatus,
-          style: TextStyle(
-            color: isActive ? Colors.green : Colors.red,
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+      trailing: StatusBadge(
+        label: activityStatus,
+        kind: isActive ? StatusKind.success : StatusKind.error,
       ),
       onTap: () => _showMemberDetails(context, member),
     );
@@ -227,13 +218,13 @@ class _MemberListTile extends StatelessWidget {
               Center(
                 child: CircleAvatar(
                   radius: 40,
-                  backgroundColor: Colors.blue.shade100,
+                  backgroundColor: AppColors.avatar2,
                   child: Text(
                     fullName.isNotEmpty ? fullName[0].toUpperCase() : '?',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue.shade700,
+                      color: AppColors.primaryDark,
                     ),
                   ),
                 ),
@@ -245,6 +236,7 @@ class _MemberListTile extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ),
@@ -289,11 +281,14 @@ class _MemberListTile extends StatelessWidget {
         children: [
           SizedBox(
             width: 140,
-            child: Text(label, style: const TextStyle(color: Colors.grey)),
+            child: Text(label,
+                style: const TextStyle(color: AppColors.textSecondary)),
           ),
           Expanded(
             child: Text(value,
-                style: const TextStyle(fontWeight: FontWeight.w500)),
+                style: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary)),
           ),
         ],
       ),

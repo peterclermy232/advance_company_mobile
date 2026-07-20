@@ -169,6 +169,13 @@ class AuthRepository {
     );
   }
 
+  Future<void> resendVerification(String email) async {
+    await _apiClient.post(
+      ApiEndpoints.resendVerification,
+      data: {'email': email},
+    );
+  }
+
   Future<void> resetPassword({
     required String token,
     required String newPassword,

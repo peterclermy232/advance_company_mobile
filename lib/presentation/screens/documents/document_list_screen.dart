@@ -2,16 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:dio/dio.dart';
+import '../../../config/theme_config.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../data/providers/core_providers.dart';
 import '../../widgets/common/loading_indicator.dart';
 import '../../widgets/common/empty_state.dart';
+import '../../widgets/common/error_widget.dart';
+import '../../widgets/common/status_badge.dart';
+import '../../widgets/common/custom_button.dart';
 
 final documentsProvider = FutureProvider.autoDispose((ref) async {
   // apiClientProvider is a plain Provider — no await
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get(ApiEndpoints.documents);
-  final data = response.data['data'] ?? response.data;
+  final raw = response.data;
+  final data = raw is Map ? (raw['data'] ?? raw) : raw;
 
   if (data is List) return data;
   if (data is Map && data.containsKey('results')) {
@@ -48,10 +53,17 @@ class DocumentListScreen extends ConsumerWidget {
                 icon: Icons.file_copy_outlined,
                 title: 'No Documents',
                 message: 'Upload your documents for verification',
-                action: ElevatedButton.icon(
+                action: CustomButton(
+                  gradient: true,
                   onPressed: () => _showUploadDialog(context, ref),
-                  icon: const Icon(Icons.upload),
-                  label: const Text('Upload Document'),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.upload, size: 18, color: Colors.white),
+                      SizedBox(width: 8),
+                      Text('Upload Document'),
+                    ],
+                  ),
                 ),
               );
             }
@@ -67,7 +79,10 @@ class DocumentListScreen extends ConsumerWidget {
             );
           },
           loading: () => const LoadingIndicator(),
-          error: (error, _) => Center(child: Text('Error: $error')),
+          error: (error, _) => ErrorDisplay(
+            message: error.toString(),
+            onRetry: () => ref.invalidate(documentsProvider),
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -106,7 +121,7 @@ class DocumentListScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                initialValue: selectedCategory,
+                value: selectedCategory,
                 decoration: const InputDecoration(
                   labelText: 'Category',
                 ),
@@ -183,7 +198,7 @@ class DocumentListScreen extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Document uploaded successfully!'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
         ref.invalidate(documentsProvider);
@@ -193,7 +208,7 @@ class DocumentListScreen extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -209,34 +224,11 @@ class _DocumentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = document['status'] as String? ?? 'PENDING';
-    Color statusColor;
-    IconData statusIcon;
-    switch (status) {
-      case 'VERIFIED':
-        statusColor = Colors.green;
-        statusIcon = Icons.check_circle;
-        break;
-      case 'PENDING':
-        statusColor = Colors.orange;
-        statusIcon = Icons.schedule;
-        break;
-      case 'REJECTED':
-        statusColor = Colors.red;
-        statusIcon = Icons.cancel;
-        break;
-      default:
-        statusColor = Colors.grey;
-        statusIcon = Icons.help;
-    }
     return Card(
       child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.blue.shade100,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Icon(Icons.description, color: Colors.blue),
+        leading: const IconChip(
+          icon: Icons.description,
+          color: AppColors.primary,
         ),
         title: Text(
           document['title'] as String? ?? '',
@@ -245,28 +237,7 @@ class _DocumentCard extends StatelessWidget {
         subtitle: Text(
           (document['category'] as String? ?? '').replaceAll('_', ' '),
         ),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: statusColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(statusIcon, size: 16, color: statusColor),
-              const SizedBox(width: 4),
-              Text(
-                status,
-                style: TextStyle(
-                  color: statusColor,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ),
+        trailing: StatusBadge.fromStatus(status),
       ),
     );
   }

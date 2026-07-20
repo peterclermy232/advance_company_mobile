@@ -45,3 +45,8 @@ app.*.map.json
 /android/app/release
 # Ignore local Firebase config containing API keys
 /android/app/google-services.json
+
+# Android release signing — must never be committed
+/android/key.properties
+*.jks
+*.keystore

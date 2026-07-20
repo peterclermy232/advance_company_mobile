@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../config/theme_config.dart';
 import '../../../data/models/deposit_model.dart';
 
 class DepositCard extends StatelessWidget {
@@ -19,20 +20,20 @@ class DepositCard extends StatelessWidget {
     final IconData statusIcon;
 
     if (deposit.isApproved) {
-      statusColor = const Color(0xFF16A34A);
-      statusBg = const Color(0xFFDCFCE7);
+      statusColor = AppColors.success;
+      statusBg = AppColors.successBg;
       statusIcon = Icons.check_circle_rounded;
     } else if (deposit.isPending) {
-      statusColor = const Color(0xFFD97706);
-      statusBg = const Color(0xFFFEF3C7);
+      statusColor = AppColors.warning;
+      statusBg = AppColors.warningBg;
       statusIcon = Icons.schedule_rounded;
     } else if (deposit.isRejected) {
-      statusColor = const Color(0xFFDC2626);
-      statusBg = const Color(0xFFFEE2E2);
+      statusColor = AppColors.error;
+      statusBg = AppColors.errorBg;
       statusIcon = Icons.cancel_rounded;
     } else {
-      statusColor = Colors.grey.shade600;
-      statusBg = Colors.grey.shade100;
+      statusColor = AppColors.neutral;
+      statusBg = AppColors.neutralBg;
       statusIcon = Icons.help_outline_rounded;
     }
 
@@ -41,15 +42,9 @@ class DepositCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        boxShadow: AppColors.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -58,9 +53,9 @@ class DepositCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
-              color: statusBg.withValues(alpha: 0.45),
+              color: statusBg.withOpacity(0.45),
               borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
+                  const BorderRadius.vertical(top: Radius.circular(AppRadius.md)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -68,11 +63,11 @@ class DepositCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'Amount',
                       style: TextStyle(
                           fontSize: 11,
-                          color: Colors.grey.shade500,
+                          color: AppColors.textSecondary,
                           letterSpacing: 0.5),
                     ),
                     const SizedBox(height: 2),
@@ -81,7 +76,7 @@ class DepositCard extends StatelessWidget {
                       style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E293B)),
+                          color: AppColors.textPrimary),
                     ),
                   ],
                 ),
@@ -93,7 +88,7 @@ class DepositCard extends StatelessWidget {
                     color: statusBg,
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                        color: statusColor.withValues(alpha: 0.4), width: 1.5),
+                        color: statusColor.withOpacity(0.4), width: 1.5),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -150,7 +145,7 @@ class DepositCard extends StatelessWidget {
                 // Reference
                 _InfoRow(
                   icon: Icons.tag_rounded,
-                  iconColor: Colors.grey.shade500,
+                  iconColor: AppColors.textSecondary,
                   label: 'Reference',
                   value: deposit.transactionReference,
                   isMonospace: true,
@@ -213,16 +208,14 @@ class DepositCard extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFEE2E2),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                          color: const Color(0xFFFCA5A5), width: 1.5),
+                      color: AppColors.errorBg,
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Icon(Icons.info_outline_rounded,
-                            color: Color(0xFFDC2626), size: 16),
+                            color: AppColors.error, size: 16),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Column(
@@ -231,7 +224,7 @@ class DepositCard extends StatelessWidget {
                               const Text(
                                 'Rejection Reason',
                                 style: TextStyle(
-                                    color: Color(0xFFDC2626),
+                                    color: AppColors.error,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 11),
                               ),
@@ -239,7 +232,7 @@ class DepositCard extends StatelessWidget {
                               Text(
                                 deposit.rejectionReason!,
                                 style: const TextStyle(
-                                    color: Color(0xFF991B1B), fontSize: 13),
+                                    color: AppColors.errorText, fontSize: 13),
                               ),
                             ],
                           ),
@@ -278,16 +271,16 @@ class _InfoTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade200),
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.1),
+              color: iconColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(7),
             ),
             child: Icon(icon, size: 15, color: iconColor),
@@ -299,7 +292,7 @@ class _InfoTile extends StatelessWidget {
               children: [
                 Text(label,
                     style:
-                        TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+                        TextStyle(fontSize: 10, color: AppColors.textSecondary)),
                 const SizedBox(height: 2),
                 Text(value,
                     style: const TextStyle(
@@ -341,7 +334,7 @@ class _InfoRow extends StatelessWidget {
           width: 100,
           child: Text(
             '$label:',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
         ),
         Expanded(

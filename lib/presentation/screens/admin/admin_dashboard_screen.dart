@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../config/theme_config.dart';
+import '../../widgets/common/status_badge.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
@@ -18,31 +20,31 @@ class AdminDashboardScreen extends ConsumerWidget {
           _AdminTile(
             title: 'Deposit Approvals',
             icon: Icons.pending_actions,
-            color: Colors.orange,
-            onTap: () => context.push('/admin/deposit-approvals'),
+            color: AppColors.warning,
+            onTap: () => context.push('/admin/deposits'),
           ),
           _AdminTile(
             title: 'Application Reviews',
             icon: Icons.assignment_outlined,
-            color: Colors.teal,
+            color: AppColors.info,
             onTap: () => context.push('/admin/applications'),
           ),
           _AdminTile(
             title: 'Analytics',
             icon: Icons.bar_chart,
-            color: Colors.purple,
+            color: AppColors.secondary,
             onTap: () => context.push('/admin/analytics'),
           ),
           _AdminTile(
             title: 'Members',
             icon: Icons.people,
-            color: Colors.blue,
+            color: AppColors.primary,
             onTap: () => context.push('/admin/members'),
           ),
           _AdminTile(
             title: 'Beneficiary Verification',
             icon: Icons.verified_user,
-            color: Colors.green,
+            color: AppColors.success,
             onTap: () => context.push('/admin/beneficiary-verification'),
           ),
         ],
@@ -51,6 +53,8 @@ class AdminDashboardScreen extends ConsumerWidget {
   }
 }
 
+// Mirrors the web's admin quick-launch cards: white shadow-card with a
+// solid colored IconChip, matching the shared StatCard/quick-action styling.
 class _AdminTile extends StatelessWidget {
   final String title;
   final IconData icon;
@@ -66,33 +70,36 @@ class _AdminTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 40),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                title,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: color,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
+    return Material(
+      color: AppColors.card,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            boxShadow: AppColors.cardShadow,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconChip(icon: icon, color: color, size: 48),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

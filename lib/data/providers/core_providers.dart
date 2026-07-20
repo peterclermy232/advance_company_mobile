@@ -27,6 +27,11 @@ final sharedPreferencesProvider = Provider<SharedPreferences>(
 final flutterSecureStorageProvider = Provider<FlutterSecureStorage>(
   (ref) => const FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    // The data protection keychain requires a Keychain Sharing entitlement
+    // tied to a real Apple Development Team, which this project's local/CI
+    // ad-hoc signing doesn't have. Falling back to the legacy keychain avoids
+    // needing that entitlement.
+    mOptions: MacOsOptions(useDataProtectionKeyChain: false),
   ),
 );
 

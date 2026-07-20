@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../config/theme_config.dart';
 import '../../../data/models/beneficiary_model.dart';
+import '../common/status_badge.dart';
 
 class BeneficiaryCard extends StatelessWidget {
   final BeneficiaryModel beneficiary;
@@ -13,32 +15,27 @@ class BeneficiaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color statusColor;
-    final IconData statusIcon;
     final String statusLabel;
+    final StatusKind statusKind;
 
     if (beneficiary.isVerified) {
-      statusColor = Colors.green;
-      statusIcon = Icons.verified;
+      statusKind = StatusKind.success;
       statusLabel = beneficiary.verificationStatusDisplay ?? 'Verified';
     } else if (beneficiary.isPending) {
-      statusColor = Colors.orange;
-      statusIcon = Icons.schedule;
+      statusKind = StatusKind.warning;
       statusLabel = beneficiary.verificationStatusDisplay ?? 'Pending';
     } else if (beneficiary.isRejected) {
-      statusColor = Colors.red;
-      statusIcon = Icons.cancel;
+      statusKind = StatusKind.error;
       statusLabel = beneficiary.verificationStatusDisplay ?? 'Rejected';
     } else {
-      statusColor = Colors.grey;
-      statusIcon = Icons.help;
+      statusKind = StatusKind.neutral;
       statusLabel = beneficiary.verificationStatus;
     }
 
     return Card(
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -47,15 +44,20 @@ class BeneficiaryCard extends StatelessWidget {
               // ── Header ──────────────────────────────────────────────────
               Row(
                 children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: Colors.blue.shade100,
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: const BoxDecoration(
+                      gradient: AppColors.brandGradient,
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
                     child: Text(
                       beneficiary.name[0].toUpperCase(),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade700,
+                        color: Colors.white,
                       ),
                     ),
                   ),
@@ -76,8 +78,8 @@ class BeneficiaryCard extends StatelessWidget {
                           '${beneficiary.relationDisplay ?? beneficiary.relation} '
                           '• ${beneficiary.age} yrs'
                           '${beneficiary.genderDisplay != null ? ' • ${beneficiary.genderDisplay}' : ''}',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
                             fontSize: 13,
                           ),
                         ),
@@ -86,14 +88,14 @@ class BeneficiaryCard extends StatelessWidget {
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              Icon(Icons.pie_chart_outline,
-                                  size: 13, color: Colors.blue.shade600),
+                              const Icon(Icons.pie_chart_outline,
+                                  size: 13, color: AppColors.primary),
                               const SizedBox(width: 4),
                               Text(
                                 '${beneficiary.percentageAllocation.toStringAsFixed(0)}% allocation',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 12,
-                                  color: Colors.blue.shade600,
+                                  color: AppColors.primary,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -104,29 +106,7 @@ class BeneficiaryCard extends StatelessWidget {
                     ),
                   ),
                   // Verification status chip
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(statusIcon, size: 14, color: statusColor),
-                        const SizedBox(width: 4),
-                        Text(
-                          statusLabel,
-                          style: TextStyle(
-                            color: statusColor,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  StatusBadge(label: statusLabel, kind: statusKind),
                 ],
               ),
 
@@ -151,9 +131,11 @@ class BeneficiaryCard extends StatelessWidget {
   Widget _buildInfoRow(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, size: 15, color: Colors.grey),
+        Icon(icon, size: 15, color: AppColors.textSecondary),
         const SizedBox(width: 8),
-        Text(text, style: const TextStyle(fontSize: 13)),
+        Text(text,
+            style:
+                const TextStyle(fontSize: 13, color: AppColors.textPrimary)),
       ],
     );
   }

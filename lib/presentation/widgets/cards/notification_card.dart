@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../config/theme_config.dart';
 import '../../../data/models/notification_model.dart';
 
 class NotificationCard extends StatelessWidget {
@@ -14,10 +15,10 @@ class NotificationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: notification.isRead ? null : Colors.blue.shade50,
+      color: notification.isRead ? null : AppColors.infoBg,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Row(
@@ -27,13 +28,15 @@ class NotificationCard extends StatelessWidget {
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: notification.isRead
-                      ? Colors.grey.shade100
-                      : Colors.blue.shade100,
+                      ? AppColors.neutralBg
+                      : AppColors.primary,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   _getNotificationIcon(notification.notificationType),
-                  color: notification.isRead ? Colors.grey : Colors.blue,
+                  color: notification.isRead
+                      ? AppColors.textSecondary
+                      : Colors.white,
                   size: 24,
                 ),
               ),
@@ -49,22 +52,23 @@ class NotificationCard extends StatelessWidget {
                         fontWeight: notification.isRead
                             ? FontWeight.normal
                             : FontWeight.bold,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       notification.message,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade700,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       notification.timeAgo,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade500,
+                        color: AppColors.textMuted,
                       ),
                     ),
                   ],
@@ -75,7 +79,7 @@ class NotificationCard extends StatelessWidget {
                   width: 8,
                   height: 8,
                   decoration: const BoxDecoration(
-                    color: Colors.blue,
+                    color: AppColors.primary,
                     shape: BoxShape.circle,
                   ),
                 ),

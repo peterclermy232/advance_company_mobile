@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../config/theme_config.dart';
+
 class EmptyState extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -23,24 +25,20 @@ class EmptyState extends StatelessWidget {
           children: [
             Icon(
               icon,
-              size: 80,
-              color: Colors.grey,
+              size: 64,
+              color: AppColors.textMuted,
             ),
             const SizedBox(height: 16),
             Text(
               title,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(context).textTheme.titleLarge,
               textAlign: TextAlign.center,
             ),
             if (message != null) ...[
               const SizedBox(height: 8),
               Text(
                 message!,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey,
-                    ),
+                style: Theme.of(context).textTheme.bodyMedium,
                 textAlign: TextAlign.center,
               ),
             ],

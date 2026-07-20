@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../data/providers/auth_provider.dart';
-import '../../../core/constants/app_colors.dart';
+import '../../../config/theme_config.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -247,29 +247,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         boxShadow: AppColors.cardShadow,
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 30,
-            backgroundColor: AppColors.primary,
-            backgroundImage: user.profilePhotoUrl != null
-                ? NetworkImage(user.profilePhotoUrl!)
-                : null,
-            child: user.profilePhotoUrl == null
-                ? Text(
-                    user.firstName.isNotEmpty
-                        ? user.firstName[0].toUpperCase()
-                        : '?',
-                    style: const TextStyle(
-                        fontSize: 24,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold),
-                  )
-                : null,
-          ),
+          user.profilePhotoUrl != null
+              ? CircleAvatar(
+                  radius: 30,
+                  backgroundImage: NetworkImage(user.profilePhotoUrl!),
+                )
+              : Container(
+                  width: 60,
+                  height: 60,
+                  decoration: const BoxDecoration(
+                    gradient: AppColors.brandGradient,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      user.firstName.isNotEmpty
+                          ? user.firstName[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(
+                          fontSize: 24,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -296,8 +302,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4),
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(AppRadius.full),
                   ),
                   child: Text(
                     user.role.toUpperCase(),
@@ -336,7 +342,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget _buildCard(List<Widget> children) => Container(
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           boxShadow: AppColors.cardShadow,
         ),
         child: Column(children: children),
@@ -400,7 +406,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           : null,
       value: value,
       onChanged: onChanged,
-      activeThumbColor: AppColors.primary,
+      activeColor: AppColors.primary,
     );
   }
 }

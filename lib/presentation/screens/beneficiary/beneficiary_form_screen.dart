@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
+import '../../../config/theme_config.dart';
 import '../../../data/providers/beneficiary_provider.dart';
 import '../../widgets/common/custom_button.dart';
 import '../../widgets/common/custom_text_field.dart';
@@ -102,7 +103,7 @@ class _BeneficiaryFormScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Identity document is required'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.error,
         ),
       );
       return;
@@ -140,7 +141,7 @@ class _BeneficiaryFormScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Beneficiary added successfully!'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
         context.pop();
@@ -150,7 +151,7 @@ class _BeneficiaryFormScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -241,17 +242,13 @@ class _BeneficiaryFormScreenState
                   children: [
                     const Text('Salary Range (Optional)',
                         style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w600)),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary)),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
-                      initialValue: _selectedSalaryRange,
+                      value: _selectedSalaryRange,
                       hint: const Text('Select salary range'),
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        filled: true,
-                        fillColor: Colors.grey[50],
-                      ),
                       items: _salaryRanges
                           .map((r) => DropdownMenuItem(
                           value: r,
@@ -305,6 +302,7 @@ class _BeneficiaryFormScreenState
               CustomButton(
                 onPressed: _isLoading ? null : _handleSubmit,
                 isLoading: _isLoading,
+                gradient: true,
                 child: const Text('Add Beneficiary'),
               ),
             ],
@@ -345,16 +343,12 @@ class _BeneficiaryFormScreenState
       children: [
         Text(label,
             style: const TextStyle(
-                fontSize: 14, fontWeight: FontWeight.w600)),
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary)),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          initialValue: value,
-          decoration: InputDecoration(
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12)),
-            filled: true,
-            fillColor: Colors.grey[50],
-          ),
+          value: value,
           items: items
               .map((item) => DropdownMenuItem(
             value: item['value'],
@@ -373,43 +367,49 @@ class _BeneficiaryFormScreenState
       VoidCallback onTap, {
         bool required = false,
       }) {
+    final hasError = required && file == null;
+    final borderColor = hasError
+        ? AppColors.error
+        : (file != null ? AppColors.success : AppColors.border);
+    final fillColor = file != null ? AppColors.successBg : AppColors.background;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
             style: const TextStyle(
-                fontSize: 14, fontWeight: FontWeight.w600)),
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary)),
         const SizedBox(height: 8),
         InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              border: Border.all(
-                color: (required && file == null)
-                    ? Colors.red.shade300
-                    : Colors.grey.shade300,
-              ),
-              borderRadius: BorderRadius.circular(12),
-              color: Colors.grey[50],
+              border: Border.all(color: borderColor),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              color: fillColor,
             ),
             child: Row(
               children: [
                 Icon(
                   file != null ? Icons.check_circle : Icons.upload_file,
-                  color: file != null ? Colors.green : Colors.grey,
+                  color: file != null ? AppColors.success : AppColors.textMuted,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     file?.name ?? 'Tap to upload',
                     style: TextStyle(
-                        color:
-                        file != null ? Colors.black : Colors.grey),
+                        color: file != null
+                            ? AppColors.textPrimary
+                            : AppColors.textMuted),
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios, size: 16),
+                const Icon(Icons.arrow_forward_ios,
+                    size: 16, color: AppColors.textMuted),
               ],
             ),
           ),

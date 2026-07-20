@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../config/theme_config.dart';
 import '../../../data/models/application_model.dart';
-import '../../../data/models/application_type_model.dart';
 import '../../../data/providers/application_providers.dart';
 import '../../widgets/common/loading_indicator.dart';
 import '../../widgets/common/empty_state.dart';
+import '../../widgets/common/status_badge.dart';
+import '../../widgets/common/custom_button.dart';
 
 class ApplicationListScreen extends ConsumerWidget {
   const ApplicationListScreen({super.key});
@@ -26,7 +28,8 @@ class ApplicationListScreen extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                const Icon(Icons.error_outline,
+                    size: 48, color: AppColors.error),
                 const SizedBox(height: 16),
                 Text('Error: $error'),
                 const SizedBox(height: 16),
@@ -45,10 +48,21 @@ class ApplicationListScreen extends ConsumerWidget {
                 title: 'No Applications',
                 message: 'Submit applications for loans, withdrawals, or '
                     'membership changes',
-                action: ElevatedButton.icon(
-                  onPressed: () => context.push('/applications/new'),
-                  icon: const Icon(Icons.add),
-                  label: const Text('New Application'),
+                action: SizedBox(
+                  width: 220,
+                  child: CustomButton(
+                    gradient: true,
+                    onPressed: () => context.push('/applications/new'),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.add, size: 20, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text('New Application'),
+                      ],
+                    ),
+                  ),
                 ),
               );
             }
@@ -74,27 +88,13 @@ class ApplicationListScreen extends ConsumerWidget {
 
 // ─── Application Card ─────────────────────────────────────────────────────────
 
-class _ApplicationCard extends ConsumerWidget {
+class _ApplicationCard extends StatelessWidget {
   const _ApplicationCard({required this.application});
 
   final ApplicationModel application;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Use status colour from the choices provider if available,
-    // otherwise fall back to a local default.
-    final statusChoicesAsync = ref.watch(statusChoicesProvider);
-    final Color statusColor = statusChoicesAsync.whenOrNull(
-          data: (choices) {
-            final match = choices.cast<StatusChoiceModel?>().firstWhere(
-                  (c) => c?.value == application.status,
-                  orElse: () => null,
-                );
-            return match != null ? Color(match.colorValue) : null;
-          },
-        ) ??
-        _defaultColor(application.status);
-
+  Widget build(BuildContext context) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -104,20 +104,17 @@ class _ApplicationCard extends ConsumerWidget {
             // Header row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: Text(
                     application.applicationTypeLabel,
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleMedium,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const SizedBox(width: 8),
-                _StatusBadge(
-                  label: application.status.replaceAll('_', ' ').toUpperCase(),
-                  color: statusColor,
-                ),
+                StatusBadge.fromStatus(application.status),
               ],
             ),
 
@@ -126,7 +123,10 @@ class _ApplicationCard extends ConsumerWidget {
             // Reason
             Text(
               application.reason,
-              style: TextStyle(color: Colors.grey.shade700, height: 1.4),
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(height: 1.4),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -135,7 +135,7 @@ class _ApplicationCard extends ConsumerWidget {
             const SizedBox(height: 8),
             Text(
               'Submitted ${_formatDate(application.submittedAt)}',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+              style: Theme.of(context).textTheme.bodySmall,
             ),
 
             // Admin comments
@@ -145,18 +145,21 @@ class _ApplicationCard extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
+                  color: AppColors.divider,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.comment, color: Colors.blue.shade700, size: 18),
+                    const Icon(Icons.comment,
+                        color: AppColors.textSecondary, size: 18),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         application.adminComments!,
-                        style: TextStyle(color: Colors.blue.shade900),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppColors.textPrimary,
+                            ),
                       ),
                     ),
                   ],
@@ -169,47 +172,7 @@ class _ApplicationCard extends ConsumerWidget {
     );
   }
 
-  Color _defaultColor(String status) {
-    switch (status) {
-      case 'approved':
-        return Colors.green;
-      case 'rejected':
-        return Colors.red;
-      case 'under_review':
-        return Colors.blue;
-      default:
-        return Colors.orange;
-    }
-  }
-
   String _formatDate(DateTime dt) {
     return '${dt.day}/${dt.month}/${dt.year}';
-  }
-}
-
-class _StatusBadge extends StatelessWidget {
-  const _StatusBadge({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w600,
-          fontSize: 11,
-        ),
-      ),
-    );
   }
 }
